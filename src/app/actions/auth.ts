@@ -70,3 +70,21 @@ export async function logoutCustomer(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(TOKEN_COOKIE);
 }
+
+export async function forgotPassword(email: string): Promise<{ ok: boolean }> {
+  const client = getStadianClient();
+  return client.customers.forgotPassword({ email });
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string
+): Promise<{ ok: boolean }> {
+  const client = getStadianClient();
+  return client.customers.resetPassword({ token, newPassword });
+}
+
+export async function verifyEmail(token: string): Promise<{ ok: boolean }> {
+  const client = getStadianClient();
+  return client.customers.verifyEmail({ token });
+}
