@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { getBranding, brandingToCssVars } from "@/lib/branding";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { AuthProvider } from "@/providers/auth-provider";
 import { CartProvider } from "@/providers/cart-provider";
 import "./globals.css";
 
@@ -34,11 +35,13 @@ export default async function RootLayout({
       style={cssVars as React.CSSProperties}
     >
       <body className="flex min-h-full flex-col">
-        <CartProvider>
-          <Header branding={branding} />
-          <main className="flex-1">{children}</main>
-          <Footer branding={branding} />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <Header branding={branding} />
+            <main className="flex-1">{children}</main>
+            <Footer branding={branding} />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

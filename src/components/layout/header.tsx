@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { StorefrontBranding } from "@stadian/storefront-sdk";
 import { CartIcon } from "./cart-icon";
+import { AuthNav } from "./auth-nav";
 
 interface HeaderProps {
   branding: StorefrontBranding;
@@ -30,13 +31,14 @@ export function Header({ branding }: HeaderProps) {
         </Link>
 
         {/* Navigation */}
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-3">
           <Link
             href="/products"
             className="inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground"
           >
             Products
           </Link>
+          <AuthNav />
           <CartIcon />
         </nav>
       </div>
