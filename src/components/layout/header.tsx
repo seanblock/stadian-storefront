@@ -38,6 +38,18 @@ export function Header({ branding }: HeaderProps) {
           >
             Products
           </Link>
+          <Link
+            href="/about"
+            className="inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground"
+          >
+            About
+          </Link>
+          <Link
+            href="/faq"
+            className="inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground"
+          >
+            FAQ
+          </Link>
           <AuthNav />
           <CartIcon />
         </nav>

@@ -19,10 +19,16 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const product = await getStadianClient().catalog.get(slug);
+    const client = getStadianClient();
+    const product = await client.catalog.get(slug);
     return {
       title: product.name,
-      description: product.description ?? undefined,
+      description: product.description?.slice(0, 160) || undefined,
+      openGraph: {
+        title: product.name,
+        description: product.description?.slice(0, 160) || undefined,
+        images: product.image_url ? [{ url: product.image_url }] : undefined,
+      },
     };
   } catch {
     return { title: "Product Not Found" };
@@ -41,8 +47,33 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   if (!product) notFound();
 
+  const retailPrice = product.prices?.find((p) => p.tier_name === "Retail") ?? product.prices?.[0];
+
+  // JSON-LD content is safe: constructed from server API data via JSON.stringify, not raw user HTML
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jsonLd: any = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.image_url,
+    ...(retailPrice && {
+      offers: {
+        "@type": "Offer",
+        price: retailPrice.price,
+        priceCurrency: retailPrice.currency || "USD",
+        availability: "https://schema.org/InStock",
+      },
+    }),
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
+      {/* eslint-disable-next-line react/no-danger */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="grid gap-8 md:grid-cols-2">
         {/* Product image */}
         <div className="relative aspect-square overflow-hidden rounded-xl bg-muted">

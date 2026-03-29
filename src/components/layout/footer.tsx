@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { StorefrontBranding } from "@stadian/storefront-sdk";
 
 interface FooterProps {
@@ -22,7 +23,28 @@ export function Footer({ branding }: FooterProps) {
 
   return (
     <footer className="mt-auto border-t border-border bg-muted/40">
-      <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 py-8 sm:flex-row sm:justify-between sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <nav
+          aria-label="Footer links"
+          className="mb-6 flex flex-wrap justify-center gap-x-6 gap-y-2"
+        >
+          {[
+            { href: "/about", label: "About" },
+            { href: "/faq", label: "FAQ" },
+            { href: "/terms", label: "Terms" },
+            { href: "/privacy", label: "Privacy" },
+            { href: "/returns", label: "Returns" },
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {footerText
             ? footerText
@@ -44,6 +66,7 @@ export function Footer({ branding }: FooterProps) {
             ))}
           </nav>
         )}
+      </div>
       </div>
     </footer>
   );
