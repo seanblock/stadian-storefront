@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { getBranding, brandingToCssVars } from "@/lib/branding";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { CartProvider } from "@/providers/cart-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -33,9 +34,11 @@ export default async function RootLayout({
       style={cssVars as React.CSSProperties}
     >
       <body className="flex min-h-full flex-col">
-        <Header branding={branding} />
-        <main className="flex-1">{children}</main>
-        <Footer branding={branding} />
+        <CartProvider>
+          <Header branding={branding} />
+          <main className="flex-1">{children}</main>
+          <Footer branding={branding} />
+        </CartProvider>
       </body>
     </html>
   );
