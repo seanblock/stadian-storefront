@@ -19,7 +19,12 @@ export async function getBranding(): Promise<StorefrontBranding> {
       mode: "light",
       social_links: null,
       footer_text: null,
-    };
+      about_us: null,
+      faq: null,
+      terms_of_service: null,
+      privacy_policy: null,
+      return_policy: null,
+    } as StorefrontBranding;
   }
 }
 

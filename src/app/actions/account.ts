@@ -1,12 +1,17 @@
 "use server";
 
-import { getCustomerToken } from "./auth";
+import { cookies } from "next/headers";
+import { getStadianClient } from "@/lib/stadian";
+import type { StorefrontOrder, PaginatedList } from "@stadian/storefront-sdk";
 
-export async function getOrderHistory(): Promise<[]> {
-  const token = await getCustomerToken();
-  if (!token) return [];
+export async function getOrderHistory(
+  limit = 20,
+  offset = 0,
+): Promise<PaginatedList<StorefrontOrder>> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("stadian_customer_token")?.value;
+  if (!token) return { items: [], total: 0, page: 1, limit };
 
-  // The SDK doesn't have a dedicated order history endpoint yet.
-  // This will be connected when the API endpoint exists.
-  return [];
+  const client = getStadianClient();
+  return client.orders.list({ customerToken: token, limit, offset });
 }
