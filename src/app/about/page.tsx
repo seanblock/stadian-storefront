@@ -1,25 +1,22 @@
 import type { Metadata } from "next";
+import { getPage } from "@/app/actions/content";
+import { TiptapRenderer } from "@/components/tiptap-renderer";
 
 export const metadata: Metadata = { title: "About Us" };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const doc = await getPage("about");
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold">About Us</h1>
-      <div className="mt-6 space-y-4 text-muted-foreground leading-relaxed">
-        <p>
-          Welcome to our store. We are committed to providing high-quality
-          research peptides and compounds to researchers and practitioners.
-        </p>
-        <p>
-          Our products undergo rigorous quality testing and come with
-          certificates of analysis. We prioritize purity, consistency,
-          and customer satisfaction.
-        </p>
-        <p>
-          This page is a template — edit it to tell your story.
-        </p>
-      </div>
+      {doc ? (
+        <TiptapRenderer document={doc} />
+      ) : (
+        <>
+          <h1 className="text-3xl font-bold">About Us</h1>
+          <p className="mt-6 text-muted-foreground">Coming soon.</p>
+        </>
+      )}
     </div>
   );
 }
