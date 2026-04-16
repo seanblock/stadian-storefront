@@ -33,3 +33,11 @@ export async function removeCartItem(
   const client = getStadianClient();
   return client.cart.removeItem({ sessionToken: sessionId, itemId });
 }
+
+export async function applyDiscountCode(
+  sessionId: string,
+  code: string,
+): Promise<{ success: boolean; error?: string }> {
+  // Discount code endpoint TBD — stub for now
+  return { success: false, error: "Discount codes are not yet available" };
+}
