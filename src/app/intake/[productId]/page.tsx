@@ -109,7 +109,7 @@ export default function IntakeFormPage({
         productId: form.product_id ?? undefined,
         responses,
       });
-      router.push(`/intake/status/${submission.id}`);
+      router.push(`/account/intake/${submission.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Submission failed. Please try again.");
       setSubmitting(false);

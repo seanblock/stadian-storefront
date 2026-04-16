@@ -52,7 +52,7 @@ export default function CheckoutPage() {
         notes: (data.get("notes") as string) || undefined,
       });
       clearSession();
-      router.push(`/order/${order.id}`);
+      router.push(`/account/orders/${order.id}`);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to place order. Please try again."
