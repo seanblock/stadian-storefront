@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -31,7 +32,8 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push("/account");
+      const redirectTo = searchParams.get("redirect") || "/account";
+      router.push(redirectTo);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Invalid email or password"

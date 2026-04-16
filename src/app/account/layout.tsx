@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,15 +20,8 @@ const affiliateNavItems = [
 ];
 
 export default function AccountLayout({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, loading, isAffiliate } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.replace("/login");
-    }
-  }, [loading, isAuthenticated, router]);
+  const { loading, isAffiliate } = useAuth();
 
   if (loading) {
     return (
@@ -36,10 +29,6 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
         <p className="text-sm text-muted-foreground">Loading...</p>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   const navItems = isAffiliate
