@@ -1,32 +1,42 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { sendEmail } from "@/lib/email";
-import {
-  orderConfirmationEmail,
-  orderShippedEmail,
-  orderCancelledEmail,
-  intakeStatusEmail,
-} from "@/lib/email-templates";
+
+function verifySignature(rawBody: string, signature: string, secret: string): boolean {
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody)
+    .digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
 
 export async function POST(request: NextRequest) {
-  // Verify webhook secret
-  const secret = request.headers.get("x-webhook-secret");
-  const expectedSecret = process.env.STADIAN_WEBHOOK_SECRET;
+  const secret = process.env.STADIAN_WEBHOOK_SECRET;
 
-  if (expectedSecret && secret !== expectedSecret) {
-    return NextResponse.json({ error: "Invalid webhook secret" }, { status: 401 });
+  if (!secret) {
+    console.error("STADIAN_WEBHOOK_SECRET is not configured — rejecting webhook");
+    return NextResponse.json(
+      { error: "Webhook secret not configured" },
+      { status: 500 },
+    );
+  }
+
+  const rawBody = await request.text();
+  const signature = request.headers.get("x-stadian-signature");
+
+  if (!signature || !verifySignature(rawBody, signature, secret)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   let body;
   try {
-    body = await request.json();
+    body = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
   const { event, data } = body;
 
-  // Handle revalidation
   switch (event) {
     case "product.updated":
     case "product.created":
@@ -37,44 +47,20 @@ export async function POST(request: NextRequest) {
       break;
 
     case "order.created":
-      if (data?.customer_email) {
-        const email = orderConfirmationEmail({
-          orderNumber: data.order_number,
-          total: data.total,
-          storeName: "Store", // Tenant customizes this
-        });
-        await sendEmail({ to: data.customer_email, ...email });
-      }
-      break;
-
     case "order.shipped":
-      if (data?.customer_email) {
-        const email = orderShippedEmail({
-          orderNumber: data.order_number,
-          trackingNumber: data.tracking_number,
-          trackingUrl: data.tracking_url,
-        });
-        await sendEmail({ to: data.customer_email, ...email });
-      }
-      break;
-
     case "order.cancelled":
-      if (data?.customer_email) {
-        const email = orderCancelledEmail({
-          orderNumber: data.order_number,
-        });
-        await sendEmail({ to: data.customer_email, ...email });
-      }
+      revalidatePath("/account/orders");
+      if (data?.id) revalidatePath(`/account/orders/${data.id}`);
       break;
 
     case "intake.approved":
     case "intake.denied":
     case "intake.info_requested":
-      if (data?.customer_email) {
-        const status = event.split(".")[1];
-        const email = intakeStatusEmail({ status });
-        await sendEmail({ to: data.customer_email, ...email });
-      }
+      if (data?.id) revalidatePath(`/account/intake/${data.id}`);
+      break;
+
+    case "page.updated":
+      if (data?.slug) revalidatePath(`/${data.slug}`);
       break;
   }
 
