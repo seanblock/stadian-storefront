@@ -1,10 +1,21 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/providers/cart-provider";
+import { useAuth } from "@/providers/auth-provider";
 import { OrderSummary } from "@/components/cart/order-summary";
 import { createOrder } from "@/app/actions/checkout";
+import {
+  getPaymentConfig,
+  getStoredPaymentMethods,
+  type PaymentClientConfig,
+  type StoredPaymentMethod,
+} from "@/app/actions/payments";
+import {
+  PaymentSection,
+  type PaymentSectionHandle,
+} from "@/components/checkout/payment-section";
 import { getSessionId, clearSession } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,14 +31,43 @@ import { Textarea } from "@/components/ui/textarea";
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart, loading } = useCart();
+  const { isAuthenticated } = useAuth();
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [paymentConfig, setPaymentConfig] = useState<PaymentClientConfig | null>(null);
+  const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
+  const [configLoading, setConfigLoading] = useState(true);
+
+  const paymentRef = useRef<PaymentSectionHandle>(null);
 
   useEffect(() => {
     if (!loading && (!cart || cart.items.length === 0)) {
       router.push("/cart");
     }
   }, [loading, cart, router]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPaymentData() {
+      try {
+        const [config, methods] = await Promise.all([
+          getPaymentConfig(),
+          isAuthenticated ? getStoredPaymentMethods() : Promise.resolve([]),
+        ]);
+        if (cancelled) return;
+        setPaymentConfig(config);
+        setStoredMethods(methods);
+      } finally {
+        if (!cancelled) setConfigLoading(false);
+      }
+    }
+    loadPaymentData();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,20 +78,50 @@ export default function CheckoutPage() {
     const data = new FormData(form);
 
     try {
+      const paymentData = paymentRef.current
+        ? await paymentRef.current.getPaymentData()
+        : {};
+
+      const sameAsShipping = data.get("billing_same") === "on" || data.get("billing_same") === null;
+      const shippingAddress = {
+        line1: data.get("line1") as string,
+        line2: (data.get("line2") as string) || undefined,
+        city: data.get("city") as string,
+        state: data.get("state") as string,
+        zip: data.get("zip") as string,
+        country: data.get("country") as string,
+      };
+
+      const billingAddress = sameAsShipping
+        ? undefined
+        : {
+            line1: data.get("billing_line1") as string,
+            line2: (data.get("billing_line2") as string) || undefined,
+            city: data.get("billing_city") as string,
+            state: data.get("billing_state") as string,
+            zip: data.get("billing_zip") as string,
+            country: data.get("billing_country") as string,
+          };
+
       const sessionId = getSessionId();
       const order = await createOrder(sessionId, {
         customerEmail: data.get("email") as string,
-        shippingAddress: {
-          line1: data.get("line1") as string,
-          line2: (data.get("line2") as string) || undefined,
-          city: data.get("city") as string,
-          state: data.get("state") as string,
-          zip: data.get("zip") as string,
-          country: data.get("country") as string,
-        },
+        shippingAddress,
+        billingAddress,
         notes: (data.get("notes") as string) || undefined,
+        ...paymentData,
       });
+
       clearSession();
+
+      if (paymentData.paymentFlow === "redirect") {
+        const redirectUrl = (order as unknown as { redirect_url?: string }).redirect_url;
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+          return;
+        }
+      }
+
       router.push(`/account/orders/${order.id}`);
     } catch (err) {
       setError(
@@ -74,9 +144,7 @@ export default function CheckoutPage() {
       <h1 className="mb-8 text-2xl font-semibold">Checkout</h1>
       <form onSubmit={handleSubmit}>
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          {/* Left column — form sections */}
           <div className="flex flex-col gap-6">
-            {/* Contact */}
             <Card>
               <CardHeader>
                 <CardTitle>Contact</CardTitle>
@@ -96,7 +164,6 @@ export default function CheckoutPage() {
               </CardContent>
             </Card>
 
-            {/* Shipping Address */}
             <Card>
               <CardHeader>
                 <CardTitle>Shipping Address</CardTitle>
@@ -104,118 +171,71 @@ export default function CheckoutPage() {
               <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="line1">Address line 1</Label>
-                  <Input
-                    id="line1"
-                    name="line1"
-                    type="text"
-                    placeholder="123 Main St"
-                    required
-                    autoComplete="address-line1"
-                  />
+                  <Input id="line1" name="line1" type="text" placeholder="123 Main St" required autoComplete="address-line1" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="line2">
-                    Address line 2{" "}
-                    <span className="font-normal text-muted-foreground">(optional)</span>
+                    Address line 2 <span className="font-normal text-muted-foreground">(optional)</span>
                   </Label>
-                  <Input
-                    id="line2"
-                    name="line2"
-                    type="text"
-                    placeholder="Apt, suite, unit, etc."
-                    autoComplete="address-line2"
-                  />
+                  <Input id="line2" name="line2" type="text" placeholder="Apt, suite, unit, etc." autoComplete="address-line2" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      type="text"
-                      placeholder="City"
-                      required
-                      autoComplete="address-level2"
-                    />
+                    <Input id="city" name="city" type="text" required autoComplete="address-level2" />
                   </div>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      name="state"
-                      type="text"
-                      placeholder="State"
-                      required
-                      autoComplete="address-level1"
-                    />
+                    <Input id="state" name="state" type="text" required autoComplete="address-level1" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="zip">ZIP code</Label>
-                    <Input
-                      id="zip"
-                      name="zip"
-                      type="text"
-                      placeholder="00000"
-                      required
-                      autoComplete="postal-code"
-                    />
+                    <Input id="zip" name="zip" type="text" required autoComplete="postal-code" />
                   </div>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      name="country"
-                      type="text"
-                      placeholder="US"
-                      required
-                      autoComplete="country"
-                    />
+                    <Input id="country" name="country" type="text" defaultValue="US" required autoComplete="country" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Payment */}
-            <Card className="border-yellow-300 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-950/30">
+            <Card>
               <CardHeader>
                 <CardTitle>Payment</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Payment instructions will be included on your order confirmation
-                  page. Your order will be placed as <strong>payment pending</strong>{" "}
-                  and our team will reach out with next steps.
-                </p>
+                {configLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading payment options...</p>
+                ) : (
+                  <PaymentSection
+                    ref={paymentRef}
+                    config={paymentConfig}
+                    storedMethods={storedMethods}
+                    isAuthenticated={isAuthenticated}
+                  />
+                )}
               </CardContent>
             </Card>
 
-            {/* Order Notes */}
             <Card>
               <CardHeader>
                 <CardTitle>
                   Order Notes{" "}
-                  <span className="text-sm font-normal text-muted-foreground">
-                    (optional)
-                  </span>
+                  <span className="text-sm font-normal text-muted-foreground">(optional)</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="notes">Notes for your order</Label>
-                  <Textarea
-                    id="notes"
-                    name="notes"
-                    placeholder="Any special instructions or questions..."
-                    rows={3}
-                  />
+                  <Textarea id="notes" name="notes" placeholder="Any special instructions or questions..." rows={3} />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right column — order summary + CTA */}
           <div className="flex flex-col gap-4">
             <OrderSummary cart={cart} />
 
@@ -225,12 +245,7 @@ export default function CheckoutPage() {
               </p>
             )}
 
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full"
-              disabled={submitting}
-            >
+            <Button type="submit" size="lg" className="w-full" disabled={submitting || configLoading}>
               {submitting ? "Placing order..." : "Place Order"}
             </Button>
           </div>
