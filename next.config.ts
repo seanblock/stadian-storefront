@@ -23,6 +23,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The Stadian SDK ships extensionless ESM imports (built with
+  // moduleResolution "bundler"). Transpile it so Next resolves it in
+  // production the same way it does in dev.
+  transpilePackages: ["@stadian/storefront-sdk"],
   images: {
     dangerouslyAllowLocalIP: isDev,
     remotePatterns: [

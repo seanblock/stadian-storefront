@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
-import { Button } from "@/components/ui/button";
+
+const GOLD = "#d4a951";
 
 export function AuthNav() {
   const { customer, isAuthenticated, logout, loading } = useAuth();
@@ -13,24 +14,39 @@ export function AuthNav() {
     return (
       <Link
         href="/login"
-        className="text-sm font-medium text-muted-foreground hover:text-foreground"
+        className="group relative inline-flex items-center gap-2 px-2.5 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.22em] opacity-75 transition-opacity duration-300 hover:opacity-100"
       >
+        <span
+          aria-hidden
+          className="size-1 scale-0 rounded-full opacity-0 transition-all duration-500 group-hover:scale-100 group-hover:opacity-100"
+          style={{ background: GOLD }}
+        />
         Sign In
       </Link>
     );
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-1">
       <Link
         href="/account"
-        className="text-sm font-medium text-muted-foreground hover:text-foreground"
+        className="group inline-flex items-center gap-2 px-2.5 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.22em] opacity-75 transition-opacity duration-300 hover:opacity-100"
       >
+        <span
+          aria-hidden
+          className="size-1 rounded-full transition-transform duration-300 group-hover:scale-150"
+          style={{ background: GOLD }}
+        />
         {customer?.first_name || "Account"}
       </Link>
-      <Button variant="ghost" size="sm" onClick={() => logout()}>
-        Sign Out
-      </Button>
+      <button
+        type="button"
+        onClick={() => logout()}
+        className="text-[11px] font-medium opacity-45 transition-opacity duration-300 hover:opacity-80"
+        aria-label="Sign out"
+      >
+        ↗
+      </button>
     </div>
   );
 }

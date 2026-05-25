@@ -7,7 +7,10 @@ export async function getBranding(): Promise<StorefrontBranding> {
   if (cachedBranding) return cachedBranding;
   try {
     const client = getStadianClient();
-    cachedBranding = await client.branding.get();
+    const branding = await client.branding.get();
+    // Optional per-deployment overrides — useful for previewing brand changes
+    // without touching the Stadian admin.
+    cachedBranding = applyOverrides(branding);
     return cachedBranding;
   } catch {
     return {
@@ -26,6 +29,14 @@ export async function getBranding(): Promise<StorefrontBranding> {
       return_policy: null,
     } as StorefrontBranding;
   }
+}
+
+function applyOverrides(branding: StorefrontBranding): StorefrontBranding {
+  const storeNameOverride = process.env.NEXT_PUBLIC_STORE_NAME;
+  if (storeNameOverride) {
+    return { ...branding, store_name: storeNameOverride };
+  }
+  return branding;
 }
 
 export function brandingToCssVars(

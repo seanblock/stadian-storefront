@@ -55,11 +55,15 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.form_type && (
             <Badge variant="secondary">{product.form_type}</Badge>
           )}
-          {product.category_name && (
-            <span className="text-xs text-muted-foreground">
-              {product.category_name}
-            </span>
-          )}
+          {product.categories?.map((cat) => (
+            <Badge
+              key={cat.slug}
+              variant="outline"
+              style={{ borderColor: cat.color, color: cat.color }}
+            >
+              {cat.name}
+            </Badge>
+          ))}
         </CardContent>
       </Card>
     </Link>

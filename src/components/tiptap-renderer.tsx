@@ -34,18 +34,23 @@ function renderMarks(text: string, marks?: TiptapMark[]) {
       case "strike":
         element = <s>{element}</s>;
         break;
-      case "link":
-        element = (
+      case "link": {
+        const href = mark.attrs?.href ?? "";
+        const isSafe = /^https?:\/\//i.test(href) || /^mailto:/i.test(href) || href.startsWith("/");
+        element = isSafe ? (
           <a
-            href={mark.attrs?.href}
+            href={href}
             target={mark.attrs?.target}
             rel={mark.attrs?.target === "_blank" ? "noopener noreferrer" : undefined}
             className="text-primary underline underline-offset-4 hover:text-primary/80"
           >
             {element}
           </a>
+        ) : (
+          <span>{element}</span>
         );
         break;
+      }
     }
   }
   return element;

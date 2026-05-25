@@ -27,7 +27,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
 
   let order;
   try {
-    order = await getStadianClient().orders.get(id);
+    order = await getStadianClient().orders.get({ orderId: id, customerToken: token });
   } catch {
     notFound();
   }
@@ -36,12 +36,18 @@ export default async function OrderDetailPage({ params }: PageProps) {
 
   const showPaymentWarning =
     order.status === "pending" || order.status === "pending_payment";
+  const isCancelled = order.status === "cancelled";
+  const headerIcon = isCancelled ? "M6 18 18 6 M6 6l12 12" : "M20 6 9 17l-5-5";
+  const headerColor = isCancelled
+    ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+    : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
+  const headerTitle = isCancelled ? "Order Cancelled" : "Order Placed!";
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
       {/* Header */}
       <div className="mb-8 flex flex-col items-center gap-3 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+        <div className={`flex h-16 w-16 items-center justify-center rounded-full ${headerColor}`}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="32"
@@ -54,10 +60,10 @@ export default async function OrderDetailPage({ params }: PageProps) {
             strokeLinejoin="round"
             aria-hidden="true"
           >
-            <path d="M20 6 9 17l-5-5" />
+            <path d={headerIcon} />
           </svg>
         </div>
-        <h1 className="font-heading text-3xl font-semibold">Order Placed!</h1>
+        <h1 className="font-heading text-3xl font-semibold">{headerTitle}</h1>
         {order.order_number && (
           <p className="text-sm text-muted-foreground">
             Order <span className="font-medium text-foreground">#{order.order_number}</span>

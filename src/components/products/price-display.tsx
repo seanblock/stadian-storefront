@@ -1,17 +1,24 @@
 import { formatCurrency } from "@/lib/utils";
-import type { StorefrontPrice } from "@stadian/storefront-sdk";
 
 interface PriceDisplayProps {
-  prices: StorefrontPrice[];
+  price: number | null;
+  compareAtPrice?: number | null;
+  currency?: string;
 }
 
-export function PriceDisplay({ prices }: PriceDisplayProps) {
-  if (prices.length === 0)
+export function PriceDisplay({ price, compareAtPrice, currency = "USD" }: PriceDisplayProps) {
+  if (price == null)
     return <span className="text-muted-foreground">No price</span>;
-  const retailPrice = prices.find((p) => p.tier_name === "Retail") ?? prices[0];
   return (
-    <span className="text-lg font-bold">
-      {formatCurrency(retailPrice.price, retailPrice.currency)}
-    </span>
+    <div className="flex items-center gap-2">
+      <span className="text-lg font-bold">
+        {formatCurrency(price, currency)}
+      </span>
+      {compareAtPrice != null && compareAtPrice > price && (
+        <span className="text-sm text-muted-foreground line-through">
+          {formatCurrency(compareAtPrice, currency)}
+        </span>
+      )}
+    </div>
   );
 }

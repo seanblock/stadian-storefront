@@ -20,6 +20,8 @@ import {
 interface CartContextValue {
   cart: StorefrontCart | null;
   loading: boolean;
+  isDrawerOpen: boolean;
+  setDrawerOpen: (open: boolean) => void;
   addItem: (productId: string, quantity?: number) => Promise<void>;
   updateItem: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
@@ -31,6 +33,7 @@ const CartContext = createContext<CartContextValue | null>(null);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<StorefrontCart | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDrawerOpen, setDrawerOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -52,6 +55,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const sessionId = getSessionId();
     const updated = await addToCartAction(sessionId, productId, quantity);
     setCart(updated);
+    setDrawerOpen(true);
   }, []);
 
   const updateItem = useCallback(async (itemId: string, quantity: number) => {
@@ -67,7 +71,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <CartContext value={{ cart, loading, addItem, updateItem, removeItem, refresh }}>
+    <CartContext value={{ cart, loading, isDrawerOpen, setDrawerOpen, addItem, updateItem, removeItem, refresh }}>
       {children}
     </CartContext>
   );
