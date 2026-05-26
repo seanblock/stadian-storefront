@@ -31,7 +31,10 @@ export function ProductGroupCard({ group }: ProductGroupCardProps) {
     <Link href={`/products/${group.slug}`} className="group block">
       <Card className="h-full transition-shadow hover:shadow-md">
         {/* Group image */}
-        <div className="relative aspect-square w-full overflow-hidden bg-muted">
+        {/* -mt-4 cancels the Card's py-4 top padding (its built-in
+            has-[>img:first-child]:pt-0 doesn't fire because the Next.js
+            <Image fill> must be wrapped in a positioned div, not a bare <img>). */}
+        <div className="relative -mt-4 aspect-square w-full overflow-hidden rounded-t-xl bg-muted">
           {imageUrl ? (
             <Image
               src={imageUrl}
