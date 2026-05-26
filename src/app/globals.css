@@ -131,6 +131,12 @@
   .font-serif {
     font-family: var(--font-serif);
   }
+  /* Tailwind v4 preflight leaves buttons at cursor: default; restore the
+     pointer for any enabled button so they all feel clickable. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 /* Editorial home page utilities */
