@@ -66,10 +66,11 @@ export function Header({ branding }: HeaderProps) {
                 {storeName}
               </span>
               <span
-                className="mt-1 font-serif text-[10.5px] italic tracking-[0.12em]"
-                style={{
-                  color: transparent ? GOLD : `${GOLD}dd`,
-                }}
+                className={`mt-1 font-serif text-[10.5px] italic tracking-[0.12em] ${
+                  transparent
+                    ? "text-[#d4a951]"
+                    : "text-[#8a6516] dark:text-[#d4a951]"
+                }`}
               >
                 Research-grade · Est. 2026
               </span>
