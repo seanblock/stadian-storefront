@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getStadianClient } from "@/lib/stadian";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductGroupCard } from "@/components/products/product-group-card";
-import { Input } from "@/components/ui/input";
+import { SearchBar } from "@/components/products/search-bar";
 import type {
   StorefrontProduct,
   StorefrontProductGroup,
@@ -129,15 +129,7 @@ export default async function ProductsPage({
         <h1 className="text-2xl font-bold tracking-tight">Products</h1>
 
         {/* Search */}
-        <form method="GET" action="/products" className="w-full sm:w-72">
-          <Input
-            type="search"
-            name="search"
-            defaultValue={search}
-            placeholder="Search products…"
-            className="h-9"
-          />
-        </form>
+        <SearchBar />
       </div>
 
       {/* Category filters */}
