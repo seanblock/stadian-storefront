@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getStadianClient } from "@/lib/stadian";
+import { getSiteUrl } from "@/lib/site-url";
 import { AddToCartButton } from "./add-to-cart-button";
 import { VariantSelector } from "./variant-selector";
 import { StickyCartBar } from "./sticky-cart-bar";
@@ -49,12 +50,18 @@ export async function generateMetadata({
   try {
     const client = getStadianClient();
     const product = await client.catalog.get(slug);
+    const description = product.description?.slice(0, 160) || undefined;
     return {
       title: product.name,
-      description: product.description?.slice(0, 160) || undefined,
+      description,
+      // Canonical to the product's own URL — matters because group slugs
+      // redirect into product slugs, so several paths can show this product.
+      alternates: { canonical: `/products/${slug}` },
       openGraph: {
+        type: "website",
         title: product.name,
-        description: product.description?.slice(0, 160) || undefined,
+        description,
+        url: `/products/${slug}`,
         images: product.image_url ? [{ url: product.image_url }] : undefined,
       },
     };
@@ -114,28 +121,68 @@ export default async function ProductDetailPage({ params }: PageProps) {
     galleryImages.push(product.image_url);
   }
 
+  const siteUrl = getSiteUrl();
+  const productUrl = `${siteUrl}/products/${slug}`;
+
+  // Escape "<" so a stray "</script>" in product data can't break out of the
+  // JSON-LD <script> tag (the standard safe serialization for ld+json).
+  const ldJson = (obj: object) => JSON.stringify(obj).replace(/</g, "\\u003c");
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
     description: product.description,
     image: product.image_url,
+    // AggregateRating intentionally omitted until there are real reviews —
+    // emitting review markup with zero reviews violates Google's guidelines.
     ...(product.price != null && {
       offers: {
         "@type": "Offer",
         price: product.price,
         priceCurrency: product.currency || "USD",
         availability: "https://schema.org/InStock",
+        url: productUrl,
       },
     }),
+  };
+
+  // Mirrors the visible breadcrumb nav below → breadcrumb rich result.
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Products", item: `${siteUrl}/products` },
+      ...(product.categories?.[0]
+        ? [
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: product.categories[0].name,
+              item: `${siteUrl}/products?category=${product.categories[0].slug}`,
+            },
+          ]
+        : []),
+      {
+        "@type": "ListItem",
+        position: product.categories?.[0] ? 4 : 3,
+        name: displayName,
+        item: productUrl,
+      },
+    ],
   };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12">
       <script
         type="application/ld+json"
-        // Safe: jsonLd is built from server-fetched API data, not user input
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // Safe: built from server-fetched API data; ldJson escapes "<".
+        dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: ldJson(breadcrumbLd) }}
       />
 
       {/* Breadcrumb */}
