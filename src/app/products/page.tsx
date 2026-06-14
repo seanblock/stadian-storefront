@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getStadianClient } from "@/lib/stadian";
+import { getBranding } from "@/lib/branding";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductGroupCard } from "@/components/products/product-group-card";
 import { SearchBar } from "@/components/products/search-bar";
@@ -10,6 +12,18 @@ import type {
 } from "@stadian/storefront-sdk";
 
 const PAGE_SIZE = 12;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getBranding();
+  const name = branding.store_name || "Store";
+  const description = `Browse all products from ${name}.`;
+  return {
+    title: "All Products",
+    description,
+    alternates: { canonical: "/products" },
+    openGraph: { title: `All Products | ${name}`, description, url: "/products" },
+  };
+}
 
 interface ProductsPageProps {
   searchParams: Promise<{ search?: string; page?: string; category?: string }>;

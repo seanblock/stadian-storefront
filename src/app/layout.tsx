@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import { getBranding, brandingToCssVars } from "@/lib/branding";
+import { getSiteUrl } from "@/lib/site-url";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { AuthProvider } from "@/providers/auth-provider";
@@ -23,9 +24,32 @@ const instrumentSerif = Instrument_Serif({
 
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getBranding();
+  const siteUrl = getSiteUrl();
+  const name = branding.store_name || "Store";
+  const description = branding.tagline || "Welcome to our store";
+  const ogImages = branding.logo_url ? [{ url: branding.logo_url }] : undefined;
+
   return {
-    title: branding.store_name || "Store",
-    description: branding.tagline || "Welcome to our store",
+    metadataBase: new URL(siteUrl),
+    // Child pages set their own title; they render as "Page | Store".
+    title: { default: name, template: `%s | ${name}` },
+    description,
+    applicationName: name,
+    openGraph: {
+      type: "website",
+      siteName: name,
+      title: name,
+      description,
+      url: siteUrl,
+      images: ogImages,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: name,
+      description,
+      images: branding.logo_url ? [branding.logo_url] : undefined,
+    },
+    icons: { icon: branding.logo_url || "/logo.png" },
   };
 }
 
