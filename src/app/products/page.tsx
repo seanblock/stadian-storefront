@@ -40,6 +40,27 @@ export default async function ProductsPage({
     let allProducts = catalogResult.items;
     productGroups = groupsResult.items;
 
+    // Filter by search client-side (backend search filter is broken)
+    if (search) {
+      const q = search.toLowerCase();
+      const matches = (p: {
+        name: string;
+        slug: string;
+        description: string | null;
+        categories?: StorefrontCategory[];
+      }) =>
+        p.name.toLowerCase().includes(q) ||
+        p.slug.toLowerCase().includes(q) ||
+        (p.description?.toLowerCase().includes(q) ?? false) ||
+        (p.categories?.some((c) => c.name.toLowerCase().includes(q)) ?? false);
+
+      allProducts = allProducts.filter(matches);
+      // Keep a group if the group itself matches or any of its products do
+      productGroups = productGroups.filter(
+        (g) => matches(g) || g.products.some(matches)
+      );
+    }
+
     // Extract unique categories from all products
     if (!search) {
       const seen = new Set<string>();
