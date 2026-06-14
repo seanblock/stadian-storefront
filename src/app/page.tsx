@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import type { StorefrontCategory, StorefrontProduct } from "@stadian/storefront-sdk";
 import { getBranding } from "@/lib/branding";
 import { getStadianClient } from "@/lib/stadian";
@@ -6,6 +7,17 @@ import { MarqueeStrip } from "@/components/home/marquee-strip";
 import { FeaturedEdit } from "@/components/home/featured-edit";
 import { CategoriesGrid } from "@/components/home/categories-grid";
 import { ClosingStatement } from "@/components/home/closing-statement";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getBranding();
+  const name = branding.store_name || "Store";
+  return {
+    // Home shows the store name as-is (not "Home | Store").
+    title: { absolute: name },
+    description: branding.tagline || `Shop ${name}.`,
+    alternates: { canonical: "/" },
+  };
+}
 
 export default async function Home() {
   const branding = await getBranding();

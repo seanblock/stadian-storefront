@@ -1,8 +1,9 @@
 import { MetadataRoute } from "next";
 import { getStadianClient } from "@/lib/stadian";
+import { getSiteUrl } from "@/lib/site-url";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
+  const baseUrl = getSiteUrl();
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
