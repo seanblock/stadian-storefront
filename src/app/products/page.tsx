@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getStadianClient } from "@/lib/stadian";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductGroupCard } from "@/components/products/product-group-card";
-import { Input } from "@/components/ui/input";
+import { SearchBar } from "@/components/products/search-bar";
 import type {
   StorefrontProduct,
   StorefrontProductGroup,
@@ -39,6 +39,27 @@ export default async function ProductsPage({
 
     let allProducts = catalogResult.items;
     productGroups = groupsResult.items;
+
+    // Filter by search client-side (backend search filter is broken)
+    if (search) {
+      const q = search.toLowerCase();
+      const matches = (p: {
+        name: string;
+        slug: string;
+        description: string | null;
+        categories?: StorefrontCategory[];
+      }) =>
+        p.name.toLowerCase().includes(q) ||
+        p.slug.toLowerCase().includes(q) ||
+        (p.description?.toLowerCase().includes(q) ?? false) ||
+        (p.categories?.some((c) => c.name.toLowerCase().includes(q)) ?? false);
+
+      allProducts = allProducts.filter(matches);
+      // Keep a group if the group itself matches or any of its products do
+      productGroups = productGroups.filter(
+        (g) => matches(g) || g.products.some(matches)
+      );
+    }
 
     // Extract unique categories from all products
     if (!search) {
@@ -108,15 +129,7 @@ export default async function ProductsPage({
         <h1 className="text-2xl font-bold tracking-tight">Products</h1>
 
         {/* Search */}
-        <form method="GET" action="/products" className="w-full sm:w-72">
-          <Input
-            type="search"
-            name="search"
-            defaultValue={search}
-            placeholder="Search products…"
-            className="h-9"
-          />
-        </form>
+        <SearchBar />
       </div>
 
       {/* Category filters */}
