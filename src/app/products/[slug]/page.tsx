@@ -462,7 +462,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
             {product.description && (
               <AccordionItem>
                 <AccordionTrigger className="text-sm font-semibold uppercase tracking-widest text-muted-foreground hover:no-underline">
-                  About This Product
+                  <span className="inline-flex items-center gap-2">
+                    <LucideIcon name="package" size={14} />
+                    About This Product
+                  </span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <p className="leading-relaxed text-muted-foreground">
