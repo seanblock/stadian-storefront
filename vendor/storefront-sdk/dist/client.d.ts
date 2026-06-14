@@ -3,6 +3,8 @@ export interface HttpClientConfig {
     baseUrl: string;
     /** Maximum number of automatic retries on 429 / 5xx. Defaults to 3. */
     maxRetries?: number;
+    /** Per-attempt request timeout in milliseconds. Defaults to 10000. */
+    timeoutMs?: number;
 }
 export interface RequestOptions {
     body?: unknown;
@@ -13,6 +15,7 @@ export declare class HttpClient {
     private readonly apiKey;
     private readonly baseUrl;
     private readonly maxRetries;
+    private readonly timeoutMs;
     constructor(config: HttpClientConfig);
     /**
      * Make an authenticated request to the storefront API.

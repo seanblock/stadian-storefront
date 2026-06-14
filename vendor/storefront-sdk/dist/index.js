@@ -364,6 +364,7 @@ export class StadianClient {
             apiKey: config.apiKey,
             baseUrl: config.baseUrl,
             maxRetries: config.maxRetries,
+            timeoutMs: config.timeoutMs,
         });
         this.catalog = new CatalogResource(this.http);
         this.cart = new CartResource(this.http);

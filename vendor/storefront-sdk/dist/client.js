@@ -6,11 +6,15 @@ export class HttpClient {
     apiKey;
     baseUrl;
     maxRetries;
+    timeoutMs;
     constructor(config) {
         // Strip trailing slash so we can safely append paths
         this.apiKey = config.apiKey;
         this.baseUrl = config.baseUrl.replace(/\/+$/, "");
         this.maxRetries = config.maxRetries ?? 3;
+        // Abort a single attempt after this many ms so a slow or unreachable API
+        // never wedges server-side rendering. Each attempt gets its own timer.
+        this.timeoutMs = config.timeoutMs ?? 10000;
     }
     /**
      * Make an authenticated request to the storefront API.
@@ -35,7 +39,30 @@ export class HttpClient {
         }
         let lastError;
         for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-            const response = await fetch(url, init);
+            // Per-attempt timeout: a fresh AbortController each time (a controller
+            // cannot be reused once aborted). Timeouts and network failures are
+            // retried with the same back-off as 5xx, then surfaced as an error
+            // rather than hanging the caller indefinitely.
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+            let response;
+            try {
+                response = await fetch(url, { ...init, signal: controller.signal });
+            }
+            catch (err) {
+                const isTimeout = err?.name === "AbortError";
+                lastError = new StadianError(isTimeout
+                    ? `Request to ${path} timed out after ${this.timeoutMs}ms`
+                    : `Request to ${path} failed: ${err?.message ?? "network error"}`, 0, isTimeout ? "TIMEOUT" : "NETWORK");
+                if (attempt < this.maxRetries) {
+                    await this.sleep(500 * Math.pow(2, attempt));
+                    continue;
+                }
+                throw lastError;
+            }
+            finally {
+                clearTimeout(timer);
+            }
             if (response.ok) {
                 // 204 No Content — return body-less result
                 if (response.status === 204) {

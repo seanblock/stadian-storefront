@@ -245,6 +245,8 @@ export interface StadianClientConfig {
     baseUrl: string;
     /** Maximum number of automatic retries on 429 / 5xx. Defaults to 3. */
     maxRetries?: number;
+    /** Per-attempt request timeout in milliseconds. Defaults to 10000. */
+    timeoutMs?: number;
 }
 /**
  * Stadian Storefront SDK client.
