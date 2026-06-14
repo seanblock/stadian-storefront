@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PriceDisplay } from "@/components/products/price-display";
 
 interface ProductCardProps {
   product: StorefrontProduct;
@@ -54,19 +55,25 @@ export function ProductCard({ product }: ProductCardProps) {
           <CardTitle className="line-clamp-2">{product.name}</CardTitle>
         </CardHeader>
 
-        <CardContent className="flex flex-wrap items-center gap-2">
-          {product.form_type && (
-            <Badge variant="secondary">{product.form_type}</Badge>
-          )}
-          {product.categories?.map((cat) => (
-            <Badge
-              key={cat.slug}
-              variant="outline"
-              style={{ borderColor: cat.color, color: cat.color }}
-            >
-              {cat.name}
-            </Badge>
-          ))}
+        <CardContent className="space-y-2">
+          <PriceDisplay
+            price={product.price}
+            compareAtPrice={product.compare_at_price}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {product.form_type && (
+              <Badge variant="secondary">{product.form_type}</Badge>
+            )}
+            {product.categories?.map((cat) => (
+              <Badge
+                key={cat.slug}
+                variant="outline"
+                style={{ borderColor: cat.color, color: cat.color }}
+              >
+                {cat.name}
+              </Badge>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </Link>
