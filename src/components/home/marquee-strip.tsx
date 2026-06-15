@@ -3,7 +3,7 @@ interface MarqueeStripProps {
 }
 
 const DEFAULTS = [
-  "Complimentary shipping over $75",
+  "Complimentary shipping over $100",
   "Free returns within 30 days",
   "Independently sourced",
   "Built to last",
