@@ -90,6 +90,7 @@ export default function IntakeFormPage({
 
   useEffect(() => {
     if (productId && isAuthenticated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchForm is a useCallback async fetcher; setState is indirect, not inline
       fetchForm(productId);
     }
   }, [productId, isAuthenticated, fetchForm]);
