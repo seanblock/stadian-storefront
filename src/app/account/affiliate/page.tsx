@@ -59,6 +59,7 @@ export default function AffiliateDashboardPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchCommissions is a useCallback async fetcher; setState is indirect, not inline
     fetchCommissions();
   }, [fetchCommissions]);
 
