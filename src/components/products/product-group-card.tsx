@@ -75,17 +75,17 @@ export function ProductGroupCard({ group }: ProductGroupCardProps) {
           )}
         </CardHeader>
 
-        <CardContent className="flex flex-wrap items-center gap-2">
+        <CardContent className="space-y-2">
+          {minPrice !== undefined && (
+            <p className="text-lg font-bold">
+              {minPrice === maxPrice
+                ? formatCurrency(minPrice)
+                : `From ${formatCurrency(minPrice)}`}
+            </p>
+          )}
           <Badge variant="secondary">
             {group.product_count} option{group.product_count !== 1 ? "s" : ""}
           </Badge>
-          {minPrice !== undefined && (
-            <span className="text-sm font-semibold">
-              {minPrice === maxPrice
-                ? formatCurrency(minPrice)
-                : `${formatCurrency(minPrice)} – ${formatCurrency(maxPrice)}`}
-            </span>
-          )}
         </CardContent>
       </Card>
     </Link>
