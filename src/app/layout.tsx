@@ -61,6 +61,19 @@ export default async function RootLayout({
   const branding = await getBranding();
   const cssVars = brandingToCssVars(branding);
 
+  // Sitewide Organization entity → brand knowledge panel / sameAs in search.
+  const socials = branding.social_links
+    ? Object.values(branding.social_links).filter(Boolean)
+    : [];
+  const orgLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: branding.store_name || "Store",
+    url: getSiteUrl(),
+    ...(branding.logo_url && { logo: branding.logo_url }),
+    ...(socials.length > 0 && { sameAs: socials }),
+  };
+
   return (
     <html
       lang="en"
@@ -69,6 +82,13 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
+        <script
+          type="application/ld+json"
+          // Escape "<" so branding data can't break out of the script tag.
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(orgLd).replace(/</g, "\\u003c"),
+          }}
+        />
         <ThemeProvider>
           <AuthProvider>
             <CartProvider>
