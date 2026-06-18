@@ -192,6 +192,8 @@ export interface StorefrontBranding {
     terms_of_service: Record<string, unknown> | null;
     privacy_policy: Record<string, unknown> | null;
     return_policy: Record<string, unknown> | null;
+    storefront_enabled: boolean;
+    storefront_closed_reason: 'general' | 'coming_soon' | 'maintenance' | null;
 }
 export interface StorefrontPageResponse {
     /** Tiptap/ProseMirror JSON document tree. Render with your own components. */
