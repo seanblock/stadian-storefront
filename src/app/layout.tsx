@@ -8,6 +8,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { CartProvider } from "@/providers/cart-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { StoreClosed } from "@/components/store-closed";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,6 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const name = branding.store_name || "Store";
   const description = branding.tagline || "Welcome to our store";
   const ogImages = branding.logo_url ? [{ url: branding.logo_url }] : undefined;
+  const robots = branding.storefront_enabled === false ? { index: false, follow: false } : undefined;
 
   return {
     metadataBase: new URL(siteUrl),
@@ -50,6 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
       images: branding.logo_url ? [branding.logo_url] : undefined,
     },
     icons: { icon: branding.logo_url || "/logo.png" },
+    robots,
   };
 }
 
@@ -74,6 +77,8 @@ export default async function RootLayout({
     ...(socials.length > 0 && { sameAs: socials }),
   };
 
+  const isClosed = branding.storefront_enabled === false;
+
   return (
     <html
       lang="en"
@@ -82,23 +87,30 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
-        <script
-          type="application/ld+json"
-          // Escape "<" so branding data can't break out of the script tag.
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(orgLd).replace(/</g, "\\u003c"),
-          }}
-        />
-        <ThemeProvider>
-          <AuthProvider>
-            <CartProvider>
-              <Header branding={branding} />
-              <main className="flex-1">{children}</main>
-              <Footer branding={branding} />
-              <CartDrawer />
-            </CartProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        {isClosed ? (
+          <ThemeProvider>
+            <StoreClosed reason={branding.storefront_closed_reason} branding={branding} />
+          </ThemeProvider>
+        ) : (
+          <>
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify(orgLd).replace(/</g, "\\u003c"),
+              }}
+            />
+            <ThemeProvider>
+              <AuthProvider>
+                <CartProvider>
+                  <Header branding={branding} />
+                  <main className="flex-1">{children}</main>
+                  <Footer branding={branding} />
+                  <CartDrawer />
+                </CartProvider>
+              </AuthProvider>
+            </ThemeProvider>
+          </>
+        )}
       </body>
     </html>
   );

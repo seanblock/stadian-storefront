@@ -27,16 +27,29 @@ export async function getBranding(): Promise<StorefrontBranding> {
       terms_of_service: null,
       privacy_policy: null,
       return_policy: null,
+      storefront_enabled: true,
+      storefront_closed_reason: null,
     } as StorefrontBranding;
   }
 }
 
+const CLOSED_REASONS = ["general", "coming_soon", "maintenance"] as const;
+
 function applyOverrides(branding: StorefrontBranding): StorefrontBranding {
+  let result = branding;
   const storeNameOverride = process.env.NEXT_PUBLIC_STORE_NAME;
   if (storeNameOverride) {
-    return { ...branding, store_name: storeNameOverride };
+    result = { ...result, store_name: storeNameOverride };
   }
-  return branding;
+  // Ops/preview + test seam: force the closed state without touching the tenant.
+  const closedOverride = process.env.STORE_CLOSED_OVERRIDE;
+  if (closedOverride) {
+    const reason = (CLOSED_REASONS as readonly string[]).includes(closedOverride)
+      ? (closedOverride as StorefrontBranding["storefront_closed_reason"])
+      : "general";
+    result = { ...result, storefront_enabled: false, storefront_closed_reason: reason };
+  }
+  return result;
 }
 
 export function brandingToCssVars(
