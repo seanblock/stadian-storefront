@@ -426,6 +426,16 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   Please complete the intake process to continue.
                 </p>
               </div>
+            ) : product.price == null ? (
+              <div className="rounded-xl border border-border bg-muted/30 p-5">
+                <p className="text-sm font-semibold text-foreground">
+                  Contact for pricing
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  This product isn&apos;t available for online purchase yet.
+                  Please contact us for availability and pricing.
+                </p>
+              </div>
             ) : (
               <AddToCartButton productId={product.id} />
             )}

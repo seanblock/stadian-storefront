@@ -33,9 +33,11 @@ export interface StoredPaymentMethod {
 export async function getPaymentConfig(): Promise<PaymentClientConfig | null> {
   try {
     const http = getHttpClient();
+    // NOTE: HttpClient prepends `${baseUrl}/v1/storefront`, so paths here are
+    // relative to that. The backend route is /v1/storefront/payment-gateway/client-config.
     return await http.request<PaymentClientConfig>(
       "GET",
-      "/storefront/payments/config",
+      "/payment-gateway/client-config",
     );
   } catch {
     return null;
@@ -50,12 +52,12 @@ export async function getStoredPaymentMethods(): Promise<
 
   try {
     const http = getHttpClient();
-    const res = await http.request<{ items: StoredPaymentMethod[] }>(
+    // Backend route: /v1/storefront/stored-payment-methods → returns a bare list.
+    return await http.request<StoredPaymentMethod[]>(
       "GET",
-      "/storefront/payments/methods",
+      "/stored-payment-methods",
       { headers: { Authorization: `Bearer ${token}` } },
     );
-    return res.items;
   } catch {
     return [];
   }
@@ -67,7 +69,7 @@ export async function deletePaymentMethod(methodId: string): Promise<boolean> {
 
   try {
     const http = getHttpClient();
-    await http.request("DELETE", `/storefront/payments/methods/${methodId}`, {
+    await http.request("DELETE", `/stored-payment-methods/${methodId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return true;

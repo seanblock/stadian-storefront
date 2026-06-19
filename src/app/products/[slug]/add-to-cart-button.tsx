@@ -13,13 +13,22 @@ export function AddToCartButton({ productId }: AddToCartButtonProps) {
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAdd = async () => {
     setAdding(true);
+    setError(null);
     try {
       await addItem(productId, quantity);
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
+    } catch (err) {
+      // Surface the failure instead of silently resetting to "Add to Cart".
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Couldn't add this item to your cart. Please try again."
+      );
     } finally {
       setAdding(false);
     }
@@ -62,6 +71,12 @@ export function AddToCartButton({ productId }: AddToCartButtonProps) {
       >
         {adding ? "Adding..." : added ? "Added to Cart" : "Add to Cart"}
       </Button>
+
+      {error && (
+        <p role="alert" className="text-sm font-medium text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
