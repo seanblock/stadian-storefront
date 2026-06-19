@@ -40,8 +40,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const sessionId = getSessionId();
       const data = await getCart(sessionId);
       setCart(data);
-    } catch {
-      // Cart fetch failed
+    } catch (err) {
+      // Don't crash the UI if the cart can't load, but don't fail silently either.
+      console.error("Failed to load cart:", err);
     } finally {
       setLoading(false);
     }

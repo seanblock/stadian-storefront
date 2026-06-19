@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { AddressFields } from "@/components/checkout/address-fields";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -168,37 +169,8 @@ export default function CheckoutPage() {
               <CardHeader>
                 <CardTitle>Shipping Address</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="line1">Address line 1</Label>
-                  <Input id="line1" name="line1" type="text" placeholder="123 Main St" required autoComplete="address-line1" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="line2">
-                    Address line 2 <span className="font-normal text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input id="line2" name="line2" type="text" placeholder="Apt, suite, unit, etc." autoComplete="address-line2" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input id="city" name="city" type="text" required autoComplete="address-level2" />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="state">State</Label>
-                    <Input id="state" name="state" type="text" required autoComplete="address-level1" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="zip">ZIP code</Label>
-                    <Input id="zip" name="zip" type="text" required autoComplete="postal-code" />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input id="country" name="country" type="text" defaultValue="US" required autoComplete="country" />
-                  </div>
-                </div>
+              <CardContent>
+                <AddressFields section="shipping" />
               </CardContent>
             </Card>
 
