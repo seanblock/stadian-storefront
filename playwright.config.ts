@@ -4,6 +4,9 @@ const PORT = process.env.PLAYWRIGHT_PORT || "3003";
 
 export default defineConfig({
   testDir: "./e2e",
+  // store-closed.spec.ts requires STORE_CLOSED_OVERRIDE (run via `npm run test:closed`);
+  // exclude it from the default `npm test` run where the store is open.
+  testIgnore: process.env.STORE_CLOSED_OVERRIDE ? [] : ["**/store-closed.spec.ts"],
   timeout: 60_000,
   expect: { timeout: 15_000 },
   retries: 1, // pages SSR-fetch the live API; tolerate a transient hiccup
