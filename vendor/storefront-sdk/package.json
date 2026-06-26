@@ -1,6 +1,6 @@
 {
   "name": "@stadian/storefront-sdk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TypeScript SDK for the Stadian Storefront API",
   "license": "MIT",
   "repository": {
@@ -8,7 +8,13 @@
     "url": "https://github.com/seanblock/peptide-platform.git",
     "directory": "packages/storefront-sdk"
   },
-  "keywords": ["stadian", "storefront", "sdk", "ecommerce", "api-client"],
+  "keywords": [
+    "stadian",
+    "storefront",
+    "sdk",
+    "ecommerce",
+    "api-client"
+  ],
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,7 +30,10 @@
       "default": "./dist/payment-form.js"
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "publishConfig": {
     "access": "public"
   },
