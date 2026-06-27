@@ -58,6 +58,7 @@ export default function CheckoutPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [formValid, setFormValid] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
 
   const paymentRef = useRef<PaymentSectionHandle>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -99,9 +100,7 @@ export default function CheckoutPage() {
   const recompute = useCallback(() => {
     const errs = computeErrors();
     setFormValid(Object.keys(errs).length === 0);
-    if (submitAttemptedRef.current) {
-      setFieldErrors(errs);
-    }
+    setFieldErrors(errs);
   }, [computeErrors]);
 
   function handleShippingStateChange(state: string) {
@@ -282,8 +281,9 @@ export default function CheckoutPage() {
                     required
                     autoComplete="email"
                     aria-invalid={!!fieldErrors.email}
+                    onBlur={() => setEmailTouched(true)}
                   />
-                  {fieldErrors.email && (
+                  {(emailTouched || submitAttempted) && fieldErrors.email && (
                     <p className="mt-1 text-sm text-destructive">{fieldErrors.email}</p>
                   )}
                 </div>
@@ -300,6 +300,7 @@ export default function CheckoutPage() {
                   onStateChange={handleShippingStateChange}
                   errors={fieldErrors}
                   onValidityRecheck={recompute}
+                  showAllErrors={submitAttempted}
                 />
               </CardContent>
             </Card>
@@ -336,6 +337,7 @@ export default function CheckoutPage() {
                     isAuthenticated={isAuthenticated}
                     billingErrors={fieldErrors}
                     onValidityRecheck={recompute}
+                    showAllErrors={submitAttempted}
                   />
                 )}
               </CardContent>

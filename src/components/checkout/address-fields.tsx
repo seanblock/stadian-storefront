@@ -25,6 +25,8 @@ interface AddressFieldsProps {
   errors?: Record<string, string | undefined>;
   /** Called after any field changes so the parent can recompute form validity. */
   onValidityRecheck?: () => void;
+  /** When true, show all errors regardless of per-field touched state (e.g. after a submit attempt). */
+  showAllErrors?: boolean;
 }
 
 const fieldId = (idPrefix: string, name: string) => `${idPrefix}${name}`;
@@ -36,9 +38,17 @@ export function AddressFields({
   onStateChange,
   errors,
   onValidityRecheck,
+  showAllErrors = false,
 }: AddressFieldsProps) {
   const [country, setCountry] = useState("US");
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const ac = (token: string) => (section ? `${section} ${token}` : token);
+
+  const markTouched = (field: string) =>
+    setTouched((t) => ({ ...t, [`${prefix}${field}`]: true }));
+
+  const showError = (field: string) =>
+    (touched[`${prefix}${field}`] || showAllErrors) && !!errors?.[`${prefix}${field}`];
 
   return (
     <div className="flex flex-col gap-4">
@@ -53,9 +63,10 @@ export function AddressFields({
           autoComplete={ac("address-line1")}
           aria-invalid={!!errors?.[`${prefix}line1`]}
           onChange={() => onValidityRecheck?.()}
+          onBlur={() => markTouched("line1")}
         />
-        {errors?.[`${prefix}line1`] && (
-          <p className="mt-1 text-sm text-destructive">{errors[`${prefix}line1`]}</p>
+        {showError("line1") && (
+          <p className="mt-1 text-sm text-destructive">{errors![`${prefix}line1`]}</p>
         )}
       </div>
       <div className="flex flex-col gap-2">
@@ -83,9 +94,10 @@ export function AddressFields({
             autoComplete={ac("address-level2")}
             aria-invalid={!!errors?.[`${prefix}city`]}
             onChange={() => onValidityRecheck?.()}
+            onBlur={() => markTouched("city")}
           />
-          {errors?.[`${prefix}city`] && (
-            <p className="mt-1 text-sm text-destructive">{errors[`${prefix}city`]}</p>
+          {showError("city") && (
+            <p className="mt-1 text-sm text-destructive">{errors![`${prefix}city`]}</p>
           )}
         </div>
         <div className="flex flex-col gap-2">
@@ -104,6 +116,7 @@ export function AddressFields({
                   id={fieldId(idPrefix, "state")}
                   className="w-full"
                   aria-invalid={!!errors?.[`${prefix}state`]}
+                  onBlur={() => markTouched("state")}
                 >
                   <SelectValue placeholder="Select state" />
                 </SelectTrigger>
@@ -115,8 +128,8 @@ export function AddressFields({
                   ))}
                 </SelectContent>
               </Select>
-              {errors?.[`${prefix}state`] && (
-                <p className="mt-1 text-sm text-destructive">{errors[`${prefix}state`]}</p>
+              {showError("state") && (
+                <p className="mt-1 text-sm text-destructive">{errors![`${prefix}state`]}</p>
               )}
             </>
           ) : (
@@ -132,9 +145,10 @@ export function AddressFields({
                   onStateChange?.(e.target.value);
                   onValidityRecheck?.();
                 }}
+                onBlur={() => markTouched("state")}
               />
-              {errors?.[`${prefix}state`] && (
-                <p className="mt-1 text-sm text-destructive">{errors[`${prefix}state`]}</p>
+              {showError("state") && (
+                <p className="mt-1 text-sm text-destructive">{errors![`${prefix}state`]}</p>
               )}
             </>
           )}
@@ -151,9 +165,10 @@ export function AddressFields({
             autoComplete={ac("postal-code")}
             aria-invalid={!!errors?.[`${prefix}zip`]}
             onChange={() => onValidityRecheck?.()}
+            onBlur={() => markTouched("zip")}
           />
-          {errors?.[`${prefix}zip`] && (
-            <p className="mt-1 text-sm text-destructive">{errors[`${prefix}zip`]}</p>
+          {showError("zip") && (
+            <p className="mt-1 text-sm text-destructive">{errors![`${prefix}zip`]}</p>
           )}
         </div>
         <div className="flex flex-col gap-2">
@@ -171,6 +186,7 @@ export function AddressFields({
               id={fieldId(idPrefix, "country")}
               className="w-full"
               aria-invalid={!!errors?.[`${prefix}country`]}
+              onBlur={() => markTouched("country")}
             >
               <SelectValue placeholder="Select country" />
             </SelectTrigger>
@@ -182,8 +198,8 @@ export function AddressFields({
               ))}
             </SelectContent>
           </Select>
-          {errors?.[`${prefix}country`] && (
-            <p className="mt-1 text-sm text-destructive">{errors[`${prefix}country`]}</p>
+          {showError("country") && (
+            <p className="mt-1 text-sm text-destructive">{errors![`${prefix}country`]}</p>
           )}
         </div>
       </div>
