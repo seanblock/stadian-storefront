@@ -25,8 +25,8 @@ interface AddressFieldsProps {
   errors?: Record<string, string | undefined>;
   /** Called after any field changes so the parent can recompute form validity. */
   onValidityRecheck?: () => void;
-  /** When true, show all errors regardless of per-field touched state (e.g. after a submit attempt). */
-  showAllErrors?: boolean;
+  /** When true, show error messages and aria-invalid (only after a submit attempt). */
+  showErrors?: boolean;
 }
 
 const fieldId = (idPrefix: string, name: string) => `${idPrefix}${name}`;
@@ -38,17 +38,10 @@ export function AddressFields({
   onStateChange,
   errors,
   onValidityRecheck,
-  showAllErrors = false,
+  showErrors = false,
 }: AddressFieldsProps) {
   const [country, setCountry] = useState("US");
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const ac = (token: string) => (section ? `${section} ${token}` : token);
-
-  const markTouched = (field: string) =>
-    setTouched((t) => ({ ...t, [`${prefix}${field}`]: true }));
-
-  const showError = (field: string) =>
-    (touched[`${prefix}${field}`] || showAllErrors) && !!errors?.[`${prefix}${field}`];
 
   return (
     <div className="flex flex-col gap-4">
@@ -61,12 +54,11 @@ export function AddressFields({
           placeholder="123 Main St"
           required
           autoComplete={ac("address-line1")}
-          aria-invalid={!!errors?.[`${prefix}line1`]}
+          aria-invalid={showErrors && !!errors?.[`${prefix}line1`]}
           onChange={() => onValidityRecheck?.()}
-          onBlur={() => markTouched("line1")}
         />
-        {showError("line1") && (
-          <p className="mt-1 text-sm text-destructive">{errors![`${prefix}line1`]}</p>
+        {showErrors && errors?.[`${prefix}line1`] && (
+          <p className="mt-1 text-sm text-destructive">{errors[`${prefix}line1`]}</p>
         )}
       </div>
       <div className="flex flex-col gap-2">
@@ -92,12 +84,11 @@ export function AddressFields({
             type="text"
             required
             autoComplete={ac("address-level2")}
-            aria-invalid={!!errors?.[`${prefix}city`]}
+            aria-invalid={showErrors && !!errors?.[`${prefix}city`]}
             onChange={() => onValidityRecheck?.()}
-            onBlur={() => markTouched("city")}
           />
-          {showError("city") && (
-            <p className="mt-1 text-sm text-destructive">{errors![`${prefix}city`]}</p>
+          {showErrors && errors?.[`${prefix}city`] && (
+            <p className="mt-1 text-sm text-destructive">{errors[`${prefix}city`]}</p>
           )}
         </div>
         <div className="flex flex-col gap-2">
@@ -115,8 +106,7 @@ export function AddressFields({
                 <SelectTrigger
                   id={fieldId(idPrefix, "state")}
                   className="w-full"
-                  aria-invalid={!!errors?.[`${prefix}state`]}
-                  onBlur={() => markTouched("state")}
+                  aria-invalid={showErrors && !!errors?.[`${prefix}state`]}
                 >
                   <SelectValue placeholder="Select state" />
                 </SelectTrigger>
@@ -128,8 +118,8 @@ export function AddressFields({
                   ))}
                 </SelectContent>
               </Select>
-              {showError("state") && (
-                <p className="mt-1 text-sm text-destructive">{errors![`${prefix}state`]}</p>
+              {showErrors && errors?.[`${prefix}state`] && (
+                <p className="mt-1 text-sm text-destructive">{errors[`${prefix}state`]}</p>
               )}
             </>
           ) : (
@@ -140,15 +130,14 @@ export function AddressFields({
                 type="text"
                 placeholder="State / Province / Region"
                 autoComplete={ac("address-level1")}
-                aria-invalid={!!errors?.[`${prefix}state`]}
+                aria-invalid={showErrors && !!errors?.[`${prefix}state`]}
                 onChange={(e) => {
                   onStateChange?.(e.target.value);
                   onValidityRecheck?.();
                 }}
-                onBlur={() => markTouched("state")}
               />
-              {showError("state") && (
-                <p className="mt-1 text-sm text-destructive">{errors![`${prefix}state`]}</p>
+              {showErrors && errors?.[`${prefix}state`] && (
+                <p className="mt-1 text-sm text-destructive">{errors[`${prefix}state`]}</p>
               )}
             </>
           )}
@@ -163,12 +152,11 @@ export function AddressFields({
             type="text"
             required
             autoComplete={ac("postal-code")}
-            aria-invalid={!!errors?.[`${prefix}zip`]}
+            aria-invalid={showErrors && !!errors?.[`${prefix}zip`]}
             onChange={() => onValidityRecheck?.()}
-            onBlur={() => markTouched("zip")}
           />
-          {showError("zip") && (
-            <p className="mt-1 text-sm text-destructive">{errors![`${prefix}zip`]}</p>
+          {showErrors && errors?.[`${prefix}zip`] && (
+            <p className="mt-1 text-sm text-destructive">{errors[`${prefix}zip`]}</p>
           )}
         </div>
         <div className="flex flex-col gap-2">
@@ -185,8 +173,7 @@ export function AddressFields({
             <SelectTrigger
               id={fieldId(idPrefix, "country")}
               className="w-full"
-              aria-invalid={!!errors?.[`${prefix}country`]}
-              onBlur={() => markTouched("country")}
+              aria-invalid={showErrors && !!errors?.[`${prefix}country`]}
             >
               <SelectValue placeholder="Select country" />
             </SelectTrigger>
@@ -198,8 +185,8 @@ export function AddressFields({
               ))}
             </SelectContent>
           </Select>
-          {showError("country") && (
-            <p className="mt-1 text-sm text-destructive">{errors![`${prefix}country`]}</p>
+          {showErrors && errors?.[`${prefix}country`] && (
+            <p className="mt-1 text-sm text-destructive">{errors[`${prefix}country`]}</p>
           )}
         </div>
       </div>

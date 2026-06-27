@@ -34,6 +34,30 @@ function validateAddress(
   return errors;
 }
 
+// Presence-only: are all REQUIRED fields non-empty? (no format checks)
+export function isCheckoutFilled(input: ValidateInput): boolean {
+  const email = input.email.trim();
+  const s = input.shipping;
+  if (!email) return false;
+  if (!s.line1.trim()) return false;
+  if (!s.city.trim()) return false;
+  if (!s.state.trim()) return false;
+  if (!s.zip.trim()) return false;
+  if (!s.country.trim()) return false;
+
+  if (!input.sameAsShipping) {
+    const b = input.billing;
+    if (!b) return false;
+    if (!b.line1.trim()) return false;
+    if (!b.city.trim()) return false;
+    if (!b.state.trim()) return false;
+    if (!b.zip.trim()) return false;
+    if (!b.country.trim()) return false;
+  }
+
+  return true;
+}
+
 export function validateCheckout(input: ValidateInput): Record<string, string> {
   const errors: Record<string, string> = {};
 

@@ -7,7 +7,7 @@ interface BillingAddressProps {
   onSameAsShippingChange: (same: boolean) => void;
   errors?: Record<string, string | undefined>;
   onValidityRecheck?: () => void;
-  showAllErrors?: boolean;
+  showErrors?: boolean;
 }
 
 export function BillingAddress({
@@ -15,7 +15,7 @@ export function BillingAddress({
   onSameAsShippingChange,
   errors,
   onValidityRecheck,
-  showAllErrors,
+  showErrors,
 }: BillingAddressProps) {
   return (
     <div className="flex flex-col gap-4">
@@ -36,7 +36,7 @@ export function BillingAddress({
           section="billing"
           errors={errors}
           onValidityRecheck={onValidityRecheck}
-          showAllErrors={showAllErrors}
+          showErrors={showErrors}
         />
       )}
     </div>

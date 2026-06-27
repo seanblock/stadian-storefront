@@ -35,7 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AddressFields } from "@/components/checkout/address-fields";
 import { buildOrderPayload, resolveCheckoutResult } from "@/app/checkout/checkout-logic";
 import { OrderConfirmation, type ConfirmedOrder } from "@/components/checkout/order-confirmation";
-import { validateCheckout } from "@/app/checkout/checkout-validation";
+import { validateCheckout, isCheckoutFilled } from "@/app/checkout/checkout-validation";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -57,23 +57,21 @@ export default function CheckoutPage() {
   // Validation state
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [formValid, setFormValid] = useState(false);
-  const [emailTouched, setEmailTouched] = useState(false);
+  const [formFilled, setFormFilled] = useState(false);
 
   const paymentRef = useRef<PaymentSectionHandle>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Use a ref for submitAttempted so computeErrors/recompute don't need it
-  // in their closure (avoids stale closure issues with useCallback).
+  // Ref so recompute doesn't capture stale submitAttempted in closure
   const submitAttemptedRef = useRef(false);
 
-  const computeErrors = useCallback((): Record<string, string> => {
-    if (!formRef.current) return {};
+  const getValues = useCallback(() => {
+    if (!formRef.current) return null;
     const data = new FormData(formRef.current);
     const { sameAsShipping, billingAddress } =
       paymentRef.current?.getBillingState() ?? { sameAsShipping: true, billingAddress: undefined };
 
-    return validateCheckout({
+    return {
       email: (data.get("email") as string) ?? "",
       shipping: {
         line1: (data.get("line1") as string) ?? "",
@@ -94,14 +92,20 @@ export default function CheckoutPage() {
         : sameAsShipping
           ? undefined
           : { line1: "", city: "", state: "", zip: "", country: "" },
-    });
+    };
   }, []);
 
   const recompute = useCallback(() => {
-    const errs = computeErrors();
-    setFormValid(Object.keys(errs).length === 0);
-    setFieldErrors(errs);
-  }, [computeErrors]);
+    const values = getValues();
+    if (!values) return;
+
+    setFormFilled(isCheckoutFilled(values));
+
+    // Only re-run format validation after a submit attempt (to clear errors as user fixes them)
+    if (submitAttemptedRef.current) {
+      setFieldErrors(validateCheckout(values));
+    }
+  }, [getValues]);
 
   function handleShippingStateChange(state: string) {
     if (!state) return;
@@ -156,12 +160,14 @@ export default function CheckoutPage() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const errs = computeErrors();
+    const values = getValues();
+    if (!values) return;
+
+    const errs = validateCheckout(values);
     if (Object.keys(errs).length > 0) {
       submitAttemptedRef.current = true;
       setSubmitAttempted(true);
       setFieldErrors(errs);
-      setFormValid(false);
       // Focus the first invalid field
       const firstKey = Object.keys(errs)[0];
       formRef.current?.querySelector<HTMLElement>(`[name="${firstKey}"]`)?.focus();
@@ -280,10 +286,9 @@ export default function CheckoutPage() {
                     placeholder="you@example.com"
                     required
                     autoComplete="email"
-                    aria-invalid={!!fieldErrors.email}
-                    onBlur={() => setEmailTouched(true)}
+                    aria-invalid={submitAttempted && !!fieldErrors.email}
                   />
-                  {(emailTouched || submitAttempted) && fieldErrors.email && (
+                  {submitAttempted && fieldErrors.email && (
                     <p className="mt-1 text-sm text-destructive">{fieldErrors.email}</p>
                   )}
                 </div>
@@ -300,7 +305,7 @@ export default function CheckoutPage() {
                   onStateChange={handleShippingStateChange}
                   errors={fieldErrors}
                   onValidityRecheck={recompute}
-                  showAllErrors={submitAttempted}
+                  showErrors={submitAttempted}
                 />
               </CardContent>
             </Card>
@@ -337,7 +342,7 @@ export default function CheckoutPage() {
                     isAuthenticated={isAuthenticated}
                     billingErrors={fieldErrors}
                     onValidityRecheck={recompute}
-                    showAllErrors={submitAttempted}
+                    showErrors={submitAttempted}
                   />
                 )}
               </CardContent>
@@ -379,7 +384,7 @@ export default function CheckoutPage() {
               type="submit"
               size="lg"
               className="w-full"
-              disabled={submitting || configLoading || !formValid || (checkoutFlow != null && !checkoutFlow.ready_to_checkout)}
+              disabled={submitting || configLoading || !formFilled || (checkoutFlow != null && !checkoutFlow.ready_to_checkout)}
             >
               {submitting ? "Placing order..." : "Place Order"}
             </Button>

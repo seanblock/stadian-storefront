@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateCheckout, type ValidateInput } from "./checkout-validation";
+import { validateCheckout, isCheckoutFilled, type ValidateInput } from "./checkout-validation";
 
 const VALID_SHIPPING = {
   line1: "123 Main St",
@@ -14,6 +14,96 @@ const VALID_INPUT: ValidateInput = {
   shipping: VALID_SHIPPING,
   sameAsShipping: true,
 };
+
+const VALID_BILLING = {
+  line1: "456 Oak Ave",
+  city: "Denver",
+  state: "CO",
+  zip: "80202",
+  country: "US",
+};
+
+describe("isCheckoutFilled", () => {
+  it("returns true when all required fields are present", () => {
+    expect(isCheckoutFilled(VALID_INPUT)).toBe(true);
+  });
+
+  it("returns false when email is empty", () => {
+    expect(isCheckoutFilled({ ...VALID_INPUT, email: "" })).toBe(false);
+  });
+
+  it("returns false when email is whitespace-only", () => {
+    expect(isCheckoutFilled({ ...VALID_INPUT, email: "   " })).toBe(false);
+  });
+
+  it("returns true for malformed-but-present email (presence only)", () => {
+    expect(isCheckoutFilled({ ...VALID_INPUT, email: "notanemail" })).toBe(true);
+  });
+
+  it("returns true for malformed-but-present ZIP (presence only)", () => {
+    expect(isCheckoutFilled({ ...VALID_INPUT, shipping: { ...VALID_SHIPPING, zip: "1234" } })).toBe(true);
+  });
+
+  it("returns false when shipping.line1 is empty", () => {
+    expect(isCheckoutFilled({ ...VALID_INPUT, shipping: { ...VALID_SHIPPING, line1: "" } })).toBe(false);
+  });
+
+  it("returns false when shipping.city is empty", () => {
+    expect(isCheckoutFilled({ ...VALID_INPUT, shipping: { ...VALID_SHIPPING, city: "" } })).toBe(false);
+  });
+
+  it("returns false when shipping.state is empty", () => {
+    expect(isCheckoutFilled({ ...VALID_INPUT, shipping: { ...VALID_SHIPPING, state: "" } })).toBe(false);
+  });
+
+  it("returns false when shipping.zip is empty", () => {
+    expect(isCheckoutFilled({ ...VALID_INPUT, shipping: { ...VALID_SHIPPING, zip: "" } })).toBe(false);
+  });
+
+  it("returns false when shipping.country is empty", () => {
+    expect(isCheckoutFilled({ ...VALID_INPUT, shipping: { ...VALID_SHIPPING, country: "" } })).toBe(false);
+  });
+
+  it("returns false when sameAsShipping:false and billing is empty", () => {
+    expect(
+      isCheckoutFilled({
+        ...VALID_INPUT,
+        sameAsShipping: false,
+        billing: { line1: "", city: "", state: "", zip: "", country: "" },
+      })
+    ).toBe(false);
+  });
+
+  it("returns false when sameAsShipping:false and billing.city is empty", () => {
+    expect(
+      isCheckoutFilled({
+        ...VALID_INPUT,
+        sameAsShipping: false,
+        billing: { ...VALID_BILLING, city: "" },
+      })
+    ).toBe(false);
+  });
+
+  it("returns true when sameAsShipping:false and billing is fully filled", () => {
+    expect(
+      isCheckoutFilled({
+        ...VALID_INPUT,
+        sameAsShipping: false,
+        billing: VALID_BILLING,
+      })
+    ).toBe(true);
+  });
+
+  it("returns true when sameAsShipping:true, ignoring empty billing", () => {
+    expect(
+      isCheckoutFilled({
+        ...VALID_INPUT,
+        sameAsShipping: true,
+        billing: { line1: "", city: "", state: "", zip: "", country: "" },
+      })
+    ).toBe(true);
+  });
+});
 
 describe("validateCheckout", () => {
   it("returns {} for fully valid input", () => {
