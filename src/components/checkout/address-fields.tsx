@@ -21,6 +21,10 @@ interface AddressFieldsProps {
   section?: string;
   /** Called when the state/province field value changes. */
   onStateChange?: (state: string) => void;
+  /** Validation errors keyed by full field name (e.g. "line1", "billing_city"). */
+  errors?: Record<string, string | undefined>;
+  /** Called after any field changes so the parent can recompute form validity. */
+  onValidityRecheck?: () => void;
 }
 
 const fieldId = (idPrefix: string, name: string) => `${idPrefix}${name}`;
@@ -30,6 +34,8 @@ export function AddressFields({
   idPrefix = "",
   section,
   onStateChange,
+  errors,
+  onValidityRecheck,
 }: AddressFieldsProps) {
   const [country, setCountry] = useState("US");
   const ac = (token: string) => (section ? `${section} ${token}` : token);
@@ -45,7 +51,12 @@ export function AddressFields({
           placeholder="123 Main St"
           required
           autoComplete={ac("address-line1")}
+          aria-invalid={!!errors?.[`${prefix}line1`]}
+          onChange={() => onValidityRecheck?.()}
         />
+        {errors?.[`${prefix}line1`] && (
+          <p className="mt-1 text-sm text-destructive">{errors[`${prefix}line1`]}</p>
+        )}
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor={fieldId(idPrefix, "line2")}>
@@ -58,6 +69,7 @@ export function AddressFields({
           type="text"
           placeholder="Apt, suite, unit, etc."
           autoComplete={ac("address-line2")}
+          onChange={() => onValidityRecheck?.()}
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -69,39 +81,62 @@ export function AddressFields({
             type="text"
             required
             autoComplete={ac("address-level2")}
+            aria-invalid={!!errors?.[`${prefix}city`]}
+            onChange={() => onValidityRecheck?.()}
           />
+          {errors?.[`${prefix}city`] && (
+            <p className="mt-1 text-sm text-destructive">{errors[`${prefix}city`]}</p>
+          )}
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor={fieldId(idPrefix, "state")}>State</Label>
           {country === "US" ? (
-            <Select
-              name={`${prefix}state`}
-              required
-              onValueChange={(value) => onStateChange?.((value as string) ?? "")}
-            >
-              <SelectTrigger
-                id={fieldId(idPrefix, "state")}
-                className="w-full"
+            <>
+              <Select
+                name={`${prefix}state`}
+                required
+                onValueChange={(value) => {
+                  onStateChange?.((value as string) ?? "");
+                  onValidityRecheck?.();
+                }}
               >
-                <SelectValue placeholder="Select state" />
-              </SelectTrigger>
-              <SelectContent>
-                {US_STATES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  id={fieldId(idPrefix, "state")}
+                  className="w-full"
+                  aria-invalid={!!errors?.[`${prefix}state`]}
+                >
+                  <SelectValue placeholder="Select state" />
+                </SelectTrigger>
+                <SelectContent>
+                  {US_STATES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors?.[`${prefix}state`] && (
+                <p className="mt-1 text-sm text-destructive">{errors[`${prefix}state`]}</p>
+              )}
+            </>
           ) : (
-            <Input
-              id={fieldId(idPrefix, "state")}
-              name={`${prefix}state`}
-              type="text"
-              placeholder="State / Province / Region"
-              autoComplete={ac("address-level1")}
-              onChange={(e) => onStateChange?.(e.target.value)}
-            />
+            <>
+              <Input
+                id={fieldId(idPrefix, "state")}
+                name={`${prefix}state`}
+                type="text"
+                placeholder="State / Province / Region"
+                autoComplete={ac("address-level1")}
+                aria-invalid={!!errors?.[`${prefix}state`]}
+                onChange={(e) => {
+                  onStateChange?.(e.target.value);
+                  onValidityRecheck?.();
+                }}
+              />
+              {errors?.[`${prefix}state`] && (
+                <p className="mt-1 text-sm text-destructive">{errors[`${prefix}state`]}</p>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -114,19 +149,28 @@ export function AddressFields({
             type="text"
             required
             autoComplete={ac("postal-code")}
+            aria-invalid={!!errors?.[`${prefix}zip`]}
+            onChange={() => onValidityRecheck?.()}
           />
+          {errors?.[`${prefix}zip`] && (
+            <p className="mt-1 text-sm text-destructive">{errors[`${prefix}zip`]}</p>
+          )}
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor={fieldId(idPrefix, "country")}>Country</Label>
           <Select
             name={`${prefix}country`}
             value={country}
-            onValueChange={(value) => setCountry((value as string) ?? "US")}
+            onValueChange={(value) => {
+              setCountry((value as string) ?? "US");
+              onValidityRecheck?.();
+            }}
             required
           >
             <SelectTrigger
               id={fieldId(idPrefix, "country")}
               className="w-full"
+              aria-invalid={!!errors?.[`${prefix}country`]}
             >
               <SelectValue placeholder="Select country" />
             </SelectTrigger>
@@ -138,6 +182,9 @@ export function AddressFields({
               ))}
             </SelectContent>
           </Select>
+          {errors?.[`${prefix}country`] && (
+            <p className="mt-1 text-sm text-destructive">{errors[`${prefix}country`]}</p>
+          )}
         </div>
       </div>
     </div>

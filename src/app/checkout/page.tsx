@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/providers/cart-provider";
 import { useAuth } from "@/providers/auth-provider";
@@ -35,6 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AddressFields } from "@/components/checkout/address-fields";
 import { buildOrderPayload, resolveCheckoutResult } from "@/app/checkout/checkout-logic";
 import { OrderConfirmation, type ConfirmedOrder } from "@/components/checkout/order-confirmation";
+import { validateCheckout } from "@/app/checkout/checkout-validation";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -53,7 +54,55 @@ export default function CheckoutPage() {
   const [configLoading, setConfigLoading] = useState(true);
   const [checkoutFlow, setCheckoutFlow] = useState<CheckoutFlowResponse | null>(null);
 
+  // Validation state
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [formValid, setFormValid] = useState(false);
+
   const paymentRef = useRef<PaymentSectionHandle>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Use a ref for submitAttempted so computeErrors/recompute don't need it
+  // in their closure (avoids stale closure issues with useCallback).
+  const submitAttemptedRef = useRef(false);
+
+  const computeErrors = useCallback((): Record<string, string> => {
+    if (!formRef.current) return {};
+    const data = new FormData(formRef.current);
+    const { sameAsShipping, billingAddress } =
+      paymentRef.current?.getBillingState() ?? { sameAsShipping: true, billingAddress: undefined };
+
+    return validateCheckout({
+      email: (data.get("email") as string) ?? "",
+      shipping: {
+        line1: (data.get("line1") as string) ?? "",
+        city: (data.get("city") as string) ?? "",
+        state: (data.get("state") as string) ?? "",
+        zip: (data.get("zip") as string) ?? "",
+        country: (data.get("country") as string) ?? "",
+      },
+      sameAsShipping,
+      billing: billingAddress
+        ? {
+            line1: billingAddress.line1 ?? "",
+            city: billingAddress.city ?? "",
+            state: billingAddress.state ?? "",
+            zip: billingAddress.zip ?? "",
+            country: billingAddress.country ?? "",
+          }
+        : sameAsShipping
+          ? undefined
+          : { line1: "", city: "", state: "", zip: "", country: "" },
+    });
+  }, []);
+
+  const recompute = useCallback(() => {
+    const errs = computeErrors();
+    setFormValid(Object.keys(errs).length === 0);
+    if (submitAttemptedRef.current) {
+      setFieldErrors(errs);
+    }
+  }, [computeErrors]);
 
   function handleShippingStateChange(state: string) {
     if (!state) return;
@@ -61,6 +110,7 @@ export default function CheckoutPage() {
     getCheckoutFlow(sessionId, state).then((flow) => {
       setCheckoutFlow(flow);
     });
+    recompute();
   }
 
   useEffect(() => {
@@ -106,6 +156,19 @@ export default function CheckoutPage() {
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    const errs = computeErrors();
+    if (Object.keys(errs).length > 0) {
+      submitAttemptedRef.current = true;
+      setSubmitAttempted(true);
+      setFieldErrors(errs);
+      setFormValid(false);
+      // Focus the first invalid field
+      const firstKey = Object.keys(errs)[0];
+      formRef.current?.querySelector<HTMLElement>(`[name="${firstKey}"]`)?.focus();
+      return;
+    }
+
     setError(null);
     setSubmitting(true);
 
@@ -195,7 +258,13 @@ export default function CheckoutPage() {
   return (
     <div className="container mx-auto max-w-5xl px-4 py-12">
       <h1 className="mb-8 text-2xl font-semibold">Checkout</h1>
-      <form onSubmit={handleSubmit}>
+      <form
+        ref={formRef}
+        noValidate
+        onSubmit={handleSubmit}
+        onInput={recompute}
+        onChange={recompute}
+      >
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="flex flex-col gap-6">
             <Card>
@@ -212,7 +281,11 @@ export default function CheckoutPage() {
                     placeholder="you@example.com"
                     required
                     autoComplete="email"
+                    aria-invalid={!!fieldErrors.email}
                   />
+                  {fieldErrors.email && (
+                    <p className="mt-1 text-sm text-destructive">{fieldErrors.email}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -222,7 +295,12 @@ export default function CheckoutPage() {
                 <CardTitle>Shipping Address</CardTitle>
               </CardHeader>
               <CardContent>
-                <AddressFields section="shipping" onStateChange={handleShippingStateChange} />
+                <AddressFields
+                  section="shipping"
+                  onStateChange={handleShippingStateChange}
+                  errors={fieldErrors}
+                  onValidityRecheck={recompute}
+                />
               </CardContent>
             </Card>
 
@@ -256,6 +334,8 @@ export default function CheckoutPage() {
                     config={paymentConfig}
                     storedMethods={storedMethods}
                     isAuthenticated={isAuthenticated}
+                    billingErrors={fieldErrors}
+                    onValidityRecheck={recompute}
                   />
                 )}
               </CardContent>
@@ -297,7 +377,7 @@ export default function CheckoutPage() {
               type="submit"
               size="lg"
               className="w-full"
-              disabled={submitting || configLoading || (checkoutFlow != null && !checkoutFlow.ready_to_checkout)}
+              disabled={submitting || configLoading || !formValid || (checkoutFlow != null && !checkoutFlow.ready_to_checkout)}
             >
               {submitting ? "Placing order..." : "Place Order"}
             </Button>

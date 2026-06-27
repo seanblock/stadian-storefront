@@ -42,6 +42,8 @@ interface PaymentSectionProps {
   config: PaymentClientConfig | null;
   storedMethods: StoredPaymentMethod[];
   isAuthenticated: boolean;
+  billingErrors?: Record<string, string | undefined>;
+  onValidityRecheck?: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -64,7 +66,7 @@ interface PaymentFormInstance {
 export const PaymentSection = forwardRef<
   PaymentSectionHandle,
   PaymentSectionProps
->(function PaymentSection({ config, storedMethods, isAuthenticated }, ref) {
+>(function PaymentSection({ config, storedMethods, isAuthenticated, billingErrors, onValidityRecheck }, ref) {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(
     storedMethods.find((m) => m.is_default)?.id ?? null,
   );
@@ -224,6 +226,8 @@ export const PaymentSection = forwardRef<
         <BillingAddress
           sameAsShipping={sameAsShipping}
           onSameAsShippingChange={setSameAsShipping}
+          errors={billingErrors}
+          onValidityRecheck={onValidityRecheck}
         />
       </div>
     );
@@ -240,6 +244,8 @@ export const PaymentSection = forwardRef<
         <BillingAddress
           sameAsShipping={sameAsShipping}
           onSameAsShippingChange={setSameAsShipping}
+          errors={billingErrors}
+          onValidityRecheck={onValidityRecheck}
         />
       </div>
     );
@@ -333,6 +339,8 @@ export const PaymentSection = forwardRef<
         <BillingAddress
           sameAsShipping={sameAsShipping}
           onSameAsShippingChange={setSameAsShipping}
+          errors={billingErrors}
+          onValidityRecheck={onValidityRecheck}
         />
       </div>
     </div>

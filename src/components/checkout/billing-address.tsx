@@ -5,9 +5,16 @@ import { AddressFields } from "@/components/checkout/address-fields";
 interface BillingAddressProps {
   sameAsShipping: boolean;
   onSameAsShippingChange: (same: boolean) => void;
+  errors?: Record<string, string | undefined>;
+  onValidityRecheck?: () => void;
 }
 
-export function BillingAddress({ sameAsShipping, onSameAsShippingChange }: BillingAddressProps) {
+export function BillingAddress({
+  sameAsShipping,
+  onSameAsShippingChange,
+  errors,
+  onValidityRecheck,
+}: BillingAddressProps) {
   return (
     <div className="flex flex-col gap-4">
       <label className="flex items-center gap-2 text-sm">
@@ -21,7 +28,13 @@ export function BillingAddress({ sameAsShipping, onSameAsShippingChange }: Billi
       </label>
 
       {!sameAsShipping && (
-        <AddressFields prefix="billing_" idPrefix="billing_" section="billing" />
+        <AddressFields
+          prefix="billing_"
+          idPrefix="billing_"
+          section="billing"
+          errors={errors}
+          onValidityRecheck={onValidityRecheck}
+        />
       )}
     </div>
   );
