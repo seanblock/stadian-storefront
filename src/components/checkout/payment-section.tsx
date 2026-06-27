@@ -185,7 +185,7 @@ export const PaymentSection = forwardRef<
 
     // Fallback — form not mounted (SDK not available yet)
     throw new Error("Payment form is still loading. Please wait a moment and try again.");
-  }, [config, selectedMethod, saveCard, isAuthenticated]);
+  }, [config, selectedMethod, saveCard, isAuthenticated, formReady]);
 
   const getBillingState = useCallback((): { sameAsShipping: boolean; billingAddress?: Address } => {
     if (sameAsShipping) return { sameAsShipping: true as const, billingAddress: undefined };
