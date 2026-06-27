@@ -18,8 +18,10 @@ import {
 } from "@/components/checkout/payment-section";
 import { getSessionId, clearSession } from "@/lib/session";
 import { getShippingOptions } from "@/app/actions/shipping";
-import type { ShippingOption } from "@stadian/storefront-sdk";
+import { getCheckoutFlow } from "@/app/actions/checkout-flow";
+import type { CheckoutFlowResponse, ShippingOption } from "@stadian/storefront-sdk";
 import { ShippingMethods } from "@/components/checkout/shipping-methods";
+import { CheckoutFlowSteps } from "@/components/checkout/checkout-flow-steps";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -49,8 +51,17 @@ export default function CheckoutPage() {
   const [paymentConfig, setPaymentConfig] = useState<PaymentClientConfig | null>(null);
   const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
   const [configLoading, setConfigLoading] = useState(true);
+  const [checkoutFlow, setCheckoutFlow] = useState<CheckoutFlowResponse | null>(null);
 
   const paymentRef = useRef<PaymentSectionHandle>(null);
+
+  function handleShippingStateChange(state: string) {
+    if (!state) return;
+    const sessionId = getSessionId();
+    getCheckoutFlow(sessionId, state).then((flow) => {
+      setCheckoutFlow(flow);
+    });
+  }
 
   useEffect(() => {
     if (!loading && (!cart || cart.items.length === 0)) {
@@ -157,8 +168,13 @@ export default function CheckoutPage() {
       setLastEmail(email);
       setConfirmedOrder(order);
     } catch (err) {
+      const isStadianError =
+        err instanceof Error && "status" in err && typeof (err as { status: unknown }).status === "number";
+      const is422 = isStadianError && (err as { status: number }).status === 422;
       setError(
-        err instanceof Error ? err.message : "Failed to place order. Please try again."
+        is422 || err instanceof Error
+          ? (err as Error).message
+          : "Failed to place order. Please try again."
       );
       setSubmitting(false);
     }
@@ -206,7 +222,7 @@ export default function CheckoutPage() {
                 <CardTitle>Shipping Address</CardTitle>
               </CardHeader>
               <CardContent>
-                <AddressFields section="shipping" />
+                <AddressFields section="shipping" onStateChange={handleShippingStateChange} />
               </CardContent>
             </Card>
 
@@ -224,6 +240,8 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
             )}
+
+            <CheckoutFlowSteps flow={checkoutFlow} />
 
             <Card>
               <CardHeader>
@@ -275,7 +293,12 @@ export default function CheckoutPage() {
               </p>
             )}
 
-            <Button type="submit" size="lg" className="w-full" disabled={submitting || configLoading}>
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={submitting || configLoading || (checkoutFlow != null && !checkoutFlow.ready_to_checkout)}
+            >
               {submitting ? "Placing order..." : "Place Order"}
             </Button>
           </div>

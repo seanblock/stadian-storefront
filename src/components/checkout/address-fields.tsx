@@ -19,6 +19,8 @@ interface AddressFieldsProps {
   idPrefix?: string;
   /** autoComplete section, e.g. "shipping" or "billing". */
   section?: string;
+  /** Called when the state/province field value changes. */
+  onStateChange?: (state: string) => void;
 }
 
 const fieldId = (idPrefix: string, name: string) => `${idPrefix}${name}`;
@@ -27,6 +29,7 @@ export function AddressFields({
   prefix = "",
   idPrefix = "",
   section,
+  onStateChange,
 }: AddressFieldsProps) {
   const [country, setCountry] = useState("US");
   const ac = (token: string) => (section ? `${section} ${token}` : token);
@@ -71,7 +74,11 @@ export function AddressFields({
         <div className="flex flex-col gap-2">
           <Label htmlFor={fieldId(idPrefix, "state")}>State</Label>
           {country === "US" ? (
-            <Select name={`${prefix}state`} required>
+            <Select
+              name={`${prefix}state`}
+              required
+              onValueChange={(value) => onStateChange?.((value as string) ?? "")}
+            >
               <SelectTrigger
                 id={fieldId(idPrefix, "state")}
                 className="w-full"
@@ -93,6 +100,7 @@ export function AddressFields({
               type="text"
               placeholder="State / Province / Region"
               autoComplete={ac("address-level1")}
+              onChange={(e) => onStateChange?.(e.target.value)}
             />
           )}
         </div>
