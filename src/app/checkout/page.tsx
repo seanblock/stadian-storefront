@@ -17,6 +17,9 @@ import {
   type PaymentSectionHandle,
 } from "@/components/checkout/payment-section";
 import { getSessionId, clearSession } from "@/lib/session";
+import { getShippingOptions } from "@/app/actions/shipping";
+import type { ShippingOption } from "@stadian/storefront-sdk";
+import { ShippingMethods } from "@/components/checkout/shipping-methods";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -40,9 +43,8 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrder | null>(null);
   const [lastEmail, setLastEmail] = useState("");
-  // selectedShippingMethodId wired to UI in Task 9
-  const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string | undefined>(undefined); // used in Task 9
-  void setSelectedShippingMethodId; // suppress unused-var lint until Task 9
+  const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string | undefined>(undefined);
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
 
   const [paymentConfig, setPaymentConfig] = useState<PaymentClientConfig | null>(null);
   const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
@@ -76,6 +78,20 @@ export default function CheckoutPage() {
       cancelled = true;
     };
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (loading || !cart || cart.items.length === 0) return;
+    let cancelled = false;
+    async function loadShipping() {
+      const sessionId = getSessionId();
+      const options = await getShippingOptions(sessionId);
+      if (!cancelled) setShippingOptions(options);
+    }
+    loadShipping();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, cart]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -194,6 +210,21 @@ export default function CheckoutPage() {
               </CardContent>
             </Card>
 
+            {shippingOptions.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Shipping Method</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ShippingMethods
+                    options={shippingOptions}
+                    value={selectedShippingMethodId}
+                    onChange={setSelectedShippingMethodId}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle>Payment</CardTitle>
@@ -229,7 +260,14 @@ export default function CheckoutPage() {
           </div>
 
           <div className="flex flex-col gap-4">
-            <OrderSummary cart={cart} />
+            <OrderSummary
+              cart={cart}
+              shippingCost={
+                shippingOptions.find(
+                  (o) => o.method_id === selectedShippingMethodId,
+                )?.price
+              }
+            />
 
             {error && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

@@ -17,9 +17,10 @@ import { applyDiscountCode } from "@/app/actions/cart";
 
 interface OrderSummaryProps {
   cart: StorefrontCart;
+  shippingCost?: number;
 }
 
-export function OrderSummary({ cart }: OrderSummaryProps) {
+export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
   const [promoCode, setPromoCode] = useState("");
   const [promoError, setPromoError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
@@ -75,6 +76,15 @@ export function OrderSummary({ cart }: OrderSummaryProps) {
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Tax</span>
             <span className="tabular-nums">{formatCurrency(cart.tax_amount)}</span>
+          </div>
+        )}
+
+        {shippingCost !== undefined && (
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Shipping</span>
+            <span className="tabular-nums">
+              {shippingCost === 0 ? "Free" : formatCurrency(shippingCost)}
+            </span>
           </div>
         )}
 
