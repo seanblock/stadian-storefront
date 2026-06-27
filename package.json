@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "playwright test",
-    "test:closed": "STORE_CLOSED_OVERRIDE=coming_soon playwright test e2e/store-closed.spec.ts"
+    "test:closed": "STORE_CLOSED_OVERRIDE=coming_soon playwright test e2e/store-closed.spec.ts",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
@@ -35,6 +36,7 @@
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.9",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.9"
   }
 }
