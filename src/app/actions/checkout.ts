@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { getStadianClient } from "@/lib/stadian";
+import { getCustomerToken } from "@/app/actions/auth";
 import type { StorefrontOrder } from "@stadian/storefront-sdk";
 import type { Address } from "@/app/checkout/checkout-logic";
 
@@ -37,6 +38,8 @@ export async function createOrder(
     data.storedPaymentMethodId ||
     data.paymentFlow === "redirect";
 
+  const customerToken = (await getCustomerToken()) ?? undefined;
+
   const client = getStadianClient();
   const order = await client.checkout.create({
     sessionToken: sessionId,
@@ -50,6 +53,8 @@ export async function createOrder(
     storedPaymentMethodId: data.storedPaymentMethodId,
     savePaymentMethod: data.savePaymentMethod,
     notes: notes || undefined,
+    customerToken,
+    shippingMethodId: data.shippingMethodId,
   });
 
   if (referralCode) {
