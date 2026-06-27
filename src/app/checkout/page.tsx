@@ -28,6 +28,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AddressFields } from "@/components/checkout/address-fields";
+import { buildOrderPayload, resolveCheckoutResult } from "@/app/checkout/checkout-logic";
+import { OrderConfirmation, type ConfirmedOrder } from "@/components/checkout/order-confirmation";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -36,6 +38,11 @@ export default function CheckoutPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrder | null>(null);
+  const [lastEmail, setLastEmail] = useState("");
+  // selectedShippingMethodId wired to UI in Task 9
+  const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string | undefined>(undefined); // used in Task 9
+  void setSelectedShippingMethodId; // suppress unused-var lint until Task 9
 
   const [paymentConfig, setPaymentConfig] = useState<PaymentClientConfig | null>(null);
   const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
@@ -83,8 +90,10 @@ export default function CheckoutPage() {
         ? await paymentRef.current.getPaymentData()
         : {};
 
-      const sameAsShipping = data.get("billing_same") === "on" || data.get("billing_same") === null;
-      const shippingAddress = {
+      const { sameAsShipping, billingAddress } =
+        paymentRef.current?.getBillingState() ?? { sameAsShipping: true, billingAddress: undefined };
+
+      const shipping = {
         line1: data.get("line1") as string,
         line2: (data.get("line2") as string) || undefined,
         city: data.get("city") as string,
@@ -93,43 +102,58 @@ export default function CheckoutPage() {
         country: data.get("country") as string,
       };
 
-      const billingAddress = sameAsShipping
-        ? undefined
-        : {
-            line1: data.get("billing_line1") as string,
-            line2: (data.get("billing_line2") as string) || undefined,
-            city: data.get("billing_city") as string,
-            state: data.get("billing_state") as string,
-            zip: data.get("billing_zip") as string,
-            country: data.get("billing_country") as string,
-          };
+      const email = data.get("email") as string;
+      const payload = buildOrderPayload({
+        email,
+        shipping,
+        sameAsShipping,
+        billing: billingAddress,
+        shippingMethodId: selectedShippingMethodId,
+        customerToken: undefined, // resolved in Task 10
+        notes: (data.get("notes") as string) || undefined,
+        paymentData,
+      });
 
       const sessionId = getSessionId();
-      const order = await createOrder(sessionId, {
-        customerEmail: data.get("email") as string,
-        shippingAddress,
-        billingAddress,
-        notes: (data.get("notes") as string) || undefined,
-        ...paymentData,
-      });
+      // payload includes shippingMethodId/customerToken not yet in createOrder's type — Task 10 will align
+      const order = await createOrder(sessionId, payload as any);
+      const result = resolveCheckoutResult(
+        order as Parameters<typeof resolveCheckoutResult>[0],
+        paymentData.paymentFlow,
+      );
+
+      if (result.kind === "failed") {
+        setError(result.message);
+        setSubmitting(false);
+        return;
+      }
 
       clearSession();
 
-      if (paymentData.paymentFlow === "redirect") {
-        const redirectUrl = (order as unknown as { redirect_url?: string }).redirect_url;
-        if (redirectUrl) {
-          window.location.href = redirectUrl;
-          return;
-        }
+      if (result.kind === "redirect") {
+        window.location.href = result.url;
+        return;
       }
 
-      router.push(`/account/orders/${order.id}`);
+      // result.kind === "success"
+      if (isAuthenticated) {
+        router.push(`/account/orders/${result.orderId}`);
+        return;
+      }
+
+      // Guest: show inline confirmation
+      setLastEmail(email);
+      setConfirmedOrder(order as unknown as ConfirmedOrder);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to place order. Please try again."
       );
       setSubmitting(false);
     }
+  }
+
+  if (confirmedOrder) {
+    return <OrderConfirmation order={confirmedOrder} email={lastEmail} />;
   }
 
   if (loading || !cart || cart.items.length === 0) {
