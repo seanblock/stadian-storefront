@@ -307,3 +307,5 @@ export interface StoredPaymentMethod {
     is_default: boolean;
     expires_at: string | null;
 }
+export interface ShippingOption { method_id: string; method_name: string; price: number; is_free: boolean; }
+export interface ShippingEstimateResponse { options: ShippingOption[]; }

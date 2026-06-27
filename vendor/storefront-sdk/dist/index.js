@@ -105,6 +105,10 @@ class CheckoutResource {
             },
         });
     }
+    /** Estimate shipping options for the current cart session. */
+    estimateShipping(sessionToken) {
+        return this.http.request("POST", "/shipping-estimate", { body: { session_token: sessionToken } });
+    }
 }
 class OrdersResource {
     http;
