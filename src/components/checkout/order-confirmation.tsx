@@ -4,7 +4,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface ConfirmedOrder {
-  id: string; order_number?: number | null; status: string; total: number; payment_status?: string | null;
+  id: string; order_number?: string | null; status: string; total: number; payment_status?: string | null;
 }
 
 export function OrderConfirmation({ order, email }: { order: ConfirmedOrder; email: string }) {

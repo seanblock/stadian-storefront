@@ -115,12 +115,8 @@ export default function CheckoutPage() {
       });
 
       const sessionId = getSessionId();
-      // payload includes shippingMethodId/customerToken not yet in createOrder's type — Task 10 will align
-      const order = await createOrder(sessionId, payload as any);
-      const result = resolveCheckoutResult(
-        order as Parameters<typeof resolveCheckoutResult>[0],
-        paymentData.paymentFlow,
-      );
+      const order = await createOrder(sessionId, payload);
+      const result = resolveCheckoutResult(order, paymentData.paymentFlow);
 
       if (result.kind === "failed") {
         setError(result.message);
@@ -143,7 +139,7 @@ export default function CheckoutPage() {
 
       // Guest: show inline confirmation
       setLastEmail(email);
-      setConfirmedOrder(order as unknown as ConfirmedOrder);
+      setConfirmedOrder(order);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to place order. Please try again."
