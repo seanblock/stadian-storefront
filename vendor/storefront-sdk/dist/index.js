@@ -74,12 +74,13 @@ class CheckoutResource {
     }
     /** Create an order from the current cart session. */
     create(params) {
-        return this.http.request("POST", "/checkout", {
+        const options = {
             body: {
                 session_token: params.sessionToken,
                 customer_email: params.customerEmail,
                 shipping_address: params.shippingAddress,
                 billing_address: params.billingAddress,
+                shipping_method_id: params.shippingMethodId,
                 notes: params.notes,
                 payment_method: params.paymentMethod,
                 payment_reference: params.paymentReference,
@@ -89,7 +90,11 @@ class CheckoutResource {
                 stored_payment_method_id: params.storedPaymentMethodId,
                 save_payment_method: params.savePaymentMethod,
             },
-        });
+        };
+        if (params.customerToken) {
+            options.headers = { Authorization: `Bearer ${params.customerToken}` };
+        }
+        return this.http.request("POST", "/checkout", options);
     }
     /** Get the checkout flow steps required for the current cart. */
     getFlow(sessionToken, shippingState) {

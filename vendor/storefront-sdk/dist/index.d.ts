@@ -40,6 +40,7 @@ export interface CheckoutCreateParams {
     customerEmail?: string;
     shippingAddress?: Record<string, unknown>;
     billingAddress?: Record<string, unknown>;
+    shippingMethodId?: string;
     notes?: string;
     paymentMethod?: string;
     paymentReference?: string;
@@ -48,6 +49,7 @@ export interface CheckoutCreateParams {
     paymentFlow?: "embedded" | "redirect";
     storedPaymentMethodId?: string;
     savePaymentMethod?: boolean;
+    customerToken?: string;
 }
 export interface IntakeSubmitParams {
     intakeFormId: string;

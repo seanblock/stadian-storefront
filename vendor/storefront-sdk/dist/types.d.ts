@@ -126,6 +126,10 @@ export interface StorefrontOrder {
     tracking_number: string | null;
     tracking_url: string | null;
     created_at: string;
+    payment_status?: string | null;
+    payment_error?: string | null;
+    redirect_url?: string | null;
+    shipping_amount?: number;
 }
 export interface StorefrontIntakeForm {
     id: string;
