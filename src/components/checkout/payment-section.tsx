@@ -12,6 +12,7 @@ import type {
   PaymentClientConfig,
   StoredPaymentMethod,
 } from "@/app/actions/payments";
+import type { Address } from "@/app/checkout/checkout-logic";
 import { StoredMethods } from "./stored-methods";
 import { BillingAddress } from "./billing-address";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,7 @@ export interface PaymentData {
 
 export interface PaymentSectionHandle {
   getPaymentData: () => Promise<PaymentData>;
+  getBillingState: () => { sameAsShipping: boolean; billingAddress?: Address };
 }
 
 /* ------------------------------------------------------------------ */
@@ -181,7 +183,24 @@ export const PaymentSection = forwardRef<
     return {};
   }, [config, selectedMethod, saveCard, isAuthenticated]);
 
-  useImperativeHandle(ref, () => ({ getPaymentData }), [getPaymentData]);
+  const getBillingState = useCallback((): { sameAsShipping: boolean; billingAddress?: Address } => {
+    if (sameAsShipping) return { sameAsShipping: true as const, billingAddress: undefined };
+    const v = (n: string) =>
+      (document.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="billing_${n}"]`)?.value ?? "");
+    return {
+      sameAsShipping: false as const,
+      billingAddress: {
+        line1: v("line1"),
+        line2: v("line2") || undefined,
+        city: v("city"),
+        state: v("state"),
+        zip: v("zip"),
+        country: v("country"),
+      },
+    };
+  }, [sameAsShipping]);
+
+  useImperativeHandle(ref, () => ({ getPaymentData, getBillingState }), [getPaymentData, getBillingState]);
 
   /* ================================================================ */
   /*  Render                                                          */
