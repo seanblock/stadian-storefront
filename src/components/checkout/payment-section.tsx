@@ -216,10 +216,9 @@ export const PaymentSection = forwardRef<
       <div className="flex flex-col gap-4">
         <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-4 dark:border-yellow-700 dark:bg-yellow-950/30">
           <p className="text-sm text-muted-foreground">
-            Payment instructions will be included on your order confirmation
-            page. Your order will be placed as{" "}
-            <strong>payment pending</strong> and our team will reach out with
-            next steps.
+            No payment is collected now. Your order will be placed as{" "}
+            <strong>payment pending</strong>, and our team will email you with
+            payment details and next steps to complete it.
           </p>
         </div>
         <BillingAddress
