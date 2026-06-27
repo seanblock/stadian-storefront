@@ -198,6 +198,9 @@ export interface StorefrontBranding {
     return_policy: Record<string, unknown> | null;
     storefront_enabled: boolean;
     storefront_closed_reason: 'general' | 'coming_soon' | 'maintenance' | null;
+    age_gate_enabled?: boolean;
+    age_gate_min_age?: number;
+    age_gate_redirect_url?: string | null;
 }
 export interface StorefrontPageResponse {
     /** Tiptap/ProseMirror JSON document tree. Render with your own components. */
