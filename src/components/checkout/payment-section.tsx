@@ -170,6 +170,10 @@ export const PaymentSection = forwardRef<
     }
 
     // Embedded tokenisation
+    if (!formReady) {
+      throw new Error("Payment form is still loading. Please wait a moment and try again.");
+    }
+
     if (formRef.current) {
       const result = await formRef.current.tokenize();
       return {
@@ -180,7 +184,7 @@ export const PaymentSection = forwardRef<
     }
 
     // Fallback — form not mounted (SDK not available yet)
-    return {};
+    throw new Error("Payment form is still loading. Please wait a moment and try again.");
   }, [config, selectedMethod, saveCard, isAuthenticated]);
 
   const getBillingState = useCallback((): { sameAsShipping: boolean; billingAddress?: Address } => {
