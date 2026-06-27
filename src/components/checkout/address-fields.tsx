@@ -109,7 +109,7 @@ export function AddressFields({
                 required
                 onValueChange={(value) => {
                   onStateChange?.((value as string) ?? "");
-                  onValidityRecheck?.();
+                  requestAnimationFrame(() => onValidityRecheck?.());
                 }}
               >
                 <SelectTrigger
@@ -178,7 +178,7 @@ export function AddressFields({
             value={country}
             onValueChange={(value) => {
               setCountry((value as string) ?? "US");
-              onValidityRecheck?.();
+              requestAnimationFrame(() => onValidityRecheck?.());
             }}
             required
           >
