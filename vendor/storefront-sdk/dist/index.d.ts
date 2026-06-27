@@ -1,6 +1,6 @@
 import { HttpClient } from "./client";
 import { PaymentsResource } from "./resources/payments";
-import type { CheckoutFlowResponse, PaginatedList, StoreConfig, StorefrontBranding, StorefrontCart, StorefrontCommission, StorefrontCustomerProfile, StorefrontFaqResponse, StorefrontIntakeForm, StorefrontIntakeSubmission, StorefrontLoginResponse, StorefrontOrder, StorefrontPageResponse, StorefrontPayout, StorefrontProduct, StorefrontProductDetail, StorefrontProductGroup, StorefrontRefreshResponse, StorefrontWebhookSubscription } from "./types";
+import type { CheckoutFlowResponse, PaginatedList, ShippingEstimateResponse, StoreConfig, StorefrontBranding, StorefrontCart, StorefrontCommission, StorefrontCustomerProfile, StorefrontFaqResponse, StorefrontIntakeForm, StorefrontIntakeSubmission, StorefrontLoginResponse, StorefrontOrder, StorefrontPageResponse, StorefrontPayout, StorefrontProduct, StorefrontProductDetail, StorefrontProductGroup, StorefrontRefreshResponse, StorefrontWebhookSubscription } from "./types";
 export * from "./types";
 export * from "./errors";
 export { HttpClient } from "./client";
@@ -40,6 +40,7 @@ export interface CheckoutCreateParams {
     customerEmail?: string;
     shippingAddress?: Record<string, unknown>;
     billingAddress?: Record<string, unknown>;
+    shippingMethodId?: string;
     notes?: string;
     paymentMethod?: string;
     paymentReference?: string;
@@ -48,6 +49,7 @@ export interface CheckoutCreateParams {
     paymentFlow?: "embedded" | "redirect";
     storedPaymentMethodId?: string;
     savePaymentMethod?: boolean;
+    customerToken?: string;
 }
 export interface IntakeSubmitParams {
     intakeFormId: string;
@@ -101,6 +103,8 @@ declare class CheckoutResource {
     create(params: CheckoutCreateParams): Promise<StorefrontOrder>;
     /** Get the checkout flow steps required for the current cart. */
     getFlow(sessionToken: string, shippingState: string): Promise<CheckoutFlowResponse>;
+    /** Estimate shipping options for the current cart session. */
+    estimateShipping(sessionToken: string): Promise<ShippingEstimateResponse>;
 }
 declare class OrdersResource {
     private http;

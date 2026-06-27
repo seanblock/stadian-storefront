@@ -17,6 +17,11 @@ import {
   type PaymentSectionHandle,
 } from "@/components/checkout/payment-section";
 import { getSessionId, clearSession } from "@/lib/session";
+import { getShippingOptions } from "@/app/actions/shipping";
+import { getCheckoutFlow } from "@/app/actions/checkout-flow";
+import type { CheckoutFlowResponse, ShippingOption } from "@stadian/storefront-sdk";
+import { ShippingMethods } from "@/components/checkout/shipping-methods";
+import { CheckoutFlowSteps } from "@/components/checkout/checkout-flow-steps";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,6 +32,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { AddressFields } from "@/components/checkout/address-fields";
+import { buildOrderPayload, resolveCheckoutResult } from "@/app/checkout/checkout-logic";
+import { OrderConfirmation, type ConfirmedOrder } from "@/components/checkout/order-confirmation";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -35,12 +43,25 @@ export default function CheckoutPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrder | null>(null);
+  const [lastEmail, setLastEmail] = useState("");
+  const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string | undefined>(undefined);
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
 
   const [paymentConfig, setPaymentConfig] = useState<PaymentClientConfig | null>(null);
   const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
   const [configLoading, setConfigLoading] = useState(true);
+  const [checkoutFlow, setCheckoutFlow] = useState<CheckoutFlowResponse | null>(null);
 
   const paymentRef = useRef<PaymentSectionHandle>(null);
+
+  function handleShippingStateChange(state: string) {
+    if (!state) return;
+    const sessionId = getSessionId();
+    getCheckoutFlow(sessionId, state).then((flow) => {
+      setCheckoutFlow(flow);
+    });
+  }
 
   useEffect(() => {
     if (!loading && (!cart || cart.items.length === 0)) {
@@ -69,6 +90,20 @@ export default function CheckoutPage() {
     };
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (loading || !cart || cart.items.length === 0) return;
+    let cancelled = false;
+    async function loadShipping() {
+      const sessionId = getSessionId();
+      const options = await getShippingOptions(sessionId);
+      if (!cancelled) setShippingOptions(options);
+    }
+    loadShipping();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, cart]);
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -82,8 +117,10 @@ export default function CheckoutPage() {
         ? await paymentRef.current.getPaymentData()
         : {};
 
-      const sameAsShipping = data.get("billing_same") === "on" || data.get("billing_same") === null;
-      const shippingAddress = {
+      const { sameAsShipping, billingAddress } =
+        paymentRef.current?.getBillingState() ?? { sameAsShipping: true, billingAddress: undefined };
+
+      const shipping = {
         line1: data.get("line1") as string,
         line2: (data.get("line2") as string) || undefined,
         city: data.get("city") as string,
@@ -92,43 +129,59 @@ export default function CheckoutPage() {
         country: data.get("country") as string,
       };
 
-      const billingAddress = sameAsShipping
-        ? undefined
-        : {
-            line1: data.get("billing_line1") as string,
-            line2: (data.get("billing_line2") as string) || undefined,
-            city: data.get("billing_city") as string,
-            state: data.get("billing_state") as string,
-            zip: data.get("billing_zip") as string,
-            country: data.get("billing_country") as string,
-          };
+      const email = data.get("email") as string;
+      const payload = buildOrderPayload({
+        email,
+        shipping,
+        sameAsShipping,
+        billing: billingAddress,
+        shippingMethodId: selectedShippingMethodId,
+        customerToken: undefined, // resolved in Task 10
+        notes: (data.get("notes") as string) || undefined,
+        paymentData,
+      });
 
       const sessionId = getSessionId();
-      const order = await createOrder(sessionId, {
-        customerEmail: data.get("email") as string,
-        shippingAddress,
-        billingAddress,
-        notes: (data.get("notes") as string) || undefined,
-        ...paymentData,
-      });
+      const order = await createOrder(sessionId, payload);
+      const result = resolveCheckoutResult(order, paymentData.paymentFlow);
+
+      if (result.kind === "failed") {
+        setError(result.message);
+        setSubmitting(false);
+        return;
+      }
 
       clearSession();
 
-      if (paymentData.paymentFlow === "redirect") {
-        const redirectUrl = (order as unknown as { redirect_url?: string }).redirect_url;
-        if (redirectUrl) {
-          window.location.href = redirectUrl;
-          return;
-        }
+      if (result.kind === "redirect") {
+        window.location.href = result.url;
+        return;
       }
 
-      router.push(`/account/orders/${order.id}`);
+      // result.kind === "success"
+      if (isAuthenticated) {
+        router.push(`/account/orders/${result.orderId}`);
+        return;
+      }
+
+      // Guest: show inline confirmation
+      setLastEmail(email);
+      setConfirmedOrder(order);
     } catch (err) {
+      const isStadianError =
+        err instanceof Error && "status" in err && typeof (err as { status: unknown }).status === "number";
+      const is422 = isStadianError && (err as { status: number }).status === 422;
       setError(
-        err instanceof Error ? err.message : "Failed to place order. Please try again."
+        is422 || err instanceof Error
+          ? (err as Error).message
+          : "Failed to place order. Please try again."
       );
       setSubmitting(false);
     }
+  }
+
+  if (confirmedOrder) {
+    return <OrderConfirmation order={confirmedOrder} email={lastEmail} />;
   }
 
   if (loading || !cart || cart.items.length === 0) {
@@ -168,39 +221,27 @@ export default function CheckoutPage() {
               <CardHeader>
                 <CardTitle>Shipping Address</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="line1">Address line 1</Label>
-                  <Input id="line1" name="line1" type="text" placeholder="123 Main St" required autoComplete="address-line1" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="line2">
-                    Address line 2 <span className="font-normal text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input id="line2" name="line2" type="text" placeholder="Apt, suite, unit, etc." autoComplete="address-line2" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input id="city" name="city" type="text" required autoComplete="address-level2" />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="state">State</Label>
-                    <Input id="state" name="state" type="text" required autoComplete="address-level1" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="zip">ZIP code</Label>
-                    <Input id="zip" name="zip" type="text" required autoComplete="postal-code" />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input id="country" name="country" type="text" defaultValue="US" required autoComplete="country" />
-                  </div>
-                </div>
+              <CardContent>
+                <AddressFields section="shipping" onStateChange={handleShippingStateChange} />
               </CardContent>
             </Card>
+
+            {shippingOptions.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Shipping Method</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ShippingMethods
+                    options={shippingOptions}
+                    value={selectedShippingMethodId}
+                    onChange={setSelectedShippingMethodId}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            <CheckoutFlowSteps flow={checkoutFlow} />
 
             <Card>
               <CardHeader>
@@ -237,7 +278,14 @@ export default function CheckoutPage() {
           </div>
 
           <div className="flex flex-col gap-4">
-            <OrderSummary cart={cart} />
+            <OrderSummary
+              cart={cart}
+              shippingCost={
+                shippingOptions.find(
+                  (o) => o.method_id === selectedShippingMethodId,
+                )?.price
+              }
+            />
 
             {error && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -245,7 +293,12 @@ export default function CheckoutPage() {
               </p>
             )}
 
-            <Button type="submit" size="lg" className="w-full" disabled={submitting || configLoading}>
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={submitting || configLoading || (checkoutFlow != null && !checkoutFlow.ready_to_checkout)}
+            >
               {submitting ? "Placing order..." : "Place Order"}
             </Button>
           </div>

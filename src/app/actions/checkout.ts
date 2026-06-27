@@ -2,17 +2,9 @@
 
 import { cookies } from "next/headers";
 import { getStadianClient } from "@/lib/stadian";
+import { getCustomerToken } from "@/app/actions/auth";
 import type { StorefrontOrder } from "@stadian/storefront-sdk";
-
-interface Address {
-  line1: string;
-  line2?: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-  [key: string]: unknown;
-}
+import type { Address } from "@/app/checkout/checkout-logic";
 
 export async function createOrder(
   sessionId: string,
@@ -27,6 +19,8 @@ export async function createOrder(
     paymentFlow?: "embedded" | "redirect";
     storedPaymentMethodId?: string;
     savePaymentMethod?: boolean;
+    shippingMethodId?: string;
+    customerToken?: string;
   }
 ): Promise<StorefrontOrder> {
   const cookieStore = await cookies();
@@ -44,12 +38,14 @@ export async function createOrder(
     data.storedPaymentMethodId ||
     data.paymentFlow === "redirect";
 
+  const customerToken = (await getCustomerToken()) ?? undefined;
+
   const client = getStadianClient();
   const order = await client.checkout.create({
     sessionToken: sessionId,
     customerEmail: data.customerEmail,
-    shippingAddress: data.shippingAddress,
-    billingAddress: data.billingAddress,
+    shippingAddress: { ...data.shippingAddress },
+    billingAddress: data.billingAddress ? { ...data.billingAddress } : undefined,
     paymentMethod: hasPayment ? undefined : data.paymentMethod || "pending",
     paymentToken: data.paymentToken,
     paymentType: data.paymentType,
@@ -57,6 +53,8 @@ export async function createOrder(
     storedPaymentMethodId: data.storedPaymentMethodId,
     savePaymentMethod: data.savePaymentMethod,
     notes: notes || undefined,
+    customerToken,
+    shippingMethodId: data.shippingMethodId,
   });
 
   if (referralCode) {
