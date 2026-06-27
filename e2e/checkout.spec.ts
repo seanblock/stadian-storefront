@@ -16,12 +16,34 @@ import { test, expect } from "@playwright/test";
  */
 
 test("checkout form renders and is fillable (up to submit)", async ({ page }) => {
-  // ── Step 1: Navigate to /products and pick the first product ──────────
+  // ── Step 1: Navigate to /products and iterate to find a purchasable one ─
+  // The first product may require intake/age-verification (no Add-to-Cart).
+  // Walk every unique product href until we find one with an "Add to Cart" button.
   await page.goto("/products");
-  const productLink = page.locator('a[href^="/products/"]').first();
-  await expect(productLink).toBeVisible();
-  const href = (await productLink.getAttribute("href"))!;
-  await page.goto(href);
+  const hrefs = await page
+    .locator('a[href^="/products/"]')
+    .evaluateAll(
+      (els) =>
+        els.map((e) => e.getAttribute("href")).filter(Boolean) as string[]
+    );
+  let found = false;
+  for (const href of [...new Set(hrefs)]) {
+    await page.goto(href);
+    const visible = await page
+      .getByRole("button", { name: /add to cart/i })
+      .isVisible()
+      .catch(() => false);
+    if (visible) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    console.warn(
+      "checkout.spec: no purchasable (non-intake) product found on tenant — skipping"
+    );
+    return;
+  }
   await expect(page).toHaveURL(/\/products\/.+/);
   await expect(page.locator("h1, h2").first()).toBeVisible();
 
@@ -30,13 +52,6 @@ test("checkout form renders and is fillable (up to submit)", async ({ page }) =>
   // If the product requires intake/age-verification the cart add may fail with
   // an error message — guard that case.
   const addToCartBtn = page.getByRole("button", { name: /add to cart/i });
-  if (!(await addToCartBtn.isVisible())) {
-    console.warn(
-      "checkout.spec: no 'Add to Cart' button visible on the first product page — " +
-        "product may be out-of-stock or not purchasable; skipping checkout test"
-    );
-    return;
-  }
   await addToCartBtn.click();
 
   // Wait for the button to show "Added to Cart" or for an error alert to appear.
@@ -114,7 +129,12 @@ test("checkout form renders and is fillable (up to submit)", async ({ page }) =>
 
   // ── Step 5: Conditionally assert shipping options ─────────────────────
   // The Shipping Method card only renders when shippingOptions.length > 0.
-  // Wait a moment for the async shipping fetch to complete.
+  // Wait for the async shipping fetch to settle before checking visibility.
+  await page
+    .locator("text=/shipping/i")
+    .first()
+    .waitFor({ state: "visible", timeout: 5_000 })
+    .catch(() => {});
   const shippingCard = page.getByText(/shipping method/i);
   const shippingVisible = await shippingCard.isVisible().catch(() => false);
 
