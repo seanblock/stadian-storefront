@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
+import { cookies } from "next/headers";
 import { getBranding, brandingToCssVars } from "@/lib/branding";
 import { getSiteUrl } from "@/lib/site-url";
 import { Header } from "@/components/layout/header";
@@ -9,6 +10,7 @@ import { CartProvider } from "@/providers/cart-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { StoreClosed } from "@/components/store-closed";
+import { AgeGate } from "@/components/age-gate";
 import "./globals.css";
 
 const inter = Inter({
@@ -79,6 +81,10 @@ export default async function RootLayout({
 
   const isClosed = branding.storefront_enabled === false;
 
+  const cookieStore = await cookies();
+  const ageConfirmedCookie = cookieStore.get("age_confirmed");
+  const ageGateActive = branding.age_gate_enabled === true && !ageConfirmedCookie;
+
   return (
     <html
       lang="en"
@@ -90,6 +96,14 @@ export default async function RootLayout({
         {isClosed ? (
           <ThemeProvider>
             <StoreClosed reason={branding.storefront_closed_reason} branding={branding} />
+          </ThemeProvider>
+        ) : ageGateActive ? (
+          <ThemeProvider>
+            <AgeGate
+              minAge={branding.age_gate_min_age ?? 21}
+              declineUrl={branding.age_gate_redirect_url ?? undefined}
+              branding={branding}
+            />
           </ThemeProvider>
         ) : (
           <>
