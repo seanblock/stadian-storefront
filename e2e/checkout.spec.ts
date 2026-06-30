@@ -1,5 +1,12 @@
 import { test, expect } from "@playwright/test";
 
+test.beforeEach(async ({ context }) => {
+  // Bypass the age gate — these specs cover the post-confirmation shopping flow.
+  await context.addCookies([
+    { name: "age_confirmed", value: "1", url: "http://localhost:3003" },
+  ]);
+});
+
 /**
  * Checkout e2e — up to (but NOT including) submission.
  *
