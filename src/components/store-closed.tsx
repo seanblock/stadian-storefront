@@ -3,6 +3,11 @@ import type { StorefrontBranding } from "@stadian/storefront-sdk";
 
 type Reason = StorefrontBranding["storefront_closed_reason"];
 
+// The brand's surface is a deep navy (its color tokens are the gold accent).
+const NAVY_BG =
+  "radial-gradient(120% 90% at 50% -10%, #1a2747 0%, #0e1730 52%, #0a1124 100%)";
+const CREAM = "#F5F1E6";
+
 const COPY: Record<"general" | "coming_soon" | "maintenance", { heading: string; body: string }> = {
   general: { heading: "This store is currently closed.", body: "Please check back soon." },
   coming_soon: {
@@ -29,15 +34,17 @@ export function StoreClosed({
   const { heading, body } = copyFor(reason);
   const storeName = branding.store_name ?? "Store";
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-16 text-center">
-      {/* Branded ambient backdrop — driven by the tenant's accent/primary tokens. */}
+    <main
+      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-16 text-center"
+      style={{ background: NAVY_BG, color: CREAM }}
+    >
+      {/* Branded ambient backdrop — a faint gold glow over the navy. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(55% 45% at 50% 32%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 72%)," +
-            "radial-gradient(45% 38% at 50% 102%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 70%)",
+            "radial-gradient(55% 45% at 50% 30%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 72%)",
         }}
       />
 
@@ -60,7 +67,10 @@ export function StoreClosed({
         </div>
 
         {branding.tagline ? (
-          <p className="-mt-2 text-[0.7rem] uppercase tracking-[0.32em] text-muted-foreground">
+          <p
+            className="-mt-2 text-[0.7rem] uppercase tracking-[0.32em]"
+            style={{ color: "color-mix(in srgb, " + CREAM + " 55%, transparent)" }}
+          >
             {branding.tagline}
           </p>
         ) : null}
@@ -69,14 +79,24 @@ export function StoreClosed({
           <span
             aria-hidden
             className="h-px w-14"
-            style={{ background: "color-mix(in srgb, var(--color-accent) 70%, transparent)" }}
+            style={{ background: "color-mix(in srgb, var(--color-accent) 80%, transparent)" }}
           />
           <h1 className="font-serif text-5xl leading-tight sm:text-6xl">{heading}</h1>
-          <p className="max-w-md text-base leading-relaxed text-muted-foreground">{body}</p>
+          <p
+            className="max-w-md text-base leading-relaxed"
+            style={{ color: "color-mix(in srgb, " + CREAM + " 70%, transparent)" }}
+          >
+            {body}
+          </p>
         </div>
 
         {branding.footer_text ? (
-          <p className="mt-4 text-xs text-muted-foreground/70">{branding.footer_text}</p>
+          <p
+            className="mt-4 text-xs"
+            style={{ color: "color-mix(in srgb, " + CREAM + " 45%, transparent)" }}
+          >
+            {branding.footer_text}
+          </p>
         ) : null}
       </div>
     </main>
