@@ -24,8 +24,10 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
         </p>
         <blockquote className="mt-6 max-w-3xl font-serif text-4xl leading-[1.15] tracking-tight text-background sm:text-5xl lg:text-6xl">
           <span className="italic text-background/70">“</span>
-          We believe a small catalog, well kept, is worth more than a large
-          one casually assembled. Every item here earns its place.
+          At Elemental Peptides, our mission is to build the world&apos;s most
+          trusted luxury peptide brand by setting the highest standard for
+          transparency, uncompromising quality, and unwavering integrity in
+          everything we do.
           <span className="italic text-background/70">”</span>
         </blockquote>
 

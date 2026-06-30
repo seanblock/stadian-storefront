@@ -68,7 +68,7 @@ export function VariantSelector({
 
       <div className="flex flex-col gap-2.5">
         <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Dosage
+          Strength
         </span>
         <div className="flex flex-wrap gap-2">
           {dosageOptions.map((v) => {
