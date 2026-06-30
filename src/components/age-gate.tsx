@@ -47,8 +47,21 @@ export function AgeGate({ minAge, declineUrl, branding, onConfirm }: AgeGateProp
       className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
       onKeyDown={handleKeyDown}
     >
-      {/* Dimmed, blurred backdrop */}
-      <div aria-hidden className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      {/* Deep-navy field (the gate replaces the page, so there's nothing to dim) */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{ background: "radial-gradient(85% 70% at 50% 28%, #0b1326 0%, #070b16 100%)" }}
+      />
+      {/* Faint gold glow behind the card */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(34% 28% at 50% 42%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 70%)",
+        }}
+      />
 
       {/* Navy card */}
       <div
