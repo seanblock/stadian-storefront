@@ -115,6 +115,7 @@ export interface StorefrontCart {
     tax_amount: number;
     total: number;
     promotion_code: string | null;
+    free_shipping?: boolean;
 }
 export interface StorefrontOrder {
     id: string;

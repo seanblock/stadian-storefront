@@ -30,6 +30,20 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+/**
+ * The backend can return cart items in a different order across refetches (it
+ * sorts by last-updated), which makes a row jump position the instant you edit
+ * its quantity. Pin a stable order by id so the drawer and checkout summary
+ * never reshuffle under the user.
+ */
+function withStableItemOrder(cart: StorefrontCart | null): StorefrontCart | null {
+  if (!cart) return cart;
+  return {
+    ...cart,
+    items: [...cart.items].sort((a, b) => a.id.localeCompare(b.id)),
+  };
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<StorefrontCart | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +53,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const sessionId = getSessionId();
       const data = await getCart(sessionId);
-      setCart(data);
+      setCart(withStableItemOrder(data));
     } catch (err) {
       // Don't crash the UI if the cart can't load, but don't fail silently either.
       console.error("Failed to load cart:", err);
@@ -56,20 +70,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = useCallback(async (productId: string, quantity = 1) => {
     const sessionId = getSessionId();
     const updated = await addToCartAction(sessionId, productId, quantity);
-    setCart(updated);
+    setCart(withStableItemOrder(updated));
     setDrawerOpen(true);
   }, []);
 
   const updateItem = useCallback(async (itemId: string, quantity: number) => {
     const sessionId = getSessionId();
     const updated = await updateCartItemAction(sessionId, itemId, quantity);
-    setCart(updated);
+    setCart(withStableItemOrder(updated));
   }, []);
 
   const removeItem = useCallback(async (itemId: string) => {
     const sessionId = getSessionId();
     const updated = await removeCartItemAction(sessionId, itemId);
-    setCart(updated);
+    setCart(withStableItemOrder(updated));
   }, []);
 
   return (

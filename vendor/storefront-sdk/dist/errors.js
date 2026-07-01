@@ -4,11 +4,14 @@
 export class StadianError extends Error {
     status;
     code;
-    constructor(message, status, code) {
+    /** Structured, machine-readable context from the API (e.g. stock levels). */
+    details;
+    constructor(message, status, code, details = {}) {
         super(message);
         this.name = "StadianError";
         this.status = status;
         this.code = code;
+        this.details = details;
         // Restore prototype chain (required when extending built-ins in TS)
         Object.setPrototypeOf(this, new.target.prototype);
     }

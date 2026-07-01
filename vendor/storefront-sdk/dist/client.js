@@ -73,10 +73,11 @@ export class HttpClient {
             // Parse the error body once (best-effort)
             let errorMessage = response.statusText;
             let errorCode = "UNKNOWN";
+            let errorDetails = {};
             try {
                 const body = await response.json();
                 if (typeof body === "object" && body !== null) {
-                    // Stadian AppErrors are nested as { error: { code, message } };
+                    // Stadian AppErrors are nested as { error: { code, message, details } };
                     // FastAPI validation errors use top-level { detail }.
                     const nested = body.error;
                     errorMessage =
@@ -88,6 +89,9 @@ export class HttpClient {
                         nested?.code ??
                             body.code ??
                             errorCode;
+                    if (nested?.details && typeof nested.details === "object") {
+                        errorDetails = nested.details;
+                    }
                 }
             }
             catch {
@@ -110,7 +114,7 @@ export class HttpClient {
                 throw lastError;
             }
             if (response.status >= 500) {
-                lastError = new StadianError(errorMessage, response.status, errorCode);
+                lastError = new StadianError(errorMessage, response.status, errorCode, errorDetails);
                 if (attempt < this.maxRetries) {
                     // Exponential back-off: 500ms, 1s, 2s, ...
                     await this.sleep(500 * Math.pow(2, attempt));
@@ -119,7 +123,7 @@ export class HttpClient {
                 throw lastError;
             }
             // Non-retryable client error (400, 403, 409, etc.)
-            throw new StadianError(errorMessage, response.status, errorCode);
+            throw new StadianError(errorMessage, response.status, errorCode, errorDetails);
         }
         // Should never reach here, but just in case
         throw lastError ?? new StadianError("Request failed", 0, "UNKNOWN");

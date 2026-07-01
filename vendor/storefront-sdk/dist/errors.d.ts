@@ -4,7 +4,9 @@
 export declare class StadianError extends Error {
     readonly status: number;
     readonly code: string;
-    constructor(message: string, status: number, code: string);
+    /** Structured, machine-readable context from the API (e.g. stock levels). */
+    readonly details: Record<string, unknown>;
+    constructor(message: string, status: number, code: string, details?: Record<string, unknown>);
 }
 /**
  * Thrown when the API returns a 401 Unauthorized response.

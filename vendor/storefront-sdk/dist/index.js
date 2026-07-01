@@ -66,6 +66,19 @@ class CartResource {
             headers: { "X-Session-ID": params.sessionToken },
         });
     }
+    /** Apply a promotion or affiliate discount code to the cart. */
+    applyCode(params) {
+        return this.http.request("POST", "/cart/apply-code", {
+            headers: { "X-Session-ID": params.sessionToken },
+            body: { code: params.code },
+        });
+    }
+    /** Remove any applied promotion/discount code from the cart. */
+    removeCode(params) {
+        return this.http.request("DELETE", "/cart/code", {
+            headers: { "X-Session-ID": params.sessionToken },
+        });
+    }
 }
 class CheckoutResource {
     http;
@@ -81,6 +94,7 @@ class CheckoutResource {
                 shipping_address: params.shippingAddress,
                 billing_address: params.billingAddress,
                 shipping_method_id: params.shippingMethodId,
+                affiliate_ref: params.affiliateRef,
                 notes: params.notes,
                 payment_method: params.paymentMethod,
                 payment_reference: params.paymentReference,
@@ -107,7 +121,9 @@ class CheckoutResource {
     }
     /** Estimate shipping options for the current cart session. */
     estimateShipping(sessionToken) {
-        return this.http.request("POST", "/shipping-estimate", { body: { session_token: sessionToken } });
+        return this.http.request("POST", "/shipping-estimate", {
+            body: { session_token: sessionToken },
+        });
     }
 }
 class OrdersResource {

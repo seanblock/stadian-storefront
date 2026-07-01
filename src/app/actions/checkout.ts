@@ -14,7 +14,13 @@ import type { Address } from "@/app/checkout/checkout-logic";
  */
 export type CreateOrderResult =
   | { ok: true; order: StorefrontOrder }
-  | { ok: false; code: string; message: string; status: number };
+  | {
+      ok: false;
+      code: string;
+      message: string;
+      status: number;
+      details?: Record<string, unknown>;
+    };
 
 export async function createOrder(
   sessionId: string,
@@ -66,6 +72,7 @@ export async function createOrder(
       notes: notes || undefined,
       customerToken,
       shippingMethodId: data.shippingMethodId,
+      affiliateRef: referralCode || undefined,
     });
 
     if (referralCode) {
@@ -77,7 +84,13 @@ export async function createOrder(
     // Surface expected API errors (sold-out stock, compliance, etc.) as data so the
     // client can render a specific message. Unknown errors get a generic fallback.
     if (err instanceof StadianError) {
-      return { ok: false, code: err.code, message: err.message, status: err.status };
+      return {
+        ok: false,
+        code: err.code,
+        message: err.message,
+        status: err.status,
+        details: err.details,
+      };
     }
     return {
       ok: false,

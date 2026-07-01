@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { StorefrontCart } from "@stadian/storefront-sdk";
 import {
   Card,
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { getSessionId } from "@/lib/session";
 import { applyDiscountCode } from "@/app/actions/cart";
+import { CartLineItem } from "./cart-line-item";
 
 interface OrderSummaryProps {
   cart: StorefrontCart;
@@ -21,6 +23,7 @@ interface OrderSummaryProps {
 }
 
 export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
+  const router = useRouter();
   const [promoCode, setPromoCode] = useState("");
   const [promoError, setPromoError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
@@ -35,7 +38,10 @@ export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
     try {
       const sessionId = getSessionId();
       const result = await applyDiscountCode(sessionId, code);
-      if (!result.success) {
+      if (result.success) {
+        setPromoCode("");
+        router.refresh(); // re-fetch the cart so the discount shows
+      } else {
         setPromoError(result.error ?? "Failed to apply code");
       }
     } catch {
@@ -51,6 +57,18 @@ export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
         <CardTitle>Order Summary</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
+        {/* Editable cart line items — kept in sync with the drawer via useCart */}
+        {cart.items.length > 0 && (
+          <>
+            <div className="-my-1 flex flex-col divide-y">
+              {cart.items.map((item) => (
+                <CartLineItem key={item.id} item={item} />
+              ))}
+            </div>
+            <Separator />
+          </>
+        )}
+
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Subtotal</span>
           <span className="tabular-nums">{formatCurrency(cart.subtotal)}</span>
@@ -83,7 +101,20 @@ export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Shipping</span>
             <span className="tabular-nums">
-              {shippingCost === 0 ? "Free" : formatCurrency(shippingCost)}
+              {cart.free_shipping ? (
+                <>
+                  {shippingCost > 0 && (
+                    <span className="mr-1 text-muted-foreground line-through">
+                      {formatCurrency(shippingCost)}
+                    </span>
+                  )}
+                  <span className="text-green-600 dark:text-green-400">Free</span>
+                </>
+              ) : shippingCost === 0 ? (
+                "Free"
+              ) : (
+                formatCurrency(shippingCost)
+              )}
             </span>
           </div>
         )}

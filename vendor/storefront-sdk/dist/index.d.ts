@@ -1,6 +1,6 @@
 import { HttpClient } from "./client";
 import { PaymentsResource } from "./resources/payments";
-import type { CheckoutFlowResponse, PaginatedList, ShippingEstimateResponse, StoreConfig, StorefrontBranding, StorefrontCart, StorefrontCommission, StorefrontCustomerProfile, StorefrontFaqResponse, StorefrontIntakeForm, StorefrontIntakeSubmission, StorefrontLoginResponse, StorefrontOrder, StorefrontPageResponse, StorefrontPayout, StorefrontProduct, StorefrontProductDetail, StorefrontProductGroup, StorefrontRefreshResponse, StorefrontWebhookSubscription } from "./types";
+import type { CheckoutFlowResponse, PaginatedList, StoreConfig, StorefrontBranding, StorefrontCart, StorefrontCommission, StorefrontCustomerProfile, StorefrontFaqResponse, StorefrontIntakeForm, StorefrontIntakeSubmission, StorefrontLoginResponse, StorefrontOrder, StorefrontPageResponse, StorefrontPayout, StorefrontProduct, StorefrontProductDetail, StorefrontProductGroup, StorefrontRefreshResponse, StorefrontWebhookSubscription, ShippingEstimateResponse } from "./types";
 export * from "./types";
 export * from "./errors";
 export { HttpClient } from "./client";
@@ -50,6 +50,7 @@ export interface CheckoutCreateParams {
     storedPaymentMethodId?: string;
     savePaymentMethod?: boolean;
     customerToken?: string;
+    affiliateRef?: string;
 }
 export interface IntakeSubmitParams {
     intakeFormId: string;
@@ -95,6 +96,13 @@ declare class CartResource {
     updateItem(params: UpdateCartItemParams): Promise<StorefrontCart>;
     /** Remove an item from the cart. */
     removeItem(params: RemoveCartItemParams): Promise<StorefrontCart>;
+    /** Apply a promotion or affiliate discount code to the cart. */
+    applyCode(params: {
+        sessionToken: string;
+        code: string;
+    }): Promise<StorefrontCart>;
+    /** Remove any applied promotion/discount code from the cart. */
+    removeCode(params: CartSessionParams): Promise<StorefrontCart>;
 }
 declare class CheckoutResource {
     private http;
@@ -249,7 +257,7 @@ export interface StadianClientConfig {
     baseUrl: string;
     /** Maximum number of automatic retries on 429 / 5xx. Defaults to 3. */
     maxRetries?: number;
-    /** Per-attempt request timeout in milliseconds. Defaults to 10000. */
+    /** Abort a single request attempt after this many ms. Defaults to 10000. */
     timeoutMs?: number;
 }
 /**

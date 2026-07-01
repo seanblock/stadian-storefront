@@ -1,7 +1,7 @@
 "use server";
 
 import { getStadianClient } from "@/lib/stadian";
-import type { StorefrontCart } from "@stadian/storefront-sdk";
+import { StadianError, type StorefrontCart } from "@stadian/storefront-sdk";
 
 export async function getCart(sessionId: string): Promise<StorefrontCart> {
   const client = getStadianClient();
@@ -38,6 +38,15 @@ export async function applyDiscountCode(
   sessionId: string,
   code: string,
 ): Promise<{ success: boolean; error?: string }> {
-  // Discount code endpoint TBD — stub for now
-  return { success: false, error: "Discount codes are not yet available" };
+  try {
+    await getStadianClient().cart.applyCode({ sessionToken: sessionId, code });
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof StadianError ? err.message : "Failed to apply code";
+    return { success: false, error: message };
+  }
+}
+
+export async function removeDiscountCode(sessionId: string): Promise<StorefrontCart> {
+  return getStadianClient().cart.removeCode({ sessionToken: sessionId });
 }

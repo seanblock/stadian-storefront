@@ -33,7 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AddressFields } from "@/components/checkout/address-fields";
-import { buildOrderPayload, resolveCheckoutResult } from "@/app/checkout/checkout-logic";
+import { buildOrderPayload, resolveCheckoutResult, formatCheckoutError } from "@/app/checkout/checkout-logic";
 import { OrderConfirmation, type ConfirmedOrder } from "@/components/checkout/order-confirmation";
 import { validateCheckout, isCheckoutFilled } from "@/app/checkout/checkout-validation";
 
@@ -213,11 +213,7 @@ export default function CheckoutPage() {
       const createResult = await createOrder(sessionId, payload);
 
       if (!createResult.ok) {
-        setError(
-          createResult.code === "INSUFFICIENT_STOCK"
-            ? `${createResult.message}. Please update your cart before checking out.`
-            : createResult.message || "Failed to place order. Please try again."
-        );
+        setError(formatCheckoutError(createResult));
         setSubmitting(false);
         return;
       }
