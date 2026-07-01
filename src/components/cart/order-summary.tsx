@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { StorefrontCart } from "@stadian/storefront-sdk";
 import {
   Card,
@@ -15,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { getSessionId } from "@/lib/session";
 import { applyDiscountCode } from "@/app/actions/cart";
+import { useCart } from "@/providers/cart-provider";
 import { CartLineItem } from "./cart-line-item";
 
 interface OrderSummaryProps {
@@ -23,7 +23,7 @@ interface OrderSummaryProps {
 }
 
 export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
-  const router = useRouter();
+  const { refresh } = useCart();
   const [promoCode, setPromoCode] = useState("");
   const [promoError, setPromoError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
@@ -40,7 +40,7 @@ export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
       const result = await applyDiscountCode(sessionId, code);
       if (result.success) {
         setPromoCode("");
-        router.refresh(); // re-fetch the cart so the discount shows
+        await refresh(); // re-fetch the cart into client state so the discount shows immediately
       } else {
         setPromoError(result.error ?? "Failed to apply code");
       }
