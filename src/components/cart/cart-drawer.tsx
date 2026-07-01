@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Minus, Plus, Trash2 } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -14,25 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/providers/cart-provider";
 import { formatCurrency } from "@/lib/utils";
+import { CartLineItem } from "./cart-line-item";
 
 export function CartDrawer() {
-  const { cart, isDrawerOpen, setDrawerOpen, updateItem, removeItem } =
-    useCart();
+  const { cart, isDrawerOpen, setDrawerOpen } = useCart();
 
   const items = cart?.items ?? [];
   const isEmpty = items.length === 0;
-
-  function handleDecrement(itemId: string, currentQuantity: number) {
-    if (currentQuantity <= 1) {
-      removeItem(itemId);
-    } else {
-      updateItem(itemId, currentQuantity - 1);
-    }
-  }
-
-  function handleIncrement(itemId: string, currentQuantity: number) {
-    updateItem(itemId, currentQuantity + 1);
-  }
 
   return (
     <Sheet
@@ -70,64 +58,10 @@ export function CartDrawer() {
             <div className="flex-1 overflow-y-auto px-4">
               {items.map((item) => (
                 <div key={item.id}>
-                  <div className="flex items-start gap-3 py-3">
-                    {/* Product info */}
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        href={`/products/${item.product_slug}`}
-                        onClick={() => setDrawerOpen(false)}
-                        className="text-sm font-medium leading-tight hover:underline"
-                      >
-                        {item.product_name}
-                      </Link>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {formatCurrency(item.unit_price)} each
-                      </p>
-                    </div>
-
-                    {/* Quantity controls */}
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="icon-sm"
-                        onClick={() =>
-                          handleDecrement(item.id, item.quantity)
-                        }
-                        aria-label="Decrease quantity"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-7 text-center text-sm tabular-nums">
-                        {item.quantity}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="icon-sm"
-                        onClick={() =>
-                          handleIncrement(item.id, item.quantity)
-                        }
-                        aria-label="Increase quantity"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    {/* Line total and remove */}
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-sm font-medium tabular-nums">
-                        {formatCurrency(item.line_total)}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => removeItem(item.id)}
-                        aria-label={`Remove ${item.product_name} from cart`}
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
+                  <CartLineItem
+                    item={item}
+                    onNavigate={() => setDrawerOpen(false)}
+                  />
                   <Separator />
                 </div>
               ))}

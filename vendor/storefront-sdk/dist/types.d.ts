@@ -102,6 +102,7 @@ export interface StorefrontCartItem {
     product_id: string;
     product_name: string;
     product_slug: string;
+    image_url: string | null;
     quantity: number;
     unit_price: number;
     line_total: number;
