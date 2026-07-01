@@ -76,12 +76,18 @@ export class HttpClient {
             try {
                 const body = await response.json();
                 if (typeof body === "object" && body !== null) {
+                    // Stadian AppErrors are nested as { error: { code, message } };
+                    // FastAPI validation errors use top-level { detail }.
+                    const nested = body.error;
                     errorMessage =
-                        body.detail ??
+                        nested?.message ??
+                            body.detail ??
                             body.message ??
                             errorMessage;
                     errorCode =
-                        body.code ?? errorCode;
+                        nested?.code ??
+                            body.code ??
+                            errorCode;
                 }
             }
             catch {

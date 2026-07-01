@@ -210,7 +210,19 @@ export default function CheckoutPage() {
       });
 
       const sessionId = getSessionId();
-      const order = await createOrder(sessionId, payload);
+      const createResult = await createOrder(sessionId, payload);
+
+      if (!createResult.ok) {
+        setError(
+          createResult.code === "INSUFFICIENT_STOCK"
+            ? `${createResult.message}. Please update your cart before checking out.`
+            : createResult.message || "Failed to place order. Please try again."
+        );
+        setSubmitting(false);
+        return;
+      }
+
+      const order = createResult.order;
       const result = resolveCheckoutResult(order, paymentData.paymentFlow);
 
       if (result.kind === "failed") {
@@ -236,14 +248,9 @@ export default function CheckoutPage() {
       setLastEmail(email);
       setConfirmedOrder(order);
     } catch (err) {
-      const isStadianError =
-        err instanceof Error && "status" in err && typeof (err as { status: unknown }).status === "number";
-      const is422 = isStadianError && (err as { status: number }).status === 422;
-      setError(
-        is422 || err instanceof Error
-          ? (err as Error).message
-          : "Failed to place order. Please try again."
-      );
+      // createOrder returns expected API errors as data; this only catches
+      // unexpected throws (e.g. payment tokenization before the request).
+      setError(err instanceof Error ? err.message : "Failed to place order. Please try again.");
       setSubmitting(false);
     }
   }
