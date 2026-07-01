@@ -50,10 +50,11 @@ export class HttpClient {
                 response = await fetch(url, { ...init, signal: controller.signal });
             }
             catch (err) {
-                const isTimeout = err?.name === "AbortError";
+                const e = err;
+                const isTimeout = e?.name === "AbortError";
                 lastError = new StadianError(isTimeout
                     ? `Request to ${path} timed out after ${this.timeoutMs}ms`
-                    : `Request to ${path} failed: ${err?.message ?? "network error"}`, 0, isTimeout ? "TIMEOUT" : "NETWORK");
+                    : `Request to ${path} failed: ${e?.message ?? "network error"}`, 0, isTimeout ? "TIMEOUT" : "NETWORK");
                 if (attempt < this.maxRetries) {
                     await this.sleep(500 * Math.pow(2, attempt));
                     continue;

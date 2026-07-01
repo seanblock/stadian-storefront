@@ -78,9 +78,9 @@ export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">
               Discount
-              {cart.promotion_code && (
-                <span className="ml-1 font-mono text-xs">
-                  ({cart.promotion_code})
+              {(cart.promotion_code ?? cart.discount_code) && (
+                <span className="ml-1 font-mono text-xs uppercase">
+                  ({cart.promotion_code ?? cart.discount_code})
                 </span>
               )}
             </span>

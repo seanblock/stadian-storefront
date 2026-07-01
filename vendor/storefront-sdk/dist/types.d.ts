@@ -115,6 +115,8 @@ export interface StorefrontCart {
     tax_amount: number;
     total: number;
     promotion_code: string | null;
+    /** The affiliate/discount code the shopper entered (when the discount came from a DiscountCode). */
+    discount_code?: string | null;
     free_shipping?: boolean;
 }
 export interface StorefrontOrder {
@@ -312,5 +314,12 @@ export interface StoredPaymentMethod {
     is_default: boolean;
     expires_at: string | null;
 }
-export interface ShippingOption { method_id: string; method_name: string; price: number; is_free: boolean; }
-export interface ShippingEstimateResponse { options: ShippingOption[]; }
+export interface ShippingOption {
+    method_id: string;
+    method_name: string;
+    price: number;
+    is_free: boolean;
+}
+export interface ShippingEstimateResponse {
+    options: ShippingOption[];
+}
