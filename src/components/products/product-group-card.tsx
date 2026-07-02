@@ -83,9 +83,11 @@ export function ProductGroupCard({ group }: ProductGroupCardProps) {
                 : `From ${formatCurrency(minPrice)}`}
             </p>
           )}
-          <Badge variant="secondary">
-            {group.product_count} option{group.product_count !== 1 ? "s" : ""}
-          </Badge>
+          {/* Only surface the variant count when there's an actual choice —
+              a single-member group has no "options" to pick. */}
+          {group.product_count > 1 && (
+            <Badge variant="secondary">{group.product_count} options</Badge>
+          )}
         </CardContent>
       </Card>
     </Link>
