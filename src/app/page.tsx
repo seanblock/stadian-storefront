@@ -3,10 +3,13 @@ import type { StorefrontCategory, StorefrontProduct } from "@stadian/storefront-
 import { getBranding } from "@/lib/branding";
 import { getStadianClient } from "@/lib/stadian";
 import { Hero } from "@/components/home/hero";
-import { MarqueeStrip } from "@/components/home/marquee-strip";
-import { FeaturedEdit } from "@/components/home/featured-edit";
+import { TrustBar } from "@/components/home/trust-bar";
+import { BestSellers } from "@/components/home/best-sellers";
 import { OurStandard } from "@/components/home/our-standard";
+import { TransparencySpotlight } from "@/components/home/transparency-spotlight";
 import { CategoriesGrid } from "@/components/home/categories-grid";
+import { Comparison } from "@/components/home/comparison";
+import { FaqPreview } from "@/components/home/faq-preview";
 import { ClosingStatement } from "@/components/home/closing-statement";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,7 +29,7 @@ export default async function Home() {
   let featuredProducts: StorefrontProduct[] = [];
   try {
     const client = getStadianClient();
-    const result = await client.catalog.list({ page: 1, limit: 9 });
+    const result = await client.catalog.list({ page: 1, limit: 12 });
     featuredProducts = result.items;
   } catch {
     // Fall through — sections gracefully hide when empty
@@ -52,10 +55,13 @@ export default async function Home() {
   return (
     <>
       <Hero branding={branding} featuredImage={heroFeature} />
-      <MarqueeStrip />
-      <FeaturedEdit products={featuredProducts} />
+      <TrustBar />
+      <BestSellers products={featuredProducts} />
       <OurStandard />
+      <TransparencySpotlight />
       <CategoriesGrid categories={categories} />
+      <Comparison storeName={branding.store_name || "Us"} />
+      <FaqPreview />
       <ClosingStatement branding={branding} />
     </>
   );
