@@ -45,3 +45,6 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# Local HTTPS dev certs (self-signed; do not commit the private key)
+certificates/
