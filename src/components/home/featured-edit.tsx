@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { StorefrontProduct } from "@stadian/storefront-sdk";
+import { formatCurrency } from "@/lib/utils";
 
 interface FeaturedEditProps {
   products: StorefrontProduct[];
@@ -19,14 +20,14 @@ export function FeaturedEdit({ products }: FeaturedEditProps) {
         <header className="grid grid-cols-12 gap-x-6">
           <div className="col-span-12 lg:col-span-3">
             <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              The Edit
+              The Catalog
             </p>
           </div>
           <div className="col-span-12 mt-4 lg:col-span-9 lg:mt-0">
             <h2 className="font-serif text-4xl leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              A short list of <span className="italic">favorites</span>—
+              Research compounds—
               <br className="hidden sm:block" />
-              chosen with care, refreshed often.
+              every batch <span className="italic">independently tested</span>.
             </h2>
           </div>
         </header>
@@ -59,11 +60,11 @@ export function FeaturedEdit({ products }: FeaturedEditProps) {
                 <h3 className="font-serif text-2xl leading-tight text-foreground sm:text-3xl">
                   {lead.name}
                 </h3>
-                {lead.form_type && (
-                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                    {lead.form_type}
-                  </p>
-                )}
+                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  {[lead.form_type, lead.price != null ? formatCurrency(lead.price) : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
               </div>
               <span className="hidden text-xs uppercase tracking-[0.18em] text-muted-foreground sm:inline">
                 View →
@@ -95,11 +96,11 @@ export function FeaturedEdit({ products }: FeaturedEditProps) {
                 <p className="mt-3 line-clamp-2 font-serif text-base leading-snug text-foreground sm:text-lg">
                   {product.name}
                 </p>
-                {product.form_type && (
-                  <p className="mt-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                    {product.form_type}
-                  </p>
-                )}
+                <p className="mt-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  {[product.form_type, product.price != null ? formatCurrency(product.price) : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
               </Link>
             ))}
           </div>
@@ -108,7 +109,7 @@ export function FeaturedEdit({ products }: FeaturedEditProps) {
         {/* Footer link */}
         <div className="mt-14 flex items-center justify-between border-t border-border pt-6">
           <p className="hidden font-serif text-base italic text-muted-foreground sm:block">
-            {products.length} pieces currently in rotation.
+            {products.length} compounds currently in the catalog.
           </p>
           <Link
             href="/products"

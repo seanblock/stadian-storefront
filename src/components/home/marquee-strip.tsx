@@ -3,11 +3,12 @@ interface MarqueeStripProps {
 }
 
 const DEFAULTS = [
+  "Third-party tested — COA with every batch",
+  "≥99% purity standard",
+  "Cold-chain shipped",
   "Complimentary shipping over $100",
   "Free returns within 30 days",
-  "Independently sourced",
-  "Built to last",
-  "Customer care, made human",
+  "For laboratory research use only",
 ];
 
 export function MarqueeStrip({ items = DEFAULTS }: MarqueeStripProps) {

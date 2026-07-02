@@ -5,6 +5,7 @@ import { getStadianClient } from "@/lib/stadian";
 import { Hero } from "@/components/home/hero";
 import { MarqueeStrip } from "@/components/home/marquee-strip";
 import { FeaturedEdit } from "@/components/home/featured-edit";
+import { OurStandard } from "@/components/home/our-standard";
 import { CategoriesGrid } from "@/components/home/categories-grid";
 import { ClosingStatement } from "@/components/home/closing-statement";
 
@@ -53,6 +54,7 @@ export default async function Home() {
       <Hero branding={branding} featuredImage={heroFeature} />
       <MarqueeStrip />
       <FeaturedEdit products={featuredProducts} />
+      <OurStandard />
       <CategoriesGrid categories={categories} />
       <ClosingStatement branding={branding} />
     </>

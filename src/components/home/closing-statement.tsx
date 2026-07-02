@@ -24,10 +24,9 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
         </p>
         <blockquote className="mt-6 max-w-3xl font-serif text-4xl leading-[1.15] tracking-tight text-background sm:text-5xl lg:text-6xl">
           <span className="italic text-background/70">“</span>
-          At Elemental Peptides, our mission is to build the world&apos;s most
-          trusted luxury peptide brand by setting the highest standard for
-          transparency, uncompromising quality, and unwavering integrity in
-          everything we do.
+          Our mission is to set the standard for transparency in research
+          peptides — every batch tested, every result published, every claim
+          verifiable.
           <span className="italic text-background/70">”</span>
         </blockquote>
 
@@ -37,9 +36,10 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
               — The {storeName} team
             </p>
             <p className="mt-4 text-sm leading-relaxed text-background/75">
-              New arrivals are added thoughtfully, not constantly. If you have a
-              question—about a piece, a fit, a use case—we&apos;d genuinely like
-              to hear from you.
+              We&apos;re a new company, and we intend to earn trust the only way
+              that counts: published lab results, careful handling, and straight
+              answers. If you have a question about a compound, a batch, or a
+              COA—we&apos;d genuinely like to hear from you.
             </p>
           </div>
 

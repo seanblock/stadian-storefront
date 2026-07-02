@@ -68,8 +68,8 @@ export function Hero({ branding: _branding, featuredImage }: HeroProps) {
               style={{ color: CREAM_DIM, animationDelay: "120ms" }}
             >
               High-purity compounds for laboratory research — strictly research
-              use only. Independently tested, sealed in-house, cold-chain
-              shipped.
+              use only. Every batch is independently tested by a third-party
+              lab, sealed in-house, and cold-chain shipped.
             </p>
 
             <div
@@ -99,7 +99,7 @@ export function Hero({ branding: _branding, featuredImage }: HeroProps) {
                 </svg>
               </Link>
               <Link
-                href="/about"
+                href="/lab-results"
                 className="inline-flex items-center gap-2 rounded-full border px-7 py-3.5 text-sm font-medium uppercase tracking-[0.22em] transition-colors duration-300"
                 style={{ borderColor: `${CREAM}25`, color: CREAM }}
               >
@@ -153,13 +153,14 @@ function InfoRail({ product }: { product: StorefrontProduct | null }) {
               className="text-[13px] font-medium leading-snug"
               style={{ color: BLACK }}
             >
-              Start your personalized path to research-grade peptides.
+              Sealed in-house with batch-numbered labeling for full
+              traceability.
             </p>
             <span
               className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] underline-offset-4 group-hover:underline"
               style={{ color: BLACK }}
             >
-              Personal assessment
+              Browse the catalog
               <svg
                 className="size-3 transition-transform duration-300 group-hover:translate-x-0.5"
                 viewBox="0 0 24 24"
@@ -175,9 +176,10 @@ function InfoRail({ product }: { product: StorefrontProduct | null }) {
           </div>
         </Link>
 
-        {/* PANEL 2 — Newly enhanced formula */}
-        <div
-          className="relative flex items-center gap-4 px-5 py-5 sm:px-7 sm:py-6"
+        {/* PANEL 2 — Third-party testing */}
+        <Link
+          href="/lab-results"
+          className="group relative flex items-center gap-4 px-5 py-5 sm:px-7 sm:py-6"
           style={{ background: CREAM }}
         >
           <span
@@ -201,65 +203,70 @@ function InfoRail({ product }: { product: StorefrontProduct | null }) {
               className="text-[13px] font-medium leading-snug"
               style={{ color: BLACK }}
             >
-              Experience our newly enhanced, batch-traceable formulations.
+              Every batch analyzed by an independent third-party lab before
+              release.
             </p>
-            <div className="mt-3 flex items-center gap-1.5">
-              {[0, 1, 2, 3].map((i) => (
-                <span
-                  key={i}
-                  className="h-0.5 transition-all"
-                  style={{
-                    width: i === 0 ? "20px" : "10px",
-                    background: i === 0 ? BLACK : `${BLACK}33`,
-                  }}
-                />
-              ))}
-            </div>
+            <span
+              className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] underline-offset-4 group-hover:underline"
+              style={{ color: BLACK }}
+            >
+              How we test
+              <svg
+                className="size-3 transition-transform duration-300 group-hover:translate-x-0.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M7 17L17 7M9 7h8v8" />
+              </svg>
+            </span>
           </div>
-        </div>
+        </Link>
 
-        {/* PANEL 3 — Social proof */}
-        <div
-          className="relative flex items-center gap-4 px-5 py-5 sm:px-7 sm:py-6"
+        {/* PANEL 3 — Purity standard */}
+        <Link
+          href="/lab-results"
+          className="group relative flex items-center gap-4 px-5 py-5 sm:px-7 sm:py-6"
           style={{ background: BLACK_SOFT }}
         >
-          <div className="flex shrink-0 -space-x-3">
-            <Avatar gradient="linear-gradient(135deg, #d4a951, #8a6422)" initial="JM" />
-            <Avatar gradient="linear-gradient(135deg, #6a8db8, #2c4a73)" initial="SK" />
-            <Avatar gradient="linear-gradient(135deg, #c97f5a, #6b3920)" initial="RT" />
-          </div>
           <div className="min-w-0 flex-1">
             <p
               className="text-2xl font-black tracking-tight"
               style={{ color: GOLD }}
             >
-              +5K
+              ≥99%
             </p>
             <p
               className="mt-1 text-[12px] leading-snug"
               style={{ color: `${CREAM}cc` }}
             >
-              Researchers have already optimized their bench supply.
+              Minimum purity standard — verified by certificate of analysis,
+              published per batch.
             </p>
+            <span
+              className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] underline-offset-4 group-hover:underline"
+              style={{ color: GOLD }}
+            >
+              View lab results
+              <svg
+                className="size-3 transition-transform duration-300 group-hover:translate-x-0.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M7 17L17 7M9 7h8v8" />
+              </svg>
+            </span>
           </div>
-        </div>
+        </Link>
       </div>
     </div>
-  );
-}
-
-function Avatar({ gradient, initial }: { gradient: string; initial: string }) {
-  return (
-    <span
-      className="flex size-10 items-center justify-center rounded-full border-2 text-[10px] font-bold"
-      style={{
-        background: gradient,
-        borderColor: BLACK_SOFT,
-        color: CREAM,
-      }}
-    >
-      {initial}
-    </span>
   );
 }
 
