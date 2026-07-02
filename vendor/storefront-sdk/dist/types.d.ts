@@ -214,6 +214,7 @@ export interface StorefrontBranding {
     age_gate_enabled?: boolean;
     age_gate_min_age?: number;
     age_gate_redirect_url?: string | null;
+    trust_signals?: StorefrontTrustSignal[];
 }
 export interface StorefrontPageResponse {
     /** Tiptap/ProseMirror JSON document tree. Render with your own components. */

@@ -1,4 +1,5 @@
 export interface ValidateInput {
+  fullName: string;
   email: string;
   shipping: { line1: string; city: string; state: string; zip: string; country: string };
   sameAsShipping: boolean;
@@ -36,6 +37,7 @@ function validateAddress(
 
 // Presence-only: are all REQUIRED fields non-empty? (no format checks)
 export function isCheckoutFilled(input: ValidateInput): boolean {
+  if (!input.fullName.trim()) return false;
   const email = input.email.trim();
   const s = input.shipping;
   if (!email) return false;
@@ -60,6 +62,11 @@ export function isCheckoutFilled(input: ValidateInput): boolean {
 
 export function validateCheckout(input: ValidateInput): Record<string, string> {
   const errors: Record<string, string> = {};
+
+  // Full name
+  if (!input.fullName.trim()) {
+    errors.full_name = "Enter your name.";
+  }
 
   // Email
   const email = input.email.trim();

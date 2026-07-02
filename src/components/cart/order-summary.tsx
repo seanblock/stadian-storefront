@@ -123,7 +123,12 @@ export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
 
         <div className="flex justify-between text-sm font-semibold">
           <span>Total</span>
-          <span className="tabular-nums">{formatCurrency(cart.total)}</span>
+          <span className="tabular-nums">
+            {formatCurrency(
+              cart.total +
+                (cart.free_shipping ? 0 : shippingCost ?? 0),
+            )}
+          </span>
         </div>
 
         {/* Promo code section */}

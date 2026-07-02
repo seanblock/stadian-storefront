@@ -41,10 +41,43 @@ export function AddressFields({
   showErrors = false,
 }: AddressFieldsProps) {
   const [country, setCountry] = useState("US");
+  const [showLine2, setShowLine2] = useState(false);
+  const [showCountry, setShowCountry] = useState(false);
+  // City + state are controlled so a ZIP lookup can auto-fill them.
+  const [city, setCity] = useState("");
+  const [stateValue, setStateValue] = useState("");
+
   const ac = (token: string) => (section ? `${section} ${token}` : token);
+  const countryLabel =
+    COUNTRIES.find((c) => c.value === country)?.label ?? country;
+
+  // US ZIP → city/state autofill (free, keyless; fails silently to manual entry).
+  async function lookupZip(zip: string) {
+    if (country !== "US" || !/^\d{5}$/.test(zip)) return;
+    try {
+      const res = await fetch(`https://api.zippopotam.us/us/${zip}`);
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        places?: Array<{
+          "place name"?: string;
+          "state abbreviation"?: string;
+        }>;
+      };
+      const place = data.places?.[0];
+      if (!place) return;
+      setCity(place["place name"] ?? "");
+      const abbr = place["state abbreviation"] ?? "";
+      setStateValue(abbr);
+      onStateChange?.(abbr);
+      requestAnimationFrame(() => onValidityRecheck?.());
+    } catch {
+      // ignore — the shopper can still type city/state manually
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Address line 1 */}
       <div className="flex flex-col gap-2">
         <Label htmlFor={fieldId(idPrefix, "line1")}>Address line 1</Label>
         <Input
@@ -61,20 +94,34 @@ export function AddressFields({
           <p className="mt-1 text-sm text-destructive">{errors[`${prefix}line1`]}</p>
         )}
       </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={fieldId(idPrefix, "line2")}>
-          Address line 2{" "}
-          <span className="font-normal text-muted-foreground">(optional)</span>
-        </Label>
-        <Input
-          id={fieldId(idPrefix, "line2")}
-          name={`${prefix}line2`}
-          type="text"
-          placeholder="Apt, suite, unit, etc."
-          autoComplete={ac("address-line2")}
-          onChange={() => onValidityRecheck?.()}
-        />
-      </div>
+
+      {/* Address line 2 — collapsed by default to cut the visible field count */}
+      {showLine2 ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor={fieldId(idPrefix, "line2")}>
+            Address line 2{" "}
+            <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <Input
+            id={fieldId(idPrefix, "line2")}
+            name={`${prefix}line2`}
+            type="text"
+            placeholder="Apt, suite, unit, etc."
+            autoComplete={ac("address-line2")}
+            onChange={() => onValidityRecheck?.()}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowLine2(true)}
+          className="self-start text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          + Add apartment, suite, etc.
+        </button>
+      )}
+
+      {/* City + State */}
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor={fieldId(idPrefix, "city")}>City</Label>
@@ -83,9 +130,13 @@ export function AddressFields({
             name={`${prefix}city`}
             type="text"
             required
+            value={city}
             autoComplete={ac("address-level2")}
             aria-invalid={showErrors && !!errors?.[`${prefix}city`]}
-            onChange={() => onValidityRecheck?.()}
+            onChange={(e) => {
+              setCity(e.target.value);
+              onValidityRecheck?.();
+            }}
           />
           {showErrors && errors?.[`${prefix}city`] && (
             <p className="mt-1 text-sm text-destructive">{errors[`${prefix}city`]}</p>
@@ -98,8 +149,11 @@ export function AddressFields({
               <Select
                 name={`${prefix}state`}
                 required
+                value={stateValue}
                 onValueChange={(value) => {
-                  onStateChange?.((value as string) ?? "");
+                  const v = (value as string) ?? "";
+                  setStateValue(v);
+                  onStateChange?.(v);
                   requestAnimationFrame(() => onValidityRecheck?.());
                 }}
               >
@@ -129,9 +183,11 @@ export function AddressFields({
                 name={`${prefix}state`}
                 type="text"
                 placeholder="State / Province / Region"
+                value={stateValue}
                 autoComplete={ac("address-level1")}
                 aria-invalid={showErrors && !!errors?.[`${prefix}state`]}
                 onChange={(e) => {
+                  setStateValue(e.target.value);
                   onStateChange?.(e.target.value);
                   onValidityRecheck?.();
                 }}
@@ -143,6 +199,8 @@ export function AddressFields({
           )}
         </div>
       </div>
+
+      {/* ZIP + Country (country collapsed for the US-default case) */}
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor={fieldId(idPrefix, "zip")}>ZIP code</Label>
@@ -150,43 +208,61 @@ export function AddressFields({
             id={fieldId(idPrefix, "zip")}
             name={`${prefix}zip`}
             type="text"
+            inputMode="numeric"
             required
             autoComplete={ac("postal-code")}
             aria-invalid={showErrors && !!errors?.[`${prefix}zip`]}
-            onChange={() => onValidityRecheck?.()}
+            onChange={(e) => {
+              onValidityRecheck?.();
+              void lookupZip(e.target.value.trim());
+            }}
           />
           {showErrors && errors?.[`${prefix}zip`] && (
             <p className="mt-1 text-sm text-destructive">{errors[`${prefix}zip`]}</p>
           )}
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={fieldId(idPrefix, "country")}>Country</Label>
-          <Select
-            name={`${prefix}country`}
-            value={country}
-            onValueChange={(value) => {
-              setCountry((value as string) ?? "US");
-              requestAnimationFrame(() => onValidityRecheck?.());
-            }}
-            required
-          >
-            <SelectTrigger
-              id={fieldId(idPrefix, "country")}
-              className="w-full"
-              aria-invalid={showErrors && !!errors?.[`${prefix}country`]}
-            >
-              <SelectValue placeholder="Select country" />
-            </SelectTrigger>
-            <SelectContent>
-              {COUNTRIES.map((c) => (
-                <SelectItem key={c.value} value={c.value}>
-                  {c.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {showErrors && errors?.[`${prefix}country`] && (
-            <p className="mt-1 text-sm text-destructive">{errors[`${prefix}country`]}</p>
+        <div className="flex flex-col justify-end gap-2">
+          {showCountry ? (
+            <>
+              <Label htmlFor={fieldId(idPrefix, "country")}>Country</Label>
+              <Select
+                name={`${prefix}country`}
+                value={country}
+                onValueChange={(value) => {
+                  setCountry((value as string) ?? "US");
+                  requestAnimationFrame(() => onValidityRecheck?.());
+                }}
+                required
+              >
+                <SelectTrigger
+                  id={fieldId(idPrefix, "country")}
+                  className="w-full"
+                  aria-invalid={showErrors && !!errors?.[`${prefix}country`]}
+                >
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNTRIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          ) : (
+            <p className="pb-2 text-sm text-muted-foreground">
+              Shipping to <span className="text-foreground">{countryLabel}</span>
+              <button
+                type="button"
+                onClick={() => setShowCountry(true)}
+                className="ml-2 underline underline-offset-2 hover:text-foreground"
+              >
+                Change
+              </button>
+              {/* Keep country in the form data while the field is collapsed. */}
+              <input type="hidden" name={`${prefix}country`} value={country} />
+            </p>
           )}
         </div>
       </div>

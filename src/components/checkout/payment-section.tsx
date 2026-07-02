@@ -7,15 +7,120 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  type ComponentProps,
 } from "react";
 import type {
   PaymentClientConfig,
   StoredPaymentMethod,
 } from "@/app/actions/payments";
 import type { Address } from "@/app/checkout/checkout-logic";
+import { CreditCard, Lock } from "lucide-react";
+import {
+  type CardBrand,
+  detectCardBrand,
+  formatCardNumber,
+  formatExpiry,
+  formatCvv,
+  cvvMaxLength,
+} from "./card-format";
 import { StoredMethods } from "./stored-methods";
 import { BillingAddress } from "./billing-address";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+
+/** Small recognizable card-brand marks (inline SVG, no bundled assets).
+    Once a brand is detected from the entered number, the match is highlighted
+    and the others dim. */
+function CardBrands({ active = "unknown" }: { active?: CardBrand }) {
+  const shown: CardBrand[] = ["visa", "mastercard", "amex"];
+  const highlighting = shown.includes(active);
+  const dim = (brand: CardBrand) =>
+    highlighting && active !== brand ? "opacity-25" : "opacity-100";
+  return (
+    <div className="flex shrink-0 items-center gap-1" aria-hidden>
+      {/* Visa */}
+      <svg
+        viewBox="0 0 32 20"
+        className={`h-5 w-8 rounded-[3px] transition-opacity ${dim("visa")}`}
+      >
+        <rect width="32" height="20" rx="3" fill="#1434CB" />
+        <text
+          x="16"
+          y="14"
+          textAnchor="middle"
+          fontFamily="Arial, sans-serif"
+          fontSize="9"
+          fontStyle="italic"
+          fontWeight="700"
+          fill="#fff"
+        >
+          VISA
+        </text>
+      </svg>
+      {/* Mastercard */}
+      <svg
+        viewBox="0 0 32 20"
+        className={`h-5 w-8 rounded-[3px] bg-[#F7F7F7] transition-opacity ${dim("mastercard")}`}
+      >
+        <circle cx="13" cy="10" r="6" fill="#EB001B" />
+        <circle cx="19" cy="10" r="6" fill="#F79E1B" fillOpacity="0.85" />
+      </svg>
+      {/* Amex */}
+      <svg
+        viewBox="0 0 32 20"
+        className={`h-5 w-8 rounded-[3px] transition-opacity ${dim("amex")}`}
+      >
+        <rect width="32" height="20" rx="3" fill="#1F72CD" />
+        <text
+          x="16"
+          y="13"
+          textAnchor="middle"
+          fontFamily="Arial, sans-serif"
+          fontSize="6"
+          fontWeight="700"
+          fill="#fff"
+        >
+          AMEX
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Payment field — one labelled slot, styled by the storefront.       */
+/*  Authorize.Net → a real <input> we own; NMI → a container the SDK   */
+/*  fills with a Collect.js iframe (matched height/border so it looks  */
+/*  identical to our inputs).                                          */
+/* ------------------------------------------------------------------ */
+
+function PaymentField({
+  id,
+  label,
+  isIframe,
+  className,
+  inputProps,
+}: {
+  id: string;
+  label: string;
+  isIframe: boolean;
+  className?: string;
+  inputProps?: ComponentProps<typeof Input>;
+}) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${className ?? ""}`}>
+      <Label htmlFor={isIframe ? undefined : id}>{label}</Label>
+      {isIframe ? (
+        <div
+          id={id}
+          className="h-9 rounded-md border border-input bg-transparent px-3 py-1"
+        />
+      ) : (
+        <Input id={id} {...inputProps} />
+      )}
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Public API exposed via ref                                        */
@@ -45,19 +150,46 @@ interface PaymentSectionProps {
   billingErrors?: Record<string, string | undefined>;
   onValidityRecheck?: () => void;
   showErrors?: boolean;
+  /** Whether the payment section is currently on-screen. The SDK form is only
+   *  mounted once visible so gateways that inject iframes (NMI/Collect.js) get a
+   *  laid-out target rather than a display:none subtree. Defaults to true. */
+  visible?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Minimal PaymentForm interface matching the SDK contract            */
+/*  SDK PaymentForm contract (tokenization only).                      */
+/*  The storefront owns all markup + styling; the platform declares    */
+/*  which gateway is active via `config.gateway_type`.                 */
 /* ------------------------------------------------------------------ */
 
+// DOM element ids the SDK binds to. For Authorize.Net (Accept.js) these are our
+// own <input> elements; for NMI (Collect.js) they are container <div>s the SDK
+// fills with secure iframes. Either way the storefront renders and styles them.
+const CARD_FIELD_IDS = {
+  cardNumber: "sf-card-number",
+  cardExpiry: "sf-card-expiry",
+  cardCvv: "sf-card-cvv",
+} as const;
+const ACH_FIELD_IDS = {
+  accountNumber: "sf-ach-account",
+  routingNumber: "sf-ach-routing",
+} as const;
+
 interface PaymentFormInstance {
-  mount: (containers: {
-    card?: string;
-    ach?: string;
-  }) => void;
   destroy: () => void;
-  tokenize: () => Promise<{ token: string; type: "card" | "ach" }>;
+  tokenize: () => Promise<{ token: string; payment_type: "card" | "ach" }>;
+}
+
+interface PaymentFormStatic {
+  mount: (
+    config: PaymentClientConfig,
+    containerIds: Partial<
+      Record<
+        "cardNumber" | "cardExpiry" | "cardCvv" | "accountNumber" | "routingNumber",
+        string
+      >
+    >,
+  ) => Promise<PaymentFormInstance>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -67,7 +199,7 @@ interface PaymentFormInstance {
 export const PaymentSection = forwardRef<
   PaymentSectionHandle,
   PaymentSectionProps
->(function PaymentSection({ config, storedMethods, isAuthenticated, billingErrors, onValidityRecheck, showErrors }, ref) {
+>(function PaymentSection({ config, storedMethods, isAuthenticated, billingErrors, onValidityRecheck, showErrors, visible = true }, ref) {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(
     storedMethods.find((m) => m.is_default)?.id ?? null,
   );
@@ -75,74 +207,72 @@ export const PaymentSection = forwardRef<
   const [sameAsShipping, setSameAsShipping] = useState(true);
   const [saveCard, setSaveCard] = useState(false);
   const [formReady, setFormReady] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  // Controlled card values so we can format as the shopper types (Authorize.Net
+  // only — NMI collects inside its own iframes).
+  const [cardNumberVal, setCardNumberVal] = useState("");
+  const [expiryVal, setExpiryVal] = useState("");
+  const [cvvVal, setCvvVal] = useState("");
 
   const formRef = useRef<PaymentFormInstance | null>(null);
-  const cardContainerRef = useRef<HTMLDivElement>(null);
-  const achContainerRef = useRef<HTMLDivElement>(null);
 
-  /* ---- Load the gateway JS library and mount the form ------------ */
+  /* ---- Mount the SDK tokenizer onto our own rendered fields ------- */
   useEffect(() => {
+    // The platform declares the active gateway + mode via `config`. We only mount
+    // the embedded on-page tokenizer; redirect and stored-method flows need none.
     if (!config?.gateway_enabled || config.checkout_mode !== "embedded") return;
     if (!config.js_library_url || !config.public_key) return;
+    if (selectedMethod) return; // a saved method is selected — no new-card form to mount
+    // Only mount once the section is on-screen: iframe gateways (NMI/Collect.js)
+    // need a laid-out target, not a display:none subtree (see `visible` prop).
+    if (!visible) return;
 
     let destroyed = false;
 
     async function init() {
-      // Dynamically load the gateway JS library
-      if (config!.js_library_url && !document.querySelector(`script[src="${config!.js_library_url}"]`)) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = config!.js_library_url!;
-          script.async = true;
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error("Failed to load payment JS"));
-          document.head.appendChild(script);
-        });
-      }
-
-      if (destroyed) return;
-
-      // Try to import PaymentForm from the SDK.
-      // Use a variable for the module path so TypeScript / bundler does not
-      // attempt to resolve the subpath export at build time (it may not
-      // exist in the SDK yet).
       try {
-        const paymentFormPath = "@stadian/storefront-sdk/payment-form";
-        const mainPath = "@stadian/storefront-sdk";
-        const mod: Record<string, unknown> = await import(
-          /* webpackIgnore: true */ paymentFormPath
-        ).catch(() => import(/* webpackIgnore: true */ mainPath));
+        // Static specifier (no webpackIgnore) so the bundler resolves the vendored
+        // SDK at build time — a bare specifier left for the browser can't be
+        // resolved at runtime (that was the original "stuck loading" bug).
+        const mod = await import("@stadian/storefront-sdk/payment-form");
+        const PaymentForm = (mod as { PaymentForm?: PaymentFormStatic }).PaymentForm;
+        if (!PaymentForm?.mount || destroyed) return;
 
-        const PaymentForm = mod.PaymentForm as
-          | (new (cfg: {
-              publicKey: string;
-              gatewayType: string;
-              formConfig: Record<string, unknown>;
-            }) => PaymentFormInstance)
-          | undefined;
+        // Hand the SDK the ids of the fields we rendered for the current method.
+        const containerIds =
+          paymentType === "ach"
+            ? {
+                accountNumber: ACH_FIELD_IDS.accountNumber,
+                routingNumber: ACH_FIELD_IDS.routingNumber,
+              }
+            : {
+                cardNumber: CARD_FIELD_IDS.cardNumber,
+                cardExpiry: CARD_FIELD_IDS.cardExpiry,
+                cardCvv: CARD_FIELD_IDS.cardCvv,
+              };
 
-        if (!PaymentForm || destroyed) return;
-
-        const instance = new PaymentForm({
-          publicKey: config!.public_key!,
-          gatewayType: config!.gateway_type!,
-          formConfig: config!.form_config,
-        });
-
-        const containers: { card?: string; ach?: string } = {};
-        if (cardContainerRef.current) containers.card = `#${cardContainerRef.current.id}`;
-        if (achContainerRef.current && config!.ach_enabled)
-          containers.ach = `#${achContainerRef.current.id}`;
-
-        instance.mount(containers);
+        const instance = await PaymentForm.mount(config!, containerIds);
+        if (destroyed) {
+          instance.destroy();
+          return;
+        }
         formRef.current = instance;
         setFormReady(true);
-      } catch {
-        // PaymentForm not yet available in SDK — the containers stay empty
-        // and getPaymentData() will return an empty object.
+      } catch (err) {
+        // Surface the failure instead of leaving a perpetual "loading" spinner.
+        console.error("Failed to initialize payment form:", err);
+        if (!destroyed) {
+          setFormError(
+            "We couldn't load the secure payment form. Please refresh and try again.",
+          );
+        }
       }
     }
 
+    // Reset to a clean slate whenever the gateway/method changes, then (re)mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset before the async mount
+    setFormReady(false);
+    setFormError(null);
     init();
 
     return () => {
@@ -153,7 +283,7 @@ export const PaymentSection = forwardRef<
       }
       setFormReady(false);
     };
-  }, [config]);
+  }, [config, paymentType, selectedMethod, visible]);
 
   /* ---- Expose getPaymentData to the parent ----------------------- */
   const getPaymentData = useCallback(async (): Promise<PaymentData> => {
@@ -181,7 +311,7 @@ export const PaymentSection = forwardRef<
       const result = await formRef.current.tokenize();
       return {
         paymentToken: result.token,
-        paymentType: result.type,
+        paymentType: result.payment_type,
         savePaymentMethod: isAuthenticated ? saveCard : undefined,
       };
     }
@@ -256,6 +386,10 @@ export const PaymentSection = forwardRef<
 
   // Embedded mode
   const showNewForm = !selectedMethod;
+  // NMI collects card data in Collect.js iframes; Authorize.Net (Accept.js) reads
+  // our own inputs. The platform tells us which via config.gateway_type.
+  const isNmi = config.gateway_type === "nmi";
+  const cardBrand = detectCardBrand(cardNumberVal.replace(/\D/g, ""));
 
   return (
     <div className="flex flex-col gap-4">
@@ -299,27 +433,107 @@ export const PaymentSection = forwardRef<
             </div>
           )}
 
-          {/* Card fields container */}
-          <div
-            id="payment-card-container"
-            ref={cardContainerRef}
-            className={paymentType === "card" ? "min-h-[120px]" : "hidden"}
-          />
-
-          {/* ACH fields container */}
-          {config.ach_enabled && (
-            <div
-              id="payment-ach-container"
-              ref={achContainerRef}
-              className={paymentType === "ach" ? "min-h-[120px]" : "hidden"}
-            />
+          {/* Card fields. For Authorize.Net we render our own styled inputs
+              (Accept.js reads them); for NMI these ids are container divs the
+              Collect.js SDK fills with secure iframes. */}
+          {paymentType === "card" && (
+            <div className="flex flex-col gap-1.5">
+              {/* Unified card widget — one bordered group, borderless inner
+                  inputs. For Authorize.Net these are our own <input>s (Accept.js
+                  reads them); for NMI the ids are slots Collect.js fills with
+                  iframes. */}
+              <div className="overflow-hidden rounded-xl border border-input bg-background transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/40">
+                {/* Card number */}
+                <div className="flex items-center gap-2.5 px-3">
+                  <CreditCard className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  {isNmi ? (
+                    <div id={CARD_FIELD_IDS.cardNumber} className="h-11 flex-1" />
+                  ) : (
+                    <input
+                      id={CARD_FIELD_IDS.cardNumber}
+                      name="sf_cc_number"
+                      inputMode="numeric"
+                      autoComplete="cc-number"
+                      placeholder="Card number"
+                      aria-label="Card number"
+                      value={cardNumberVal}
+                      onChange={(e) => setCardNumberVal(formatCardNumber(e.target.value))}
+                      className="h-11 flex-1 bg-transparent text-sm tabular-nums outline-none placeholder:text-muted-foreground"
+                    />
+                  )}
+                  <CardBrands active={cardBrand} />
+                </div>
+                <div className="h-px bg-border" />
+                {/* Expiry | CVV */}
+                <div className="flex">
+                  <div className="flex-1 px-3">
+                    {isNmi ? (
+                      <div id={CARD_FIELD_IDS.cardExpiry} className="h-11 w-full" />
+                    ) : (
+                      <input
+                        id={CARD_FIELD_IDS.cardExpiry}
+                        name="sf_cc_expiry"
+                        inputMode="numeric"
+                        autoComplete="cc-exp"
+                        placeholder="MM / YY"
+                        aria-label="Card expiry date"
+                        value={expiryVal}
+                        onChange={(e) => setExpiryVal(formatExpiry(e.target.value))}
+                        className="h-11 w-full bg-transparent text-sm tabular-nums outline-none placeholder:text-muted-foreground"
+                      />
+                    )}
+                  </div>
+                  <div className="w-px bg-border" />
+                  <div className="flex flex-1 items-center gap-2 px-3">
+                    {isNmi ? (
+                      <div id={CARD_FIELD_IDS.cardCvv} className="h-11 flex-1" />
+                    ) : (
+                      <input
+                        id={CARD_FIELD_IDS.cardCvv}
+                        name="sf_cc_cvv"
+                        inputMode="numeric"
+                        autoComplete="cc-csc"
+                        placeholder="CVV"
+                        aria-label="Card security code"
+                        value={cvvVal}
+                        onChange={(e) =>
+                          setCvvVal(formatCvv(e.target.value, cvvMaxLength(cardBrand)))
+                        }
+                        className="h-11 w-full bg-transparent text-sm tabular-nums outline-none placeholder:text-muted-foreground"
+                      />
+                    )}
+                    <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
-          {!formReady && (
+          {/* ACH fields */}
+          {config.ach_enabled && paymentType === "ach" && (
+            <div className="flex flex-col gap-3">
+              <PaymentField
+                id={ACH_FIELD_IDS.accountNumber}
+                label="Account number"
+                isIframe={isNmi}
+                inputProps={{ inputMode: "numeric", placeholder: "Account number" }}
+              />
+              <PaymentField
+                id={ACH_FIELD_IDS.routingNumber}
+                label="Routing number"
+                isIframe={isNmi}
+                inputProps={{ inputMode: "numeric", placeholder: "Routing number" }}
+              />
+            </div>
+          )}
+
+          {formError ? (
+            <p className="text-sm text-destructive">{formError}</p>
+          ) : !formReady ? (
             <p className="text-sm text-muted-foreground">
-              Loading payment form...
+              Loading secure payment form…
             </p>
-          )}
+          ) : null}
 
           {/* Save card checkbox for authenticated users */}
           {isAuthenticated && (

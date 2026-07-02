@@ -10,6 +10,7 @@ const VALID_SHIPPING = {
 };
 
 const VALID_INPUT: ValidateInput = {
+  fullName: "Jane Doe",
   email: "user@example.com",
   shipping: VALID_SHIPPING,
   sameAsShipping: true,
@@ -29,6 +30,7 @@ describe("isCheckoutFilled", () => {
   });
 
   it("returns false when email is empty", () => {
+    expect(isCheckoutFilled({ ...VALID_INPUT, fullName: "" })).toBe(false);
     expect(isCheckoutFilled({ ...VALID_INPUT, email: "" })).toBe(false);
   });
 

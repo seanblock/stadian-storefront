@@ -19,7 +19,13 @@ import {
 import { getSessionId, clearSession } from "@/lib/session";
 import { getShippingOptions } from "@/app/actions/shipping";
 import { getCheckoutFlow } from "@/app/actions/checkout-flow";
-import type { CheckoutFlowResponse, ShippingOption } from "@stadian/storefront-sdk";
+import type {
+  CheckoutFlowResponse,
+  ShippingOption,
+  StorefrontTrustSignal,
+} from "@stadian/storefront-sdk";
+import { getTrustSignals } from "@/app/actions/branding";
+import { CheckoutTrustRow } from "@/components/checkout/checkout-trust-row";
 import { ShippingMethods } from "@/components/checkout/shipping-methods";
 import { CheckoutFlowSteps } from "@/components/checkout/checkout-flow-steps";
 import { Button } from "@/components/ui/button";
@@ -34,8 +40,27 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AddressFields } from "@/components/checkout/address-fields";
 import { buildOrderPayload, resolveCheckoutResult, formatCheckoutError } from "@/app/checkout/checkout-logic";
+import { formatCurrency } from "@/lib/utils";
+import { ShieldCheck } from "lucide-react";
 import { OrderConfirmation, type ConfirmedOrder } from "@/components/checkout/order-confirmation";
 import { validateCheckout, isCheckoutFilled } from "@/app/checkout/checkout-validation";
+
+/** Numbered step indicator: filled=green check, active=primary, upcoming=muted. */
+function StepBadge({ n, active, done }: { n: number; active: boolean; done: boolean }) {
+  return (
+    <span
+      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+        done
+          ? "bg-green-600 text-white"
+          : active
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-muted-foreground"
+      }`}
+    >
+      {done ? "✓" : n}
+    </span>
+  );
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -48,6 +73,10 @@ export default function CheckoutPage() {
   const [lastEmail, setLastEmail] = useState("");
   const [selectedShippingMethodId, setSelectedShippingMethodId] = useState<string | undefined>(undefined);
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [trustSignals, setTrustSignals] = useState<StorefrontTrustSignal[]>([]);
+  // Progressive-disclosure step: 1 = Contact, 2 = Shipping, 3 = Payment.
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [summaries, setSummaries] = useState<{ contact?: string; shipping?: string }>({});
 
   const [paymentConfig, setPaymentConfig] = useState<PaymentClientConfig | null>(null);
   const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
@@ -72,6 +101,7 @@ export default function CheckoutPage() {
       paymentRef.current?.getBillingState() ?? { sameAsShipping: true, billingAddress: undefined };
 
     return {
+      fullName: (data.get("full_name") as string) ?? "",
       email: (data.get("email") as string) ?? "",
       shipping: {
         line1: (data.get("line1") as string) ?? "",
@@ -157,8 +187,62 @@ export default function CheckoutPage() {
     };
   }, [loading, cart]);
 
+  // Tenant-configured trust signals for the checkout trust row.
+  useEffect(() => {
+    let cancelled = false;
+    getTrustSignals()
+      .then((signals) => {
+        if (!cancelled) setTrustSignals(signals);
+      })
+      .catch(() => {
+        /* non-critical — the row just stays hidden */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function continueFromContact() {
+    const values = getValues();
+    if (!values) return;
+    const errs = validateCheckout(values);
+    if (errs.full_name || errs.email) {
+      setFieldErrors(errs);
+      setSubmitAttempted(true);
+      return;
+    }
+    setSummaries((s) => ({ ...s, contact: `${values.fullName} · ${values.email}` }));
+    setSubmitAttempted(false);
+    setStep(2);
+  }
+
+  function continueFromShipping() {
+    const values = getValues();
+    if (!values) return;
+    const errs = validateCheckout(values);
+    if (errs.line1 || errs.city || errs.state || errs.zip || errs.country) {
+      setFieldErrors(errs);
+      setSubmitAttempted(true);
+      return;
+    }
+    if (shippingOptions.length > 0 && !selectedShippingMethodId) {
+      setError("Please choose a shipping method.");
+      return;
+    }
+    const s = values.shipping;
+    setSummaries((prev) => ({
+      ...prev,
+      shipping: `${s.line1}, ${s.city}, ${s.state} ${s.zip}`,
+    }));
+    setError(null);
+    setSubmitAttempted(false);
+    setStep(3);
+  }
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Only the final step places the order (guards Enter-key submits on earlier steps).
+    if (step !== 3) return;
 
     const values = getValues();
     if (!values) return;
@@ -188,7 +272,16 @@ export default function CheckoutPage() {
       const { sameAsShipping, billingAddress } =
         paymentRef.current?.getBillingState() ?? { sameAsShipping: true, billingAddress: undefined };
 
+      // Split the single "Full name" field into first/last so the backend can
+      // build the gateway's AVS billTo and the shipping label.
+      const fullName = ((data.get("full_name") as string) || "").trim();
+      const nameParts = fullName.split(/\s+/);
+      const firstName = nameParts[0] ?? "";
+      const lastName = nameParts.slice(1).join(" ");
+
       const shipping = {
+        first_name: firstName,
+        last_name: lastName,
         line1: data.get("line1") as string,
         line2: (data.get("line2") as string) || undefined,
         city: data.get("city") as string,
@@ -263,9 +356,16 @@ export default function CheckoutPage() {
     );
   }
 
+  const placeOrderDisabled =
+    submitting ||
+    configLoading ||
+    !formFilled ||
+    (checkoutFlow != null && !checkoutFlow.ready_to_checkout);
+
   return (
     <div className="container mx-auto max-w-5xl px-4 py-12">
       <h1 className="mb-8 text-2xl font-semibold">Checkout</h1>
+      <CheckoutTrustRow signals={trustSignals} />
       <form
         ref={formRef}
         noValidate
@@ -275,11 +375,47 @@ export default function CheckoutPage() {
       >
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="flex flex-col gap-6">
+            {/* Step 1 — Contact. Inputs stay mounted (hidden when inactive) so
+                FormData reads them at final submit. */}
             <Card>
-              <CardHeader>
-                <CardTitle>Contact</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="flex items-center gap-2.5">
+                  <StepBadge n={1} active={step === 1} done={step > 1} />
+                  Contact
+                </CardTitle>
+                {step > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="text-sm font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                  >
+                    Edit
+                  </button>
+                )}
               </CardHeader>
-              <CardContent>
+              {step > 1 && summaries.contact && (
+                <CardContent className="pt-0 text-sm text-muted-foreground">
+                  {summaries.contact}
+                </CardContent>
+              )}
+              <CardContent
+                className={`flex flex-col gap-4 ${step === 1 ? "" : "hidden"}`}
+              >
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="full_name">Full name</Label>
+                  <Input
+                    id="full_name"
+                    name="full_name"
+                    type="text"
+                    placeholder="Jane Doe"
+                    required
+                    autoComplete="name"
+                    aria-invalid={submitAttempted && !!fieldErrors.full_name}
+                  />
+                  {submitAttempted && fieldErrors.full_name && (
+                    <p className="mt-1 text-sm text-destructive">{fieldErrors.full_name}</p>
+                  )}
+                </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="email">Email address</Label>
                   <Input
@@ -295,14 +431,37 @@ export default function CheckoutPage() {
                     <p className="mt-1 text-sm text-destructive">{fieldErrors.email}</p>
                   )}
                 </div>
+                <Button type="button" className="mt-1 self-start" onClick={continueFromContact}>
+                  Continue to shipping
+                </Button>
               </CardContent>
             </Card>
 
+            {/* Step 2 — Shipping (address + method) */}
             <Card>
-              <CardHeader>
-                <CardTitle>Shipping Address</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="flex items-center gap-2.5">
+                  <StepBadge n={2} active={step === 2} done={step > 2} />
+                  Shipping
+                </CardTitle>
+                {step > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="text-sm font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                  >
+                    Edit
+                  </button>
+                )}
               </CardHeader>
-              <CardContent>
+              {step > 2 && summaries.shipping && (
+                <CardContent className="pt-0 text-sm text-muted-foreground">
+                  {summaries.shipping}
+                </CardContent>
+              )}
+              <CardContent
+                className={`flex flex-col gap-6 ${step === 2 ? "" : "hidden"}`}
+              >
                 <AddressFields
                   section="shipping"
                   onStateChange={handleShippingStateChange}
@@ -310,31 +469,35 @@ export default function CheckoutPage() {
                   onValidityRecheck={recompute}
                   showErrors={submitAttempted}
                 />
+                {shippingOptions.length > 0 && (
+                  <div>
+                    <p className="mb-3 text-sm font-medium">Shipping method</p>
+                    <ShippingMethods
+                      options={shippingOptions}
+                      value={selectedShippingMethodId}
+                      onChange={setSelectedShippingMethodId}
+                    />
+                  </div>
+                )}
+                <Button type="button" className="self-start" onClick={continueFromShipping}>
+                  Continue to payment
+                </Button>
               </CardContent>
             </Card>
 
-            {shippingOptions.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Shipping Method</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ShippingMethods
-                    options={shippingOptions}
-                    value={selectedShippingMethodId}
-                    onChange={setSelectedShippingMethodId}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            <CheckoutFlowSteps flow={checkoutFlow} />
-
+            {/* Step 3 — Payment (+ compliance, billing, notes). PaymentSection
+                stays mounted throughout so Accept.js never tears down. */}
             <Card>
-              <CardHeader>
-                <CardTitle>Payment</CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="flex items-center gap-2.5">
+                  <StepBadge n={3} active={step === 3} done={false} />
+                  Payment
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent
+                className={`flex flex-col gap-6 ${step === 3 ? "" : "hidden"}`}
+              >
+                <CheckoutFlowSteps flow={checkoutFlow} />
                 {configLoading ? (
                   <p className="text-sm text-muted-foreground">Loading payment options...</p>
                 ) : (
@@ -346,21 +509,14 @@ export default function CheckoutPage() {
                     billingErrors={fieldErrors}
                     onValidityRecheck={recompute}
                     showErrors={submitAttempted}
+                    visible={step === 3}
                   />
                 )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  Order Notes{" "}
-                  <span className="text-sm font-normal text-muted-foreground">(optional)</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="notes">Notes for your order</Label>
+                  <Label htmlFor="notes">
+                    Order notes{" "}
+                    <span className="font-normal text-muted-foreground">(optional)</span>
+                  </Label>
                   <Textarea id="notes" name="notes" placeholder="Any special instructions or questions..." rows={3} />
                 </div>
               </CardContent>
@@ -383,16 +539,52 @@ export default function CheckoutPage() {
               </p>
             )}
 
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full"
-              disabled={submitting || configLoading || !formFilled || (checkoutFlow != null && !checkoutFlow.ready_to_checkout)}
-            >
-              {submitting ? "Placing order..." : "Place Order"}
-            </Button>
+            {/* Desktop place-order — only at the final step (earlier steps use
+                the in-step "Continue" buttons). */}
+            {step === 3 && (
+              <>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="hidden w-full lg:inline-flex"
+                  disabled={placeOrderDisabled}
+                >
+                  {submitting ? "Placing order..." : "Place Order"}
+                </Button>
+
+                <p className="hidden items-center justify-center gap-1.5 text-center text-xs text-muted-foreground lg:flex">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Secure checkout — your card is encrypted and never stored on our
+                  servers.
+                </p>
+              </>
+            )}
           </div>
         </div>
+
+        {/* Mobile sticky place-order bar (final step only) */}
+        {step === 3 && (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 backdrop-blur lg:hidden">
+            <div className="mx-auto flex max-w-3xl items-center gap-3">
+              <div className="flex flex-col leading-tight">
+                <span className="text-xs text-muted-foreground">Total</span>
+                <span className="text-base font-semibold tabular-nums">
+                  {formatCurrency(cart.total)}
+                </span>
+              </div>
+              <Button
+                type="submit"
+                size="lg"
+                className="flex-1"
+                disabled={placeOrderDisabled}
+              >
+                {submitting ? "Placing order..." : "Place Order"}
+              </Button>
+            </div>
+          </div>
+        )}
+        {/* Spacer so the sticky bar doesn't cover the last card on mobile */}
+        {step === 3 && <div className="h-24 lg:hidden" />}
       </form>
     </div>
   );
