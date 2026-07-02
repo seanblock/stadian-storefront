@@ -1,15 +1,15 @@
-import { FlaskConical, ShieldCheck, Snowflake, RotateCcw } from "lucide-react";
+import { FlaskConical, Tag, Snowflake, Headset } from "lucide-react";
 
 const ITEMS = [
   {
     icon: FlaskConical,
-    title: "Independently tested",
-    body: "Third-party lab analysis on every batch — COA on the product page.",
+    title: "Research-grade quality",
+    body: "High-purity compounds handled under strict in-house standards.",
   },
   {
-    icon: ShieldCheck,
-    title: "≥99% purity standard",
-    body: "Batches that don't meet our acceptance standard aren't sold.",
+    icon: Tag,
+    title: "Batch-numbered vials",
+    body: "Every vial is sealed in-house and labeled with its batch for traceability.",
   },
   {
     icon: Snowflake,
@@ -17,9 +17,9 @@ const ITEMS = [
     body: "Temperature-controlled packaging, tracked from our door to yours.",
   },
   {
-    icon: RotateCcw,
-    title: "30-day returns",
-    body: "Free returns within 30 days. Free shipping on orders over $100.",
+    icon: Headset,
+    title: "Real human support",
+    body: "Questions about a compound or an order? A real person answers.",
   },
 ] as const;
 

@@ -6,9 +6,7 @@ import { Hero } from "@/components/home/hero";
 import { TrustBar } from "@/components/home/trust-bar";
 import { BestSellers } from "@/components/home/best-sellers";
 import { OurStandard } from "@/components/home/our-standard";
-import { TransparencySpotlight } from "@/components/home/transparency-spotlight";
 import { CategoriesGrid } from "@/components/home/categories-grid";
-import { Comparison } from "@/components/home/comparison";
 import { FaqPreview } from "@/components/home/faq-preview";
 import { ClosingStatement } from "@/components/home/closing-statement";
 
@@ -58,9 +56,7 @@ export default async function Home() {
       <TrustBar />
       <BestSellers products={featuredProducts} />
       <OurStandard />
-      <TransparencySpotlight />
       <CategoriesGrid categories={categories} />
-      <Comparison storeName={branding.store_name || "Us"} />
       <FaqPreview />
       <ClosingStatement branding={branding} />
     </>

@@ -20,8 +20,8 @@ const CREAM_DIM = "#b8b0a0";
 const GOLD = "#d4a951";
 
 const TRUST_CHIPS = [
-  "Third-party COA with every batch",
-  "≥99% purity standard",
+  "Sealed in-house",
+  "Batch-numbered vials",
   "Cold-chain shipped",
   "Free shipping over $100",
 ] as const;
@@ -60,24 +60,24 @@ export function Hero({ branding: _branding }: HeroProps) {
               className="reveal-up text-[11px] font-bold uppercase tracking-[0.28em]"
               style={{ color: GOLD }}
             >
-              Research-grade peptides · Lab verified
+              Research-grade peptides · Est. 2026
             </p>
 
             <h1
               className="reveal-up mt-4 text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] font-black uppercase leading-[0.98] tracking-[-0.02em]"
               style={{ color: CREAM, animationDelay: "80ms" }}
             >
-              Peptides you can{" "}
-              <span style={{ color: GOLD }}>actually verify</span>
+              Precision peptides for{" "}
+              <span style={{ color: GOLD }}>serious research</span>
             </h1>
 
             <p
               className="reveal-up mt-6 max-w-lg text-balance text-base leading-relaxed sm:text-lg"
               style={{ color: CREAM_DIM, animationDelay: "160ms" }}
             >
-              Every batch is analyzed by an independent third-party lab before
-              it ships — and the certificate of analysis is published on the
-              product page. Strictly for laboratory research use.
+              High-purity compounds for laboratory research — sealed in-house
+              with batch-numbered labeling and shipped in temperature-controlled
+              packaging. Strictly for research use.
             </p>
 
             <div
@@ -107,15 +107,15 @@ export function Hero({ branding: _branding }: HeroProps) {
                 </svg>
               </Link>
               <Link
-                href="/lab-results"
+                href="/about"
                 className="inline-flex items-center gap-2 rounded-full border px-7 py-4 text-sm font-medium uppercase tracking-[0.22em] transition-colors duration-300 hover:border-current"
                 style={{ borderColor: `${CREAM}30`, color: CREAM }}
               >
-                How we test
+                Our story
               </Link>
             </div>
 
-            {/* Trust chips — concrete, falsifiable claims at the decision point */}
+            {/* Trust chips — concrete operational claims at the decision point */}
             <ul
               className="reveal-up mt-10 flex max-w-xl flex-wrap gap-x-6 gap-y-2.5"
               style={{ animationDelay: "320ms" }}

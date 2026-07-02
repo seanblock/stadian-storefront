@@ -3,18 +3,18 @@ import Link from "next/link";
 const STEPS = [
   {
     number: "01",
-    title: "Synthesized & sealed",
-    body: "Compounds are synthesized to a ≥99% purity specification, then sealed in-house under controlled conditions with batch-numbered labeling for full traceability.",
+    title: "Sourced with intent",
+    body: "We stock a focused catalog of research compounds rather than chasing every trend — each one selected and handled with care.",
   },
   {
     number: "02",
-    title: "Independently tested",
-    body: "Every batch is sent to an independent third-party laboratory for identity and purity analysis before it's released for sale. The resulting certificate of analysis is published on each product's page.",
+    title: "Sealed & batch-numbered",
+    body: "Vials are sealed in-house under controlled conditions and labeled with a batch number, so every unit is traceable to its production run.",
   },
   {
     number: "03",
     title: "Cold-chain shipped",
-    body: "Orders ship in temperature-controlled packaging with tracking. Complimentary shipping on orders over $100, and free returns within 30 days.",
+    body: "Orders ship in temperature-controlled packaging with tracking. Complimentary shipping on orders over $100.",
   },
 ] as const;
 
@@ -30,8 +30,8 @@ export function OurStandard() {
           </div>
           <div className="col-span-12 mt-4 lg:col-span-9 lg:mt-0">
             <h2 className="max-w-3xl font-serif text-4xl leading-[1.05] tracking-tight text-foreground sm:text-5xl">
-              From synthesis to your bench,{" "}
-              <span className="italic">verified at every step</span>.
+              From our bench to yours,{" "}
+              <span className="italic">handled with care</span>.
             </h2>
           </div>
         </header>
@@ -54,11 +54,11 @@ export function OurStandard() {
 
         <div className="mt-14 flex flex-wrap items-center gap-x-8 gap-y-4 border-t border-border pt-6">
           <Link
-            href="/lab-results"
+            href="/products"
             className="group inline-flex items-center gap-3 text-sm font-medium uppercase tracking-[0.18em] text-foreground"
           >
             <span className="relative">
-              How we test
+              Shop the catalog
               <span className="absolute inset-x-0 -bottom-1 block h-px origin-left scale-x-100 bg-current transition-transform duration-500 group-hover:scale-x-[0.4]" />
             </span>
             <svg

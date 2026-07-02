@@ -337,7 +337,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* Lab results — COA + any other public documents */}
+          {/* Public product documents (renders only when the platform
+              provides them — nothing shows otherwise) */}
           {(product.coa_document_url ||
             (product.documents && product.documents.length > 0)) && (
             <div className="mt-4 rounded-md border border-border bg-muted/30 px-4 py-3">
@@ -359,7 +360,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   <path d="m9 15 2 2 4-4" />
                 </svg>
                 <span className="text-sm font-medium text-foreground">
-                  Independently tested
+                  Documents
                 </span>
                 {product.coa_document_url && (
                   <a

@@ -24,9 +24,8 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
         </p>
         <blockquote className="mt-6 max-w-3xl font-serif text-4xl leading-[1.15] tracking-tight text-background sm:text-5xl lg:text-6xl">
           <span className="italic text-background/70">“</span>
-          Our mission is to set the standard for transparency in research
-          peptides — every batch tested, every result published, every claim
-          verifiable.
+          Our mission is simple: research-grade compounds, handled with
+          uncompromising care, from our bench to yours.
           <span className="italic text-background/70">”</span>
         </blockquote>
 
@@ -36,10 +35,10 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
               — The {storeName} team
             </p>
             <p className="mt-4 text-sm leading-relaxed text-background/75">
-              We&apos;re a new company, and we intend to earn trust the only way
-              that counts: published lab results, careful handling, and straight
-              answers. If you have a question about a compound, a batch, or a
-              COA—we&apos;d genuinely like to hear from you.
+              We&apos;re a new company, and we intend to earn your trust the
+              old-fashioned way: careful handling, quality you can feel in
+              every detail, and straight answers. If you have a question about
+              a compound or an order—we&apos;d genuinely like to hear from you.
             </p>
           </div>
 

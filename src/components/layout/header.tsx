@@ -16,8 +16,8 @@ interface HeaderProps {
 
 const NAV_LINKS = [
   { href: "/products", label: "Catalog" },
-  { href: "/lab-results", label: "How We Test" },
   { href: "/about", label: "About" },
+  { href: "/faq", label: "FAQ" },
 ] as const;
 
 const GOLD = "#d4a951";
