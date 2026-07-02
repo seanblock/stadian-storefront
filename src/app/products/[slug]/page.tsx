@@ -266,7 +266,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
           )}
 
           {/* Title */}
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="font-serif text-4xl leading-[1.05] tracking-tight sm:text-5xl">
             {displayName}
           </h1>
 

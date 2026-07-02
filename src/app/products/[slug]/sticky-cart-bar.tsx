@@ -73,10 +73,11 @@ export function StickyCartBar({
             )}
           </div>
           <Button
-            className="h-12 shrink-0 px-6 text-base font-semibold"
+            className="h-12 shrink-0 rounded-full px-6 text-sm font-bold uppercase tracking-[0.16em]"
             size="lg"
             onClick={handleAdd}
             disabled={adding}
+            style={{ background: "#d4a951", color: "#0a1a2e" }}
           >
             {adding ? "Adding..." : added ? "Added" : "Add to Cart"}
           </Button>

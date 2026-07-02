@@ -43,14 +43,23 @@ export function Hero({ branding: _branding }: HeroProps) {
         }}
       />
       {/* Left-side dark gradient overlay — keeps headline readable
-          regardless of what's in the image. Product sits on the right. */}
+          regardless of what's in the image. Product sits on the right.
+          (Desktop/tablet only — phones get the uniform overlay below.) */}
       <div
         aria-hidden
-        className="absolute inset-0"
+        className="absolute inset-0 hidden sm:block"
         style={{
           background:
             "linear-gradient(to right, rgba(10,26,46,0.96) 0%, rgba(10,26,46,0.88) 35%, rgba(10,26,46,0.5) 55%, rgba(10,26,46,0.12) 75%, transparent 100%)",
         }}
+      />
+      {/* Phone overlay — blurred, near-solid navy so text never fights the
+          product image on narrow screens (the bottle melts into a soft
+          ambient glow behind the copy). */}
+      <div
+        aria-hidden
+        className="absolute inset-0 backdrop-blur-md sm:hidden"
+        style={{ background: "rgba(10,26,46,0.88)" }}
       />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

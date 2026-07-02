@@ -62,12 +62,17 @@ export function AddToCartButton({ productId }: AddToCartButtonProps) {
         </div>
       </div>
 
-      {/* Add to Cart — full width, prominent */}
+      {/* Add to Cart — full width, brand gold */}
       <Button
-        className="h-14 w-full text-base font-bold tracking-wide uppercase"
+        className="h-14 w-full rounded-full text-sm font-bold uppercase tracking-[0.22em] transition-transform duration-300 hover:-translate-y-0.5"
         size="lg"
         onClick={handleAdd}
         disabled={adding}
+        style={{
+          background: "#d4a951",
+          color: "#0a1a2e",
+          boxShadow: "0 20px 50px -20px #d4a95188",
+        }}
       >
         {adding ? "Adding..." : added ? "Added to Cart" : "Add to Cart"}
       </Button>

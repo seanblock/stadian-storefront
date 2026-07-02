@@ -139,8 +139,15 @@ export default async function ProductsPage({
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       {/* Page header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Products</h1>
+      <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            The catalog
+          </p>
+          <h1 className="mt-2 font-serif text-4xl leading-tight tracking-tight text-foreground sm:text-5xl">
+            All <span className="italic">compounds</span>
+          </h1>
+        </div>
 
         {/* Search */}
         <SearchBar />
@@ -181,7 +188,7 @@ export default async function ProductsPage({
           <p className="text-sm text-muted-foreground">No products found.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
           {productGroups.map((group) => (
             <ProductGroupCard key={group.id} group={group} />
           ))}
