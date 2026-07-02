@@ -1,4 +1,4 @@
-import { FlaskConical, Tag, Snowflake, Headset } from "lucide-react";
+import { FlaskConical, Tag, Snowflake, Lock } from "lucide-react";
 
 const ITEMS = [
   {
@@ -17,9 +17,9 @@ const ITEMS = [
     body: "Temperature-controlled packaging, tracked from our door to yours.",
   },
   {
-    icon: Headset,
-    title: "Real human support",
-    body: "Questions about a compound or an order? A real person answers.",
+    icon: Lock,
+    title: "Secure checkout",
+    body: "Encrypted payment processing. Free shipping on orders over $100.",
   },
 ] as const;
 
