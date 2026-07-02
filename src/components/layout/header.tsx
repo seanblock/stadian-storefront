@@ -8,7 +8,6 @@ import type { StorefrontBranding } from "@stadian/storefront-sdk";
 import { CartIcon } from "./cart-icon";
 import { AuthNav } from "./auth-nav";
 import { MobileNav } from "./mobile-nav";
-import { ThemeToggle } from "./theme-toggle";
 
 interface HeaderProps {
   branding: StorefrontBranding;
@@ -103,8 +102,6 @@ export function Header({ branding }: HeaderProps) {
             style={{ background: transparent ? GOLD : "currentColor" }}
           />
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <ThemeToggle />
-            <span aria-hidden className="hidden h-4 w-px opacity-15 sm:block bg-current" />
             <AuthNav />
             <span aria-hidden className="hidden h-4 w-px opacity-15 sm:block bg-current" />
             <CartIcon />

@@ -5,36 +5,60 @@ interface ClosingStatementProps {
   branding: StorefrontBranding;
 }
 
+// Fixed brand palette — cream "editorial" section regardless of theme,
+// bookending the page with the same ground as the Best Sellers gallery.
+const NAVY = "#0a1a2e";
+const NAVY_DIM = "#0a1a2eb3";
+const CREAM = "#f3ead5";
+const GOLD_DEEP = "#9a7a3a";
+
 export function ClosingStatement({ branding }: ClosingStatementProps) {
   const storeName = branding.store_name || "We";
 
   return (
-    <section className="relative overflow-hidden bg-foreground text-background">
+    <section
+      className="relative overflow-hidden"
+      style={{ background: CREAM, color: NAVY }}
+    >
       {/* Decorative oversized initial */}
       <span
         aria-hidden
-        className="pointer-events-none absolute -right-8 -top-16 font-serif text-[28rem] italic leading-none text-background/[0.04] select-none sm:-right-16 sm:-top-24 sm:text-[40rem]"
+        className="pointer-events-none absolute -right-8 -top-16 select-none font-serif text-[28rem] italic leading-none sm:-right-16 sm:-top-24 sm:text-[40rem]"
+        style={{ color: `${NAVY}0a` }}
       >
         {storeName.charAt(0).toUpperCase()}
       </span>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-background/50">
+        <p
+          className="text-[11px] uppercase tracking-[0.22em]"
+          style={{ color: GOLD_DEEP }}
+        >
           A note from us
         </p>
-        <blockquote className="mt-6 max-w-3xl font-serif text-4xl leading-[1.15] tracking-tight text-background sm:text-5xl lg:text-6xl">
-          <span className="italic text-background/70">“</span>
+        <blockquote className="mt-6 max-w-3xl font-serif text-4xl leading-[1.15] tracking-tight sm:text-5xl lg:text-6xl">
+          <span className="italic" style={{ color: `${NAVY}66` }}>
+            “
+          </span>
           Our mission is simple: research-grade compounds, handled with
           uncompromising care, from our bench to yours.
-          <span className="italic text-background/70">”</span>
+          <span className="italic" style={{ color: `${NAVY}66` }}>
+            ”
+          </span>
         </blockquote>
 
-        <div className="mt-14 flex flex-wrap items-end justify-between gap-x-12 gap-y-8 border-t border-background/10 pt-8">
+        <div
+          className="mt-14 flex flex-wrap items-end justify-between gap-x-12 gap-y-8 border-t pt-8"
+          style={{ borderColor: `${NAVY}1a` }}
+        >
           <div className="max-w-md">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-background/50">
+            <p
+              className="font-mono text-[11px] uppercase tracking-[0.18em]"
+              style={{ color: NAVY_DIM }}
+            >
               — The {storeName} team
             </p>
-            <p className="mt-4 text-sm leading-relaxed text-background/75">
+            <p className="mt-4 text-sm leading-relaxed" style={{ color: NAVY_DIM }}>
               We&apos;re a new company, and we intend to earn your trust the
               old-fashioned way: careful handling, quality you can feel in
               every detail, and straight answers. If you have a question about
@@ -45,19 +69,27 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
           <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
             <Link
               href="/products"
-              className="group inline-flex items-center gap-3 text-sm font-medium uppercase tracking-[0.18em] text-background"
+              className="group inline-flex items-center gap-3 text-sm font-medium uppercase tracking-[0.18em]"
+              style={{ color: NAVY }}
             >
               <span className="relative">
                 Begin shopping
                 <span className="absolute inset-x-0 -bottom-1 block h-px origin-left scale-x-100 bg-current transition-transform duration-500 group-hover:scale-x-[0.4]" />
               </span>
-              <svg className="size-4 transition-transform duration-500 group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <svg
+                className="size-4 transition-transform duration-500 group-hover:translate-x-1"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
                 <path d="M5 12h14M13 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
             <Link
               href="/about"
-              className="text-sm font-medium uppercase tracking-[0.18em] text-background/60 transition-colors hover:text-background"
+              className="text-sm font-medium uppercase tracking-[0.18em] transition-colors hover:opacity-100"
+              style={{ color: NAVY_DIM }}
             >
               Read our story
             </Link>
