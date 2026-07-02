@@ -51,16 +51,22 @@ export function Footer({ branding }: FooterProps) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-border bg-muted/40">
+    <footer
+      className="mt-auto"
+      style={{ background: "#0a1a2e", color: "#f3ead5" }}
+    >
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         {/* Top: brand + link columns */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-12">
           <div className="col-span-2 md:col-span-5 lg:col-span-6">
-            <p className="text-base font-bold tracking-tight text-foreground">
+            <p className="text-base font-bold tracking-tight">
               {storeName}
             </p>
             {tagline && (
-              <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+              <p
+                className="mt-2 max-w-sm font-serif text-sm italic leading-relaxed"
+                style={{ color: "#d4a951" }}
+              >
                 {tagline}
               </p>
             )}
@@ -72,7 +78,8 @@ export function Footer({ branding }: FooterProps) {
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    className="text-sm transition-opacity hover:opacity-100"
+                    style={{ color: "#f3ead5b3" }}
                   >
                     {SOCIAL_ICONS[platform.toLowerCase()] || platform}
                   </a>
@@ -87,7 +94,10 @@ export function Footer({ branding }: FooterProps) {
               aria-label={`${col.heading} links`}
               className="md:col-span-2"
             >
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              <p
+                className="text-[11px] font-medium uppercase tracking-[0.18em]"
+                style={{ color: "#d4a951" }}
+              >
                 {col.heading}
               </p>
               <ul className="mt-4 space-y-2.5">
@@ -95,7 +105,8 @@ export function Footer({ branding }: FooterProps) {
                   <li key={href}>
                     <Link
                       href={href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      className="text-sm transition-colors hover:text-[#f3ead5]"
+                      style={{ color: "#f3ead5b3" }}
                     >
                       {label}
                     </Link>
@@ -107,15 +118,21 @@ export function Footer({ branding }: FooterProps) {
         </div>
 
         {/* Research-use disclaimer */}
-        <div className="mt-12 border-t border-border pt-6">
-          <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground/80">
+        <div className="mt-12 border-t pt-6" style={{ borderColor: "#f3ead51a" }}>
+          <p
+            className="max-w-4xl text-xs leading-relaxed"
+            style={{ color: "#f3ead580" }}
+          >
             {researchDisclaimer(storeName)}
           </p>
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-6 flex flex-col gap-2 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
+        <div
+          className="mt-6 flex flex-col gap-2 border-t pt-6 sm:flex-row sm:items-center sm:justify-between"
+          style={{ borderColor: "#f3ead51a" }}
+        >
+          <p className="text-sm" style={{ color: "#f3ead5b3" }}>
             {footerText
               ? footerText
               : `© ${year} ${storeName}. All rights reserved.`}

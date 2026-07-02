@@ -42,7 +42,7 @@ export function Header({ branding }: HeaderProps) {
       className={`sticky top-0 z-50 w-full transition-all duration-500 ${
         transparent
           ? "bg-transparent text-[#f3ead5]"
-          : "border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75"
+          : "border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90"
       }`}
     >
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-4 sm:h-[5.5rem] sm:px-6 lg:px-8">
