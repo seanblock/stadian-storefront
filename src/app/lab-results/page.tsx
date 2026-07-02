@@ -1,32 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { StorefrontProduct } from "@stadian/storefront-sdk";
-import { getStadianClient } from "@/lib/stadian";
-import { COA_RECORDS, type CoaRecord } from "@/lib/lab-results";
 
 export const metadata: Metadata = {
-  title: "Lab Results",
+  title: "How We Test",
   description:
-    "Third-party certificates of analysis (COAs) for every batch we sell. Identity and purity verified by an independent laboratory.",
+    "Every batch is analyzed by an independent third-party laboratory before release. Certificates of analysis are published on each product page and furnished on request.",
   alternates: { canonical: "/lab-results" },
 };
 
-export default async function LabResultsPage() {
-  let products: StorefrontProduct[] = [];
-  try {
-    const client = getStadianClient();
-    const result = await client.catalog.list({ page: 1, limit: 100 });
-    products = result.items;
-  } catch {
-    // Page still renders methodology; table section hides when empty.
-  }
-
-  const rows = products.map((product) => ({
-    product,
-    records: COA_RECORDS[product.slug] ?? [],
-  }));
-  const publishedCount = rows.filter((r) => r.records.length > 0).length;
-
+export default function LabResultsPage() {
   return (
     <div className="bg-background">
       {/* Header */}
@@ -36,14 +18,13 @@ export default async function LabResultsPage() {
             Transparency
           </p>
           <h1 className="mt-3 max-w-3xl font-serif text-4xl leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Lab results &{" "}
-            <span className="italic">certificates of analysis</span>
+            How we <span className="italic">test</span>
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground">
             Every batch we sell is analyzed by an independent third-party
             laboratory before release. The certificate of analysis for each
-            batch is published here — so you never have to take a purity claim
-            on faith.
+            compound is published on its product page — so you never have to
+            take a purity claim on faith.
           </p>
         </div>
       </section>
@@ -76,90 +57,23 @@ export default async function LabResultsPage() {
             </div>
             <div>
               <h2 className="font-serif text-xl text-foreground">
-                Matching your vial
+                Where to find certificates
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Every vial is labeled with its batch number. Find that batch
-                below to see the certificate for exactly what&apos;s in your
-                hands. If a batch you purchased isn&apos;t listed, contact us
-                and we&apos;ll send the certificate directly.
+                Each product page links the certificate for its current batch.
+                Every vial is labeled with its batch number — if you need the
+                certificate for a specific batch you purchased, contact us and
+                we&apos;ll furnish it directly.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Results table */}
+      {/* CTA */}
       <section>
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          {publishedCount === 0 && (
-            <div className="mb-10 rounded-sm border border-border bg-muted/30 px-6 py-5">
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                <span className="font-medium text-foreground">
-                  Current status:
-                </span>{" "}
-                our first production batches are with the lab now. Certificates
-                will be published on this page as soon as they&apos;re returned
-                — before products ship.
-              </p>
-            </div>
-          )}
-
-          {rows.length > 0 && (
-            <ul className="divide-y divide-border border-y border-border">
-              {rows.map(({ product, records }) => (
-                <li
-                  key={product.id}
-                  className="grid grid-cols-12 items-baseline gap-x-6 gap-y-2 py-5"
-                >
-                  <div className="col-span-12 sm:col-span-4">
-                    <Link
-                      href={`/products/${product.slug}`}
-                      className="font-serif text-lg leading-tight text-foreground underline-offset-4 hover:underline"
-                    >
-                      {product.name}
-                    </Link>
-                  </div>
-                  <div className="col-span-12 sm:col-span-8">
-                    {records.length > 0 ? (
-                      <ul className="space-y-2">
-                        {records.map((record: CoaRecord) => (
-                          <li
-                            key={record.batch}
-                            className="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm"
-                          >
-                            <span className="font-mono text-[12px] uppercase tracking-[0.08em] text-muted-foreground">
-                              Batch {record.batch}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {record.purity} purity
-                            </span>
-                            <span className="text-muted-foreground">
-                              {record.testedBy} · {record.testedOn}
-                            </span>
-                            <a
-                              href={record.coaUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-medium text-foreground underline underline-offset-4"
-                            >
-                              View COA (PDF)
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <span className="text-sm italic text-muted-foreground">
-                        COA pending publication — batch at lab
-                      </span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="mt-10">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
             <Link
               href="/products"
               className="group inline-flex items-center gap-3 text-sm font-medium uppercase tracking-[0.18em] text-foreground"
@@ -177,6 +91,12 @@ export default async function LabResultsPage() {
               >
                 <path d="M5 12h14M13 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
+            </Link>
+            <Link
+              href="/faq"
+              className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Read the FAQ
             </Link>
           </div>
         </div>

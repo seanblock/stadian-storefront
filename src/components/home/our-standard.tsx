@@ -9,7 +9,7 @@ const STEPS = [
   {
     number: "02",
     title: "Independently tested",
-    body: "Every batch is sent to an independent third-party laboratory for identity and purity analysis before it's released for sale. The resulting certificate of analysis is published on our Lab Results page.",
+    body: "Every batch is sent to an independent third-party laboratory for identity and purity analysis before it's released for sale. The resulting certificate of analysis is published on each product's page.",
   },
   {
     number: "03",
@@ -58,7 +58,7 @@ export function OurStandard() {
             className="group inline-flex items-center gap-3 text-sm font-medium uppercase tracking-[0.18em] text-foreground"
           >
             <span className="relative">
-              View lab results
+              How we test
               <span className="absolute inset-x-0 -bottom-1 block h-px origin-left scale-x-100 bg-current transition-transform duration-500 group-hover:scale-x-[0.4]" />
             </span>
             <svg

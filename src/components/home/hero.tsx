@@ -243,14 +243,14 @@ function InfoRail({ product }: { product: StorefrontProduct | null }) {
               className="mt-1 text-[12px] leading-snug"
               style={{ color: `${CREAM}cc` }}
             >
-              Minimum purity standard — verified by certificate of analysis,
-              published per batch.
+              Minimum purity standard — verified by certificate of analysis on
+              every product page.
             </p>
             <span
               className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] underline-offset-4 group-hover:underline"
               style={{ color: GOLD }}
             >
-              View lab results
+              How we test
               <svg
                 className="size-3 transition-transform duration-300 group-hover:translate-x-0.5"
                 viewBox="0 0 24 24"

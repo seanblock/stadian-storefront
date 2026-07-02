@@ -72,6 +72,15 @@ export interface StorefrontProductDetail extends StorefrontProduct {
     dynamic_fields: Record<string, unknown> | null;
     field_schema: StorefrontFieldGroup[];
     subscription: StorefrontSubscriptionConfig | null;
+    /** Public URL of the product's certificate of analysis PDF, if published. */
+    coa_document_url: string | null;
+    /** Additional public product documents (datasheets etc.). */
+    documents: StorefrontProductDocument[];
+}
+export interface StorefrontProductDocument {
+    url: string;
+    name?: string;
+    [key: string]: unknown;
 }
 export interface StorefrontFieldDef {
     slug: string;

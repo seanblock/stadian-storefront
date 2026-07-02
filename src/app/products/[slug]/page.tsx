@@ -337,6 +337,57 @@ export default async function ProductDetailPage({ params }: PageProps) {
             </div>
           )}
 
+          {/* Lab results — COA + any other public documents */}
+          {(product.coa_document_url ||
+            (product.documents && product.documents.length > 0)) && (
+            <div className="mt-4 rounded-md border border-border bg-muted/30 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="shrink-0 text-muted-foreground"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6" />
+                  <path d="m9 15 2 2 4-4" />
+                </svg>
+                <span className="text-sm font-medium text-foreground">
+                  Independently tested
+                </span>
+                {product.coa_document_url && (
+                  <a
+                    href={product.coa_document_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-foreground underline underline-offset-4"
+                  >
+                    Certificate of Analysis (PDF)
+                  </a>
+                )}
+                {product.documents?.map((doc) =>
+                  doc.url ? (
+                    <a
+                      key={doc.url}
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                    >
+                      {doc.name || "Document (PDF)"}
+                    </a>
+                  ) : null
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Price block */}
           <div className="mt-6 flex flex-wrap items-baseline gap-3">
             {product.price != null ? (

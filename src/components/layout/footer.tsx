@@ -20,7 +20,7 @@ const LINK_COLUMNS: { heading: string; links: { href: string; label: string }[] 
     heading: "Shop",
     links: [
       { href: "/products", label: "Catalog" },
-      { href: "/lab-results", label: "Lab Results" },
+      { href: "/lab-results", label: "How We Test" },
       { href: "/cart", label: "Cart" },
       { href: "/account", label: "My Account" },
     ],
