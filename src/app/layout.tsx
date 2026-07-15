@@ -53,7 +53,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       images: branding.logo_url ? [branding.logo_url] : undefined,
     },
-    icons: { icon: branding.logo_url || "/logo.png" },
+    // Icons come from the file conventions in src/app: favicon.ico, icon.png, apple-icon.png.
     robots,
   };
 }
