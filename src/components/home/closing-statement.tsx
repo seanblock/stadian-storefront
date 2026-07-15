@@ -5,12 +5,12 @@ interface ClosingStatementProps {
   branding: StorefrontBranding;
 }
 
-// Fixed brand palette — cream "note" that sits in the page body, giving the
-// navy footer a clean contrast edge below it (was navy, which merged with
-// the footer into one block).
+// Fixed brand palette — a light off-white "note" that sits in the page body,
+// giving the navy footer a clean contrast edge below it (was navy, which
+// merged with the footer into one block).
 const NAVY = "#0a1a2e";
 const NAVY_DIM = "#0a1a2eb3";
-const CREAM = "#f3ead5";
+const PANEL = "#f7f6f3";
 const GOLD_DEEP = "#9a7a3a";
 
 export function ClosingStatement({ branding }: ClosingStatementProps) {
@@ -19,7 +19,7 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
   return (
     <section
       className="relative overflow-hidden"
-      style={{ background: CREAM, color: NAVY }}
+      style={{ background: PANEL, color: NAVY }}
     >
       {/* Decorative oversized initial */}
       <span

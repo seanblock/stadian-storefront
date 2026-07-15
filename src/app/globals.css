@@ -50,21 +50,21 @@
 }
 
 :root {
-  /* Brand "paper" palette — cream ground, navy ink, gold accents.
+  /* Brand palette — white ground, navy ink, gold accents.
      The site has a single fixed look (no theme toggle). */
-  --background: #f3ead5;
+  --background: #ffffff;
   --foreground: #0a1a2e;
-  --card: #faf5e8;
+  --card: #ffffff;
   --card-foreground: #0a1a2e;
-  --popover: #faf5e8;
+  --popover: #ffffff;
   --popover-foreground: #0a1a2e;
   --primary: #0a1a2e;
-  --primary-foreground: #f3ead5;
-  --secondary: #e9dfc4;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f2;
   --secondary-foreground: #0a1a2e;
-  --muted: #e9dfc4;
+  --muted: #f4f4f2;
   --muted-foreground: #0a1a2e99;
-  --accent: #e9dfc4;
+  --accent: #f4f4f2;
   --accent-foreground: #0a1a2e;
   --destructive: oklch(0.577 0.245 27.325);
   --border: #0a1a2e24;

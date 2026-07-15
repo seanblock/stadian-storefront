@@ -7,11 +7,15 @@ interface BestSellersProps {
   products: StorefrontProduct[];
 }
 
-// Fixed brand palette — this section is a cream "gallery" regardless of the
-// light/dark theme, so the dark product renders pop like framed art.
+// Fixed brand palette — this section is an off-white "gallery" panel so the
+// dark product renders pop like framed art. CREAM is retained only for cream
+// ink on the navy product cards below.
 const NAVY = "#0a1a2e";
 const NAVY_DIM = "#0a1a2e99";
 const CREAM = "#f3ead5";
+// Section ground — a barely-there off-white so this panel still separates from
+// the pure-white sections above and below it.
+const PANEL = "#f7f6f3";
 const GOLD_DEEP = "#9a7a3a";
 
 export function BestSellers({ products }: BestSellersProps) {
@@ -20,7 +24,7 @@ export function BestSellers({ products }: BestSellersProps) {
   const items = products.slice(0, 8);
 
   return (
-    <section style={{ background: CREAM, color: NAVY }}>
+    <section style={{ background: PANEL, color: NAVY }}>
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <header className="flex flex-wrap items-end justify-between gap-6">
           <div>

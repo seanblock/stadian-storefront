@@ -79,14 +79,12 @@ export function Header({ branding }: HeaderProps) {
 
         {/* ===== CENTER — Nav with hairline underlines ===== */}
         <nav className="hidden items-center md:flex">
-          {NAV_LINKS.map((item, i) => (
+          {NAV_LINKS.map((item) => (
             <NavLink
               key={item.href}
               href={item.href}
               label={item.label}
               isActive={pathname === item.href}
-              isFirst={i === 0}
-              transparent={transparent}
             />
           ))}
         </nav>
@@ -127,11 +125,9 @@ interface NavLinkProps {
   href: string;
   label: string;
   isActive: boolean;
-  isFirst: boolean;
-  transparent: boolean;
 }
 
-function NavLink({ href, label, isActive, isFirst, transparent }: NavLinkProps) {
+function NavLink({ href, label, isActive }: NavLinkProps) {
   return (
     <Link
       href={href}
@@ -162,14 +158,6 @@ function NavLink({ href, label, isActive, isFirst, transparent }: NavLinkProps) 
         }`}
         style={{ background: GOLD }}
       />
-      {/* Tick marker at top for first item — adds editorial detail */}
-      {isFirst && (
-        <span
-          aria-hidden
-          className="absolute -top-0.5 left-4 h-1.5 w-px opacity-40"
-          style={{ background: transparent ? GOLD : "currentColor" }}
-        />
-      )}
     </Link>
   );
 }

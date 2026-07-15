@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { StorefrontBranding } from "@stadian/storefront-sdk";
+import { PreviewUnlock } from "@/components/preview-unlock";
 
 type Reason = StorefrontBranding["storefront_closed_reason"];
 
@@ -27,9 +28,11 @@ export function copyFor(reason: Reason) {
 export function StoreClosed({
   reason,
   branding,
+  passwordEnabled = false,
 }: {
   reason: Reason;
   branding: StorefrontBranding;
+  passwordEnabled?: boolean;
 }) {
   const { heading, body } = copyFor(reason);
   const storeName = branding.store_name ?? "Store";
@@ -89,6 +92,8 @@ export function StoreClosed({
             {body}
           </p>
         </div>
+
+        {passwordEnabled ? <PreviewUnlock /> : null}
 
         {branding.footer_text ? (
           <p

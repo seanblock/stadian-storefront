@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/providers/theme-provider";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { StoreClosed } from "@/components/store-closed";
 import { AgeGate } from "@/components/age-gate";
+import { PREVIEW_COOKIE, verifyPreviewToken } from "@/lib/preview-access";
 import "./globals.css";
 
 const inter = Inter({
@@ -79,9 +80,15 @@ export default async function RootLayout({
     ...(socials.length > 0 && { sameAs: socials }),
   };
 
-  const isClosed = branding.storefront_enabled === false;
-
   const cookieStore = await cookies();
+
+  // A closed store can be unlocked per-visitor with the tenant's preview
+  // password. A valid signed cookie bypasses the closed gate for that browser.
+  const hasPreviewAccess = verifyPreviewToken(
+    cookieStore.get(PREVIEW_COOKIE)?.value
+  );
+  const isClosed = branding.storefront_enabled === false && !hasPreviewAccess;
+
   const ageConfirmedCookie = cookieStore.get("age_confirmed");
   const ageGateActive = branding.age_gate_enabled === true && !ageConfirmedCookie;
 
@@ -95,7 +102,11 @@ export default async function RootLayout({
       <body className="flex min-h-full flex-col">
         {isClosed ? (
           <ThemeProvider>
-            <StoreClosed reason={branding.storefront_closed_reason} branding={branding} />
+            <StoreClosed
+              reason={branding.storefront_closed_reason}
+              branding={branding}
+              passwordEnabled={branding.storefront_access_password_set === true}
+            />
           </ThemeProvider>
         ) : ageGateActive ? (
           <ThemeProvider>

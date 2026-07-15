@@ -211,6 +211,8 @@ export interface StorefrontBranding {
     return_policy: Record<string, unknown> | null;
     storefront_enabled: boolean;
     storefront_closed_reason: 'general' | 'coming_soon' | 'maintenance' | null;
+    /** True when a preview password is set, so the closed-store page can show the unlock form. */
+    storefront_access_password_set?: boolean;
     age_gate_enabled?: boolean;
     age_gate_min_age?: number;
     age_gate_redirect_url?: string | null;
