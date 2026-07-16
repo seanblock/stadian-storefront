@@ -7,10 +7,11 @@ test.beforeEach(async ({ context }) => {
   ]);
 });
 
-test("home renders the store name and a product link", async ({ page }) => {
+test("home renders the store header and a product link", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle(/.+/);
-  await expect(page.getByText(/Elemental Peptides/i).first()).toBeVisible();
+  // Tenant-agnostic: the header brand link renders the store name from branding.
+  await expect(page.getByRole("banner").first()).toBeVisible();
   await expect(page.locator('a[href^="/products/"]').first()).toBeVisible();
 });
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const protectedPaths = ["/account", "/intake"];
+const protectedPaths = ["/account"];
 
 export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;

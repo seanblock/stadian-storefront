@@ -1,20 +1,20 @@
-import { FlaskConical, Tag, Snowflake, Lock } from "lucide-react";
+import { ShieldCheck, Tag, Snowflake, Lock } from "lucide-react";
 
 const ITEMS = [
   {
-    icon: FlaskConical,
-    title: "Research-grade quality",
-    body: "High-purity compounds handled under strict in-house standards.",
+    icon: ShieldCheck,
+    title: "Third-party tested",
+    body: "Every batch is tested by independent labs for purity and label accuracy.",
   },
   {
     icon: Tag,
-    title: "Batch-numbered vials",
-    body: "Every vial is sealed in-house and labeled with its batch for traceability.",
+    title: "Batch-numbered",
+    body: "Every unit is labeled with its batch, traceable to its production run.",
   },
   {
     icon: Snowflake,
     title: "Cold-chain shipped",
-    body: "Temperature-controlled packaging, tracked from our door to yours.",
+    body: "Probiotics and temperature-sensitive products ship in cold packaging.",
   },
   {
     icon: Lock,

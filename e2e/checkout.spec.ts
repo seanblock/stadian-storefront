@@ -24,7 +24,7 @@ test.beforeEach(async ({ context }) => {
 
 test("checkout form renders and is fillable (up to submit)", async ({ page }) => {
   // ── Step 1: Navigate to /products and iterate to find a purchasable one ─
-  // The first product may require intake/age-verification (no Add-to-Cart).
+  // The first product may not be purchasable online (no Add-to-Cart).
   // Walk every unique product href until we find one with an "Add to Cart" button.
   await page.goto("/products");
   const hrefs = await page
@@ -47,7 +47,7 @@ test("checkout form renders and is fillable (up to submit)", async ({ page }) =>
   }
   if (!found) {
     console.warn(
-      "checkout.spec: no purchasable (non-intake) product found on tenant — skipping"
+      "checkout.spec: no purchasable product found on tenant — skipping"
     );
     return;
   }
@@ -56,7 +56,7 @@ test("checkout form renders and is fillable (up to submit)", async ({ page }) =>
 
   // ── Step 2: Add to cart ───────────────────────────────────────────────
   // The "Add to Cart" button text cycles: "Add to Cart" → "Adding..." → "Added to Cart"
-  // If the product requires intake/age-verification the cart add may fail with
+  // If the product has purchase restrictions the cart add may fail with
   // an error message — guard that case.
   const addToCartBtn = page.getByRole("button", { name: /add to cart/i });
   await addToCartBtn.click();

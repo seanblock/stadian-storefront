@@ -31,10 +31,7 @@ type ProductDetailExtended = StorefrontProductDetail & {
   requires_cold_chain?: boolean;
   requires_age_verification?: boolean;
   storage_temperature?: string | null;
-  reconstitution_instructions?: string | null;
-  mechanism_of_action?: string | null;
-  cas_number?: string | null;
-  research_cycle?: { suggested_duration_weeks?: number; note?: string } | null;
+  extended_description?: string | null;
   faqs?: { q: string; a: string }[];
   images?: string[];
 };
@@ -297,7 +294,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
           {/* Product badges */}
           {(product.purity ||
             product.requires_cold_chain ||
-            product.cas_number ||
             product.requires_age_verification) && (
             <div className="mt-4 flex flex-wrap gap-2">
               {product.purity && (
@@ -316,7 +312,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
                     <path d="m9 12 2 2 4-4" />
                   </svg>
-                  Purity {product.purity}
+                  Potency {product.purity}
                 </span>
               )}
               {product.requires_cold_chain && (
@@ -327,11 +323,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
               {product.requires_age_verification && (
                 <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground">
                   Age Verification
-                </span>
-              )}
-              {product.cas_number && (
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 py-1 font-mono text-xs font-medium text-muted-foreground">
-                  CAS {product.cas_number}
                 </span>
               )}
             </div>
@@ -466,19 +457,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* Add to cart / Intake required */}
+          {/* Add to cart */}
           <div id="cart-button-area">
-            {product.requires_intake ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-5 dark:border-amber-900 dark:bg-amber-950/20">
-                <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                  Medical Intake Required
-                </p>
-                <p className="mt-1 text-sm text-amber-700/80 dark:text-amber-300/60">
-                  This product requires a medical intake form before ordering.
-                  Please complete the intake process to continue.
-                </p>
-              </div>
-            ) : product.price == null ? (
+            {product.price == null ? (
               <div className="rounded-xl border border-border bg-muted/30 p-5">
                 <p className="text-sm font-semibold text-foreground">
                   Contact for pricing
@@ -584,6 +565,22 @@ export default async function ProductDetailPage({ params }: PageProps) {
               </AccordionItem>
             )}
 
+            {product.extended_description && (
+              <AccordionItem>
+                <AccordionTrigger className="text-sm font-semibold uppercase tracking-widest text-muted-foreground hover:no-underline">
+                  <span className="inline-flex items-center gap-2">
+                    <LucideIcon name="info" size={14} />
+                    More Details
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <p className="leading-relaxed text-muted-foreground">
+                    {product.extended_description}
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+
             {/* Dynamic sections from field_schema */}
             {product.field_schema
               ?.filter((section) =>
@@ -648,11 +645,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 Tax applicable
               </span>
             )}
-            {product.research_cycle?.suggested_duration_weeks && (
-              <span className="inline-flex items-center rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                {product.research_cycle.suggested_duration_weeks}-week cycle
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -675,7 +667,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
       />
 
       {/* Sticky mobile CTA */}
-      {!product.requires_intake && product.price != null && (
+      {product.price != null && (
         <StickyCartBar
           productName={displayName}
           price={product.price}

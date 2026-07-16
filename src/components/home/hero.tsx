@@ -20,9 +20,9 @@ const CREAM_DIM = "#b8b0a0";
 const GOLD = "#d4a951";
 
 const TRUST_CHIPS = [
-  "Sealed in-house",
-  "Batch-numbered vials",
-  "Cold-chain shipped",
+  "Third-party tested",
+  "Batch-numbered",
+  "Cold-chain where it counts",
   "Free shipping over $100",
 ] as const;
 
@@ -69,24 +69,23 @@ export function Hero({ branding: _branding }: HeroProps) {
               className="reveal-up text-[11px] font-bold uppercase tracking-[0.28em]"
               style={{ color: GOLD }}
             >
-              Research-grade peptides · Est. 2026
+              Third-party tested · Est. 2026
             </p>
 
             <h1
               className="reveal-up mt-4 text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] font-black uppercase leading-[0.98] tracking-[-0.02em]"
               style={{ color: CREAM, animationDelay: "80ms" }}
             >
-              Precision peptides for{" "}
-              <span style={{ color: GOLD }}>serious research</span>
+              Supplements you can{" "}
+              <span style={{ color: GOLD }}>actually trust</span>
             </h1>
 
             <p
               className="reveal-up mt-6 max-w-lg text-balance text-base leading-relaxed sm:text-lg"
               style={{ color: CREAM_DIM, animationDelay: "160ms" }}
             >
-              High-purity compounds for laboratory research — sealed in-house
-              with batch-numbered labeling and shipped in temperature-controlled
-              packaging. Strictly for research use.
+              Clean-label supplements — third-party tested, batch-numbered,
+              and shipped fresh. No proprietary-blend games.
             </p>
 
             <div
@@ -102,7 +101,7 @@ export function Hero({ branding: _branding }: HeroProps) {
                   boxShadow: `0 20px 50px -20px ${GOLD}88`,
                 }}
               >
-                <span>Shop compounds</span>
+                <span>Shop products</span>
                 <svg
                   className="size-4 transition-transform duration-500 group-hover:translate-x-1"
                   viewBox="0 0 24 24"

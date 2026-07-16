@@ -44,7 +44,7 @@ export function BestSellers({ products }: BestSellersProps) {
             style={{ color: NAVY }}
           >
             <span className="relative">
-              Shop all compounds
+              Shop all products
               <span className="absolute inset-x-0 -bottom-1 block h-px origin-left scale-x-100 bg-current transition-transform duration-500 group-hover:scale-x-[0.4]" />
             </span>
             <svg

@@ -71,7 +71,7 @@ export function Header({ branding }: HeaderProps) {
                     : "text-[#8a6516] dark:text-[#d4a951]"
                 }`}
               >
-                Research-grade · Est. 2026
+                Est. 2026
               </span>
             </span>
           </Link>

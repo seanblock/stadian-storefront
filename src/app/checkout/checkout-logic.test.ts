@@ -62,19 +62,19 @@ describe("formatCheckoutError", () => {
     const msg = formatCheckoutError({
       code: "INSUFFICIENT_STOCK",
       message: "x",
-      details: { product_name: "BPC-157", requested: 5, available: 2 },
+      details: { product_name: "Magnesium Glycinate", requested: 5, available: 2 },
     });
     expect(msg).toBe(
-      "Only 2 of BPC-157 are left in stock. Please lower the quantity in your cart to continue.",
+      "Only 2 of Magnesium Glycinate are left in stock. Please lower the quantity in your cart to continue.",
     );
   });
   it("uses singular 'is' when exactly one is left", () => {
     const msg = formatCheckoutError({
       code: "INSUFFICIENT_STOCK",
       message: "x",
-      details: { product_name: "BPC-157", requested: 5, available: 1 },
+      details: { product_name: "Magnesium Glycinate", requested: 5, available: 1 },
     });
-    expect(msg).toContain("Only 1 of BPC-157 is left");
+    expect(msg).toContain("Only 1 of Magnesium Glycinate is left");
   });
   it("falls back to generic stock copy when details are missing", () => {
     const msg = formatCheckoutError({
@@ -101,13 +101,13 @@ describe("formatCheckoutError", () => {
           {
             product_id: "p1",
             block_type: "shipping_restricted",
-            message: "BPC-157 cannot be shipped to CA.",
+            message: "Magnesium Glycinate cannot be shipped to CA.",
             resolution: "Remove it or use a different shipping address.",
           },
         ],
       },
     });
-    expect(msg).toContain("BPC-157 cannot be shipped to CA.");
+    expect(msg).toContain("Magnesium Glycinate cannot be shipped to CA.");
     expect(msg).toContain("Remove it or use a different shipping address.");
     expect(msg).not.toBe("Checkout blocked by compliance requirements");
   });
@@ -117,12 +117,12 @@ describe("formatCheckoutError", () => {
       message: "Checkout blocked by compliance requirements",
       details: {
         blocks: [
-          { block_type: "disclaimer_required", message: "Accept the RUO disclaimer.", resolution: "" },
+          { block_type: "disclaimer_required", message: "Accept the store disclaimer.", resolution: "" },
           { block_type: "shipping_not_configured", message: "No shipping methods are configured.", resolution: "" },
         ],
       },
     });
-    expect(msg).toContain("Accept the RUO disclaimer.");
+    expect(msg).toContain("Accept the store disclaimer.");
     expect(msg).toContain("No shipping methods are configured.");
   });
   it("falls back to the generic message when VALIDATION_ERROR has no blocks", () => {

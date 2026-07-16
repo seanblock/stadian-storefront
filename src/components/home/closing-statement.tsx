@@ -41,8 +41,8 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
           <span className="italic" style={{ color: `${NAVY}66` }}>
             “
           </span>
-          Our mission is simple: research-grade compounds, handled with
-          uncompromising care, from our bench to yours.
+          Our mission is simple: quality supplements, handled with
+          uncompromising care, from our door to yours.
           <span className="italic" style={{ color: `${NAVY}66` }}>
             ”
           </span>
@@ -63,7 +63,7 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
               We&apos;re a new company, and we intend to earn your trust the
               old-fashioned way: careful handling, quality you can feel in
               every detail, and straight answers. If you have a question about
-              a compound or an order—we&apos;d genuinely like to hear from you.
+              a product or an order—we&apos;d genuinely like to hear from you.
             </p>
           </div>
 

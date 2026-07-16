@@ -19,24 +19,6 @@ function stepClass(step: CheckoutStep) {
   return "text-muted-foreground";
 }
 
-function IntakeLink({ step }: { step: CheckoutStep }) {
-  if (step.intake_form_id) {
-    return (
-      <Link
-        href={`/account/intake/${step.intake_form_id}`}
-        className="ml-1 underline text-primary"
-      >
-        Complete intake form
-      </Link>
-    );
-  }
-  return (
-    <Link href="/account" className="ml-1 underline text-primary">
-      Go to your account
-    </Link>
-  );
-}
-
 export function CheckoutFlowSteps({ flow }: CheckoutFlowStepsProps) {
   if (!flow) return null;
 
@@ -60,9 +42,6 @@ export function CheckoutFlowSteps({ flow }: CheckoutFlowStepsProps) {
               <span className="text-muted-foreground ml-1">
                 — {step.description}
               </span>
-            )}
-            {!step.completed && step.step === "intake" && (
-              <IntakeLink step={step} />
             )}
             {!step.completed && step.step === "age_verification" && (
               <Link href="/account" className="ml-1 underline text-primary">

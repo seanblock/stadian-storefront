@@ -145,7 +145,7 @@ export default async function ProductsPage({
             The catalog
           </p>
           <h1 className="mt-2 font-serif text-4xl leading-tight tracking-tight text-foreground sm:text-5xl">
-            All <span className="italic">compounds</span>
+            All <span className="italic">products</span>
           </h1>
         </div>
 

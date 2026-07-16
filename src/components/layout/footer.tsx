@@ -46,8 +46,8 @@ const LINK_COLUMNS: { heading: string; links: { href: string; label: string }[] 
   },
 ];
 
-const researchDisclaimer = (storeName: string) =>
-  `All products sold by ${storeName} are intended for laboratory research use only. They are not for human consumption, and are not intended for medical, veterinary, diagnostic, or household use. Nothing on this site is medical advice. By purchasing, you confirm you are a qualified researcher or purchasing on behalf of a research organization.`;
+const fdaDisclaimer = (storeName: string) =>
+  `These statements have not been evaluated by the Food and Drug Administration. Products sold by ${storeName} are not intended to diagnose, treat, cure, or prevent any disease. Nothing on this site is medical advice.`;
 
 export function Footer({ branding }: FooterProps) {
   const socialLinks = branding.social_links;
@@ -93,7 +93,7 @@ export function Footer({ branding }: FooterProps) {
               className="mt-6 max-w-xs font-serif text-lg italic leading-snug"
               style={{ color: `${CREAM}d9` }}
             >
-              {tagline || "Research-grade peptides · Est. 2026"}
+              {tagline || "Everyday essentials, honestly made"}
             </p>
 
             {socialLinks && Object.keys(socialLinks).length > 0 && (
@@ -152,7 +152,7 @@ export function Footer({ branding }: FooterProps) {
           ))}
         </div>
 
-        {/* Research-use disclaimer */}
+        {/* FDA (DSHEA) disclaimer */}
         <div
           className="mt-14 border-t pt-7"
           style={{ borderColor: `${CREAM}14` }}
@@ -161,7 +161,7 @@ export function Footer({ branding }: FooterProps) {
             className="max-w-4xl text-xs leading-relaxed"
             style={{ color: `${CREAM}80` }}
           >
-            {researchDisclaimer(storeName)}
+            {fdaDisclaimer(storeName)}
           </p>
         </div>
 
@@ -179,7 +179,7 @@ export function Footer({ branding }: FooterProps) {
             className="text-[11px] uppercase tracking-[0.16em]"
             style={{ color: `${CREAM}66` }}
           >
-            For laboratory research use only
+            † These statements have not been evaluated by the FDA.
           </p>
         </div>
       </div>

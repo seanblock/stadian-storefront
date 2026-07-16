@@ -53,12 +53,6 @@ export async function POST(request: NextRequest) {
       if (data?.id) revalidatePath(`/account/orders/${data.id}`);
       break;
 
-    case "intake.approved":
-    case "intake.denied":
-    case "intake.info_requested":
-      if (data?.id) revalidatePath(`/account/intake/${data.id}`);
-      break;
-
     case "page.updated":
       if (data?.slug) revalidatePath(`/${data.slug}`);
       break;

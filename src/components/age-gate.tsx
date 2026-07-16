@@ -114,7 +114,7 @@ export function AgeGate({ minAge, declineUrl, branding, onConfirm }: AgeGateProp
             className="max-w-xs text-sm leading-relaxed"
             style={{ color: "color-mix(in srgb, " + CREAM + " 70%, transparent)" }}
           >
-            {storeName} sells research products restricted by age. Please confirm your age to continue.
+            {storeName} sells age-restricted products. Please confirm your age to continue.
           </p>
         </div>
 

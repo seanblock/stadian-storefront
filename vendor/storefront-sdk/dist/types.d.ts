@@ -19,7 +19,6 @@ export interface StorefrontGroupProduct {
     image_url: string | null;
     default_price: number | null;
     categories: StorefrontCategory[];
-    requires_intake: boolean;
 }
 export interface StorefrontProductGroup {
     id: string;
@@ -40,7 +39,6 @@ export interface StorefrontProduct {
     price: number | null;
     compare_at_price: number | null;
     categories: StorefrontCategory[];
-    requires_intake?: boolean;
     badges: StorefrontBadge[];
 }
 export interface StorefrontVariant {

@@ -4,12 +4,12 @@ const STEPS = [
   {
     number: "01",
     title: "Sourced with intent",
-    body: "We stock a focused catalog of research compounds rather than chasing every trend — each one selected and handled with care.",
+    body: "We stock a focused catalog of clean-label supplements rather than chasing every trend — each one selected and handled with care.",
   },
   {
     number: "02",
     title: "Sealed & batch-numbered",
-    body: "Vials are sealed in-house under controlled conditions and labeled with a batch number, so every unit is traceable to its production run.",
+    body: "Every batch is sealed and numbered under controlled conditions, so every unit is traceable to its production run.",
   },
   {
     number: "03",
@@ -30,7 +30,7 @@ export function OurStandard() {
           </div>
           <div className="col-span-12 mt-4 lg:col-span-9 lg:mt-0">
             <h2 className="max-w-3xl font-serif text-4xl leading-[1.05] tracking-tight text-foreground sm:text-5xl">
-              From our bench to yours,{" "}
+              From our door to yours,{" "}
               <span className="italic">handled with care</span>.
             </h2>
           </div>

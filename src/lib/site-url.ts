@@ -2,7 +2,7 @@
  * Canonical site URL for SEO (sitemap, robots, canonical links, Open Graph).
  *
  * Each cloned store should set NEXT_PUBLIC_SITE_URL to its real domain (e.g.
- * https://elemental-peptides.com) — that becomes the canonical/OG host.
+ * https://summitsupps.com) — that becomes the canonical/OG host.
  *
  * Resolution order (never throws, so it can't break a build):
  *   1. NEXT_PUBLIC_SITE_URL — the configured production domain.
