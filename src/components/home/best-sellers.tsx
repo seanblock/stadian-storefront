@@ -5,6 +5,8 @@ import { formatCurrency } from "@/lib/utils";
 
 interface BestSellersProps {
   products: StorefrontProduct[];
+  /** Wholesale mode: prices are login-gated, show the sign-in hint instead of a blank slot. */
+  pricesHidden?: boolean;
 }
 
 // Fixed brand palette — this section is an off-white "gallery" panel so the
@@ -18,7 +20,7 @@ const CREAM = "#f3ead5";
 const PANEL = "#f7f6f3";
 const GOLD_DEEP = "#9a7a3a";
 
-export function BestSellers({ products }: BestSellersProps) {
+export function BestSellers({ products, pricesHidden = false }: BestSellersProps) {
   if (products.length === 0) return null;
 
   const items = products.slice(0, 8);
@@ -100,7 +102,18 @@ export function BestSellers({ products }: BestSellersProps) {
                       {product.name}
                     </h3>
                     <span className="shrink-0 text-sm font-bold">
-                      {product.price != null ? formatCurrency(product.price) : ""}
+                      {pricesHidden ? (
+                        <span
+                          className="text-[10px] font-medium uppercase tracking-[0.14em]"
+                          style={{ color: NAVY_DIM }}
+                        >
+                          Sign in for pricing
+                        </span>
+                      ) : product.price != null ? (
+                        formatCurrency(product.price)
+                      ) : (
+                        ""
+                      )}
                     </span>
                   </div>
                   <div className="mt-0.5 flex items-baseline justify-between gap-3">
@@ -114,7 +127,8 @@ export function BestSellers({ products }: BestSellersProps) {
                     ) : (
                       <span />
                     )}
-                    {product.compare_at_price != null &&
+                    {!pricesHidden &&
+                      product.compare_at_price != null &&
                       product.price != null &&
                       product.compare_at_price > product.price && (
                         <span

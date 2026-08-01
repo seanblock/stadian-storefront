@@ -12,6 +12,7 @@ import { CartDrawer } from "@/components/cart/cart-drawer";
 import { StoreClosed } from "@/components/store-closed";
 import { AgeGate } from "@/components/age-gate";
 import { PREVIEW_COOKIE, verifyPreviewToken } from "@/lib/preview-access";
+import { arePricesHidden } from "@/lib/pricing-access";
 import "./globals.css";
 
 const inter = Inter({
@@ -89,6 +90,10 @@ export default async function RootLayout({
   );
   const isClosed = branding.storefront_enabled === false && !hasPreviewAccess;
 
+  // A wholesale store closes the cart to signed-out visitors, so don't render
+  // one they can't use.
+  const cartEnabled = !(await arePricesHidden());
+
   const ageConfirmedCookie = cookieStore.get("age_confirmed");
   const ageGateActive = branding.age_gate_enabled === true && !ageConfirmedCookie;
 
@@ -126,11 +131,11 @@ export default async function RootLayout({
             />
             <ThemeProvider>
               <AuthProvider>
-                <CartProvider>
-                  <Header branding={branding} />
+                <CartProvider enabled={cartEnabled}>
+                  <Header branding={branding} cartEnabled={cartEnabled} />
                   <main className="flex-1">{children}</main>
                   <Footer branding={branding} />
-                  <CartDrawer />
+                  {cartEnabled && <CartDrawer />}
                 </CartProvider>
               </AuthProvider>
             </ThemeProvider>

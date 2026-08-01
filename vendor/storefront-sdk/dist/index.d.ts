@@ -13,27 +13,42 @@ export interface CatalogListParams {
     limit?: number;
     search?: string;
     category_id?: string;
+    /**
+     * Signed-in buyer's access token. Stores that hide prices until login return
+     * null prices to anonymous callers, so pass this to get real pricing.
+     */
+    customerToken?: string;
+}
+/** Options for single-resource catalog reads. */
+export interface CatalogGetOptions {
+    customerToken?: string;
 }
 export interface ProductGroupListParams {
     page?: number;
     limit?: number;
+    customerToken?: string;
 }
 export interface CartSessionParams {
     sessionToken: string;
+    /** Required on stores that hide prices until login — the cart carries prices. */
+    customerToken?: string;
 }
 export interface AddCartItemParams {
     sessionToken: string;
     productId: string;
     quantity: number;
+    customerToken?: string;
 }
 export interface UpdateCartItemParams {
     sessionToken: string;
     itemId: string;
     quantity: number;
+    customerToken?: string;
 }
 export interface RemoveCartItemParams {
     sessionToken: string;
     itemId: string;
+    customerToken?: string;
 }
 export interface CheckoutCreateParams {
     sessionToken: string;
@@ -65,6 +80,12 @@ export interface CustomerRegisterParams {
     firstName: string;
     lastName: string;
     phone?: string;
+    /** B2B stores register buyers on behalf of a company. */
+    customerType?: "individual" | "business";
+    /** Required when customerType is "business". */
+    companyName?: string;
+    companyTaxId?: string;
+    companyWebsite?: string;
 }
 export interface CustomerLoginParams {
     email: string;
@@ -83,7 +104,7 @@ declare class CatalogResource {
     /** List active storefront products with optional filtering/pagination. */
     list(params?: CatalogListParams): Promise<PaginatedList<StorefrontProduct>>;
     /** Get a single product by slug. */
-    get(slug: string): Promise<StorefrontProductDetail>;
+    get(slug: string, options?: CatalogGetOptions): Promise<StorefrontProductDetail>;
 }
 declare class CartResource {
     private http;
@@ -100,6 +121,7 @@ declare class CartResource {
     applyCode(params: {
         sessionToken: string;
         code: string;
+        customerToken?: string;
     }): Promise<StorefrontCart>;
     /** Remove any applied promotion/discount code from the cart. */
     removeCode(params: CartSessionParams): Promise<StorefrontCart>;
@@ -244,7 +266,7 @@ declare class ProductGroupsResource {
     /** List active product groups with member products and pricing. */
     list(params?: ProductGroupListParams): Promise<PaginatedList<StorefrontProductGroup>>;
     /** Get a single product group by slug. */
-    get(slug: string): Promise<StorefrontProductGroup>;
+    get(slug: string, options?: CatalogGetOptions): Promise<StorefrontProductGroup>;
 }
 declare class ConfigResource {
     private http;

@@ -9,6 +9,10 @@ export { PaymentForm } from "./payment-form";
 // ---------------------------------------------------------------------------
 // Resource classes
 // ---------------------------------------------------------------------------
+/** Bearer header for a signed-in buyer, or nothing when anonymous. */
+function customerHeaders(customerToken) {
+    return customerToken ? { Authorization: `Bearer ${customerToken}` } : {};
+}
 class CatalogResource {
     http;
     constructor(http) {
@@ -25,11 +29,12 @@ class CatalogResource {
                     category_id: params.category_id,
                 }
                 : undefined,
+            headers: customerHeaders(params?.customerToken),
         });
     }
     /** Get a single product by slug. */
-    get(slug) {
-        return this.http.request("GET", `/products/${encodeURIComponent(slug)}`);
+    get(slug, options) {
+        return this.http.request("GET", `/products/${encodeURIComponent(slug)}`, { headers: customerHeaders(options?.customerToken) });
     }
 }
 class CartResource {
@@ -40,13 +45,13 @@ class CartResource {
     /** Get or create the cart for the given session. */
     get(params) {
         return this.http.request("GET", "/cart", {
-            headers: { "X-Session-ID": params.sessionToken },
+            headers: { "X-Session-ID": params.sessionToken, ...customerHeaders(params.customerToken) },
         });
     }
     /** Add a product to the cart. */
     addItem(params) {
         return this.http.request("POST", "/cart/items", {
-            headers: { "X-Session-ID": params.sessionToken },
+            headers: { "X-Session-ID": params.sessionToken, ...customerHeaders(params.customerToken) },
             body: {
                 product_id: params.productId,
                 quantity: params.quantity,
@@ -56,27 +61,27 @@ class CartResource {
     /** Update quantity of a cart item. */
     updateItem(params) {
         return this.http.request("PUT", `/cart/items/${encodeURIComponent(params.itemId)}`, {
-            headers: { "X-Session-ID": params.sessionToken },
+            headers: { "X-Session-ID": params.sessionToken, ...customerHeaders(params.customerToken) },
             body: { quantity: params.quantity },
         });
     }
     /** Remove an item from the cart. */
     removeItem(params) {
         return this.http.request("DELETE", `/cart/items/${encodeURIComponent(params.itemId)}`, {
-            headers: { "X-Session-ID": params.sessionToken },
+            headers: { "X-Session-ID": params.sessionToken, ...customerHeaders(params.customerToken) },
         });
     }
     /** Apply a promotion or affiliate discount code to the cart. */
     applyCode(params) {
         return this.http.request("POST", "/cart/apply-code", {
-            headers: { "X-Session-ID": params.sessionToken },
+            headers: { "X-Session-ID": params.sessionToken, ...customerHeaders(params.customerToken) },
             body: { code: params.code },
         });
     }
     /** Remove any applied promotion/discount code from the cart. */
     removeCode(params) {
         return this.http.request("DELETE", "/cart/code", {
-            headers: { "X-Session-ID": params.sessionToken },
+            headers: { "X-Session-ID": params.sessionToken, ...customerHeaders(params.customerToken) },
         });
     }
 }
@@ -185,6 +190,10 @@ class CustomersResource {
                 first_name: params.firstName,
                 last_name: params.lastName,
                 phone: params.phone,
+                customer_type: params.customerType,
+                company_name: params.companyName,
+                company_tax_id: params.companyTaxId,
+                company_website: params.companyWebsite,
             },
         });
     }
@@ -329,11 +338,12 @@ class ProductGroupsResource {
             query: params
                 ? { page: params.page, limit: params.limit }
                 : undefined,
+            headers: customerHeaders(params?.customerToken),
         });
     }
     /** Get a single product group by slug. */
-    get(slug) {
-        return this.http.request("GET", `/product-groups/${encodeURIComponent(slug)}`);
+    get(slug, options) {
+        return this.http.request("GET", `/product-groups/${encodeURIComponent(slug)}`, { headers: customerHeaders(options?.customerToken) });
     }
 }
 class ConfigResource {

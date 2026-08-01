@@ -22,15 +22,32 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isAffiliate: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-  }) => Promise<void>;
+  register: (data: RegisterData) => Promise<StorefrontCustomerProfile>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+}
+
+/** Carries the API's error code so callers can branch on it, not on wording. */
+export class AuthFailure extends Error {
+  constructor(
+    message: string,
+    readonly code: string,
+  ) {
+    super(message);
+    this.name = "AuthFailure";
+  }
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  customerType?: "individual" | "business";
+  companyName?: string;
+  companyTaxId?: string;
+  companyWebsite?: string;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -57,21 +74,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const response = await loginAction(email, password);
-    setCustomer(response.customer);
+    const result = await loginAction(email, password);
+    // The action returns failures rather than throwing (Next.js masks
+    // server-action errors in production); re-throw client-side so callers keep
+    // their try/catch and the API's message reaches the user intact.
+    if (!result.ok) throw new AuthFailure(result.message, result.code);
+    setCustomer(result.response.customer);
   }, []);
 
   const register = useCallback(
-    async (data: {
-      email: string;
-      password: string;
-      firstName: string;
-      lastName: string;
-      phone?: string;
-    }) => {
-      await registerAction(data);
-      // After registration, auto-login
+    async (data: RegisterData) => {
+      const result = await registerAction(data);
+      if (!result.ok) throw new AuthFailure(result.message, result.code);
+      const profile = result.customer;
+      // An approval-mode store creates the account "pending" — signing in would
+      // be refused, so hand the profile back and let the caller say so.
+      if (profile.account_status === "pending") return profile;
       await login(data.email, data.password);
+      return profile;
     },
     [login]
   );

@@ -11,6 +11,8 @@ import { MobileNav } from "./mobile-nav";
 
 interface HeaderProps {
   branding: StorefrontBranding;
+  /** Hide the cart entirely when this visitor may not have one. */
+  cartEnabled?: boolean;
 }
 
 const NAV_LINKS = [
@@ -21,7 +23,7 @@ const NAV_LINKS = [
 
 const GOLD = "#d4a951";
 
-export function Header({ branding }: HeaderProps) {
+export function Header({ branding, cartEnabled = true }: HeaderProps) {
   const storeName = branding.store_name || "Store";
   const pathname = usePathname();
   const isHome = pathname === "/";
@@ -101,8 +103,12 @@ export function Header({ branding }: HeaderProps) {
           />
           <div className="flex items-center gap-1.5 sm:gap-2">
             <AuthNav />
-            <span aria-hidden className="hidden h-4 w-px opacity-15 sm:block bg-current" />
-            <CartIcon />
+            {cartEnabled && (
+              <>
+                <span aria-hidden className="hidden h-4 w-px opacity-15 sm:block bg-current" />
+                <CartIcon />
+              </>
+            )}
           </div>
         </div>
       </div>

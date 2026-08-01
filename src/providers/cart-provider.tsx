@@ -44,12 +44,27 @@ function withStableItemOrder(cart: StorefrontCart | null): StorefrontCart | null
   };
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({
+  children,
+  enabled = true,
+}: {
+  children: ReactNode;
+  /**
+   * False on a wholesale store when the visitor is signed out — the cart API is
+   * closed to them, so fetching it would only produce 401s.
+   */
+  enabled?: boolean;
+}) {
   const [cart, setCart] = useState<StorefrontCart | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [isDrawerOpen, setDrawerOpen] = useState(false);
 
   const refresh = useCallback(async () => {
+    if (!enabled) {
+      setCart(null);
+      setLoading(false);
+      return;
+    }
     try {
       const sessionId = getSessionId();
       const data = await getCart(sessionId);
@@ -60,7 +75,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- refresh is a useCallback async fetcher; setState is indirect, not inline

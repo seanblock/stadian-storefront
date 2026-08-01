@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import type { StorefrontCategory, StorefrontProduct } from "@stadian/storefront-sdk";
 import { getBranding } from "@/lib/branding";
 import { getStadianClient } from "@/lib/stadian";
+import { getCustomerToken } from "@/lib/customer-token";
+import { arePricesHidden } from "@/lib/pricing-access";
 import { Hero } from "@/components/home/hero";
 import { TrustBar } from "@/components/home/trust-bar";
 import { BestSellers } from "@/components/home/best-sellers";
@@ -23,11 +25,16 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Home() {
   const branding = await getBranding();
+  const pricesHidden = await arePricesHidden();
 
   let featuredProducts: StorefrontProduct[] = [];
   try {
     const client = getStadianClient();
-    const result = await client.catalog.list({ page: 1, limit: 12 });
+    const result = await client.catalog.list({
+      page: 1,
+      limit: 12,
+      customerToken: await getCustomerToken(),
+    });
     featuredProducts = result.items;
   } catch {
     // Fall through — sections gracefully hide when empty
@@ -54,7 +61,7 @@ export default async function Home() {
     <>
       <Hero branding={branding} featuredImage={heroFeature} />
       <TrustBar />
-      <BestSellers products={featuredProducts} />
+      <BestSellers products={featuredProducts} pricesHidden={pricesHidden} />
       <OurStandard />
       <CategoriesGrid categories={categories} />
       <FaqPreview />

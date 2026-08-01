@@ -9,12 +9,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PriceDisplay } from "@/components/products/price-display";
+import { SignInForPricing } from "@/components/products/sign-in-for-pricing";
+import { arePricesHidden } from "@/lib/pricing-access";
 
 interface ProductCardProps {
   product: StorefrontProduct;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export async function ProductCard({ product }: ProductCardProps) {
+  const pricesHidden = await arePricesHidden();
   return (
     <Link href={`/products/${product.slug}`} className="group block">
       <Card className="h-full transition-shadow hover:shadow-md">
@@ -56,10 +59,14 @@ export function ProductCard({ product }: ProductCardProps) {
         </CardHeader>
 
         <CardContent className="space-y-2">
-          <PriceDisplay
-            price={product.price}
-            compareAtPrice={product.compare_at_price}
-          />
+          {pricesHidden ? (
+            <SignInForPricing />
+          ) : (
+            <PriceDisplay
+              price={product.price}
+              compareAtPrice={product.compare_at_price}
+            />
+          )}
           <div className="flex flex-wrap items-center gap-2">
             {product.form_type && (
               <Badge variant="secondary">{product.form_type}</Badge>

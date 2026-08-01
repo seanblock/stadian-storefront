@@ -9,12 +9,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
+import { SignInForPricing } from "@/components/products/sign-in-for-pricing";
+import { arePricesHidden } from "@/lib/pricing-access";
 
 interface ProductGroupCardProps {
   group: StorefrontProductGroup;
 }
 
-export function ProductGroupCard({ group }: ProductGroupCardProps) {
+export async function ProductGroupCard({ group }: ProductGroupCardProps) {
+  const pricesHidden = await arePricesHidden();
   const prices = group.products
     .map((p) => p.default_price)
     .filter((p): p is number => p !== null)
@@ -76,12 +79,16 @@ export function ProductGroupCard({ group }: ProductGroupCardProps) {
         </CardHeader>
 
         <CardContent className="space-y-2">
-          {minPrice !== undefined && (
-            <p className="text-lg font-bold">
-              {minPrice === maxPrice
-                ? formatCurrency(minPrice)
-                : `From ${formatCurrency(minPrice)}`}
-            </p>
+          {pricesHidden ? (
+            <SignInForPricing />
+          ) : (
+            minPrice !== undefined && (
+              <p className="text-lg font-bold">
+                {minPrice === maxPrice
+                  ? formatCurrency(minPrice)
+                  : `From ${formatCurrency(minPrice)}`}
+              </p>
+            )
           )}
           {/* Only surface the variant count when there's an actual choice —
               a single-member group has no "options" to pick. */}

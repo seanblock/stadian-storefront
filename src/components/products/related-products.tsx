@@ -1,4 +1,5 @@
 import { getStadianClient } from "@/lib/stadian";
+import { getCustomerToken } from "@/lib/customer-token";
 import { ProductCard } from "@/components/products/product-card";
 
 interface RelatedProductsProps {
@@ -11,7 +12,10 @@ export async function RelatedProducts({
   categories,
 }: RelatedProductsProps) {
   const client = getStadianClient();
-  const { items: products } = await client.catalog.list({ limit: 50 });
+  const { items: products } = await client.catalog.list({
+    limit: 50,
+    customerToken: await getCustomerToken(),
+  });
 
   const categorySlugs = new Set(categories.map((c) => c.slug));
 

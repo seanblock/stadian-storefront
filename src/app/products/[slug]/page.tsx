@@ -2,6 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getStadianClient } from "@/lib/stadian";
+import { getCustomerToken } from "@/lib/customer-token";
+import { arePricesHidden } from "@/lib/pricing-access";
+import { SignInForPricing } from "@/components/products/sign-in-for-pricing";
 import { getSiteUrl } from "@/lib/site-url";
 import { AddToCartButton } from "./add-to-cart-button";
 import { VariantSelector } from "./variant-selector";
@@ -70,10 +73,13 @@ export async function generateMetadata({
 export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const client = getStadianClient();
+  // Wholesale stores return prices only to signed-in buyers.
+  const customerToken = await getCustomerToken();
+  const pricesHidden = await arePricesHidden();
 
   let product: ProductDetailExtended | null = null;
   try {
-    product = (await client.catalog.get(slug)) as ProductDetailExtended;
+    product = (await client.catalog.get(slug, { customerToken })) as ProductDetailExtended;
   } catch {
     // Not a single product
   }
@@ -81,7 +87,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
   if (!product) {
     let redirectSlug: string | null = null;
     try {
-      const group = await client.productGroups.get(slug);
+      const group = await client.productGroups.get(slug, { customerToken });
       if (group.products.length > 0) {
         redirectSlug = group.products[0].slug;
       }
@@ -96,7 +102,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   let group: StorefrontProductGroup | null = null;
   try {
-    const groupsResult = await client.productGroups.list();
+    const groupsResult = await client.productGroups.list({ customerToken });
     group =
       groupsResult.items.find((g) =>
         g.products.some((p) => p.id === product.id)
@@ -328,61 +334,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* Public product documents (renders only when the platform
-              provides them — nothing shows otherwise) */}
-          {(product.coa_document_url ||
-            (product.documents && product.documents.length > 0)) && (
-            <div className="mt-4 rounded-md border border-border bg-muted/30 px-4 py-3">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="shrink-0 text-muted-foreground"
-                >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <path d="M14 2v6h6" />
-                  <path d="m9 15 2 2 4-4" />
-                </svg>
-                <span className="text-sm font-medium text-foreground">
-                  Documents
-                </span>
-                {product.coa_document_url && (
-                  <a
-                    href={product.coa_document_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium text-foreground underline underline-offset-4"
-                  >
-                    Certificate of Analysis (PDF)
-                  </a>
-                )}
-                {product.documents?.map((doc) =>
-                  doc.url ? (
-                    <a
-                      key={doc.url}
-                      href={doc.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                    >
-                      {doc.name || "Document (PDF)"}
-                    </a>
-                  ) : null
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Price block */}
           <div className="mt-6 flex flex-wrap items-baseline gap-3">
-            {product.price != null ? (
+            {pricesHidden ? (
+              <SignInForPricing />
+            ) : product.price != null ? (
               <>
                 <span className="text-3xl font-bold tracking-tight">
                   {formatCurrency(product.price, product.currency)}
@@ -459,7 +415,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
           {/* Add to cart */}
           <div id="cart-button-area">
-            {product.price == null ? (
+            {pricesHidden ? (
+              <SignInForPricing
+                variant="panel"
+                redirectTo={`/products/${product.slug}`}
+              />
+            ) : product.price == null ? (
               <div className="rounded-xl border border-border bg-muted/30 p-5">
                 <p className="text-sm font-semibold text-foreground">
                   Contact for pricing
@@ -646,6 +607,58 @@ export default async function ProductDetailPage({ params }: PageProps) {
               </span>
             )}
           </div>
+
+          {/* Public product documents (renders only when the platform
+              provides them — nothing shows otherwise) */}
+          {(product.coa_document_url ||
+            (product.documents && product.documents.length > 0)) && (
+            <div className="mt-6 rounded-md border border-border bg-muted/30 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="shrink-0 text-muted-foreground"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6" />
+                  <path d="m9 15 2 2 4-4" />
+                </svg>
+                <span className="text-sm font-medium text-foreground">
+                  Documents
+                </span>
+                {product.coa_document_url && (
+                  <a
+                    href={product.coa_document_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-foreground underline underline-offset-4"
+                  >
+                    Certificate of Analysis (PDF)
+                  </a>
+                )}
+                {product.documents?.map((doc) =>
+                  doc.url ? (
+                    <a
+                      key={doc.url}
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                    >
+                      {doc.name || "Document (PDF)"}
+                    </a>
+                  ) : null
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

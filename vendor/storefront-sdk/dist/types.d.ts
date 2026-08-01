@@ -19,6 +19,7 @@ export interface StorefrontGroupProduct {
     image_url: string | null;
     default_price: number | null;
     categories: StorefrontCategory[];
+    requires_intake: boolean;
 }
 export interface StorefrontProductGroup {
     id: string;
@@ -39,6 +40,7 @@ export interface StorefrontProduct {
     price: number | null;
     compare_at_price: number | null;
     categories: StorefrontCategory[];
+    requires_intake?: boolean;
     badges: StorefrontBadge[];
 }
 export interface StorefrontVariant {
@@ -163,6 +165,10 @@ export interface StorefrontCustomerProfile {
     last_name: string | null;
     phone: string | null;
     created_at: string;
+    customer_type?: 'individual' | 'business';
+    company_name?: string | null;
+    /** 'pending' means the account is awaiting admin approval and cannot sign in yet. */
+    account_status?: 'active' | 'pending' | 'rejected';
     affiliate_code: string | null;
     affiliate_link_slug: string | null;
     commission_rate: number | null;
@@ -214,8 +220,20 @@ export interface StorefrontBranding {
     age_gate_enabled?: boolean;
     age_gate_min_age?: number;
     age_gate_redirect_url?: string | null;
+    /** B2B: checkout is closed to guests — shoppers must sign in to order. */
+    require_login_to_checkout?: boolean;
+    /** B2B: prices and the cart are only available to signed-in account holders. */
+    hide_prices_until_login?: boolean;
+    /** How shoppers get an account on this store. */
+    registration_mode?: StorefrontRegistrationMode;
     trust_signals?: StorefrontTrustSignal[];
 }
+/**
+ * open — anyone can register and order immediately.
+ * approval — anyone can apply; an admin must approve before they can sign in.
+ * invite_only — no public sign-up; the store creates accounts.
+ */
+export type StorefrontRegistrationMode = 'open' | 'approval' | 'invite_only';
 export interface StorefrontPageResponse {
     /** Tiptap/ProseMirror JSON document tree. Render with your own components. */
     content: Record<string, unknown> | null;

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getStadianClient } from "@/lib/stadian";
+import { getCustomerToken } from "@/lib/customer-token";
 import { getBranding } from "@/lib/branding";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductGroupCard } from "@/components/products/product-group-card";
@@ -44,11 +45,18 @@ export default async function ProductsPage({
 
   try {
     const client = getStadianClient();
+    // Wholesale stores return prices only to signed-in buyers.
+    const customerToken = await getCustomerToken();
 
     // Fetch products and product groups in parallel
     const [catalogResult, groupsResult] = await Promise.all([
-      client.catalog.list({ page: 1, limit: 100, search: search || undefined }),
-      client.productGroups.list(),
+      client.catalog.list({
+        page: 1,
+        limit: 100,
+        search: search || undefined,
+        customerToken,
+      }),
+      client.productGroups.list({ customerToken }),
     ]);
 
     let allProducts = catalogResult.items;

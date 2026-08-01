@@ -2,22 +2,39 @@
 
 import { cookies } from "next/headers";
 import { getStadianClient } from "@/lib/stadian";
-import type {
-  StorefrontCustomerProfile,
-  StorefrontLoginResponse,
+import {
+  StadianError,
+  type StorefrontCustomerProfile,
+  type StorefrontLoginResponse,
 } from "@stadian/storefront-sdk";
 
-const TOKEN_COOKIE = "stadian_customer_token";
+import { TOKEN_COOKIE, getCustomerToken as readCustomerToken } from "@/lib/customer-token";
+
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 const REFRESH_TOKEN_COOKIE = "stadian_refresh_token";
 const REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
+export type LoginResult =
+  | { ok: true; response: StorefrontLoginResponse }
+  | { ok: false; code: string; message: string };
+
 export async function loginCustomer(
   email: string,
   password: string
-): Promise<StorefrontLoginResponse> {
+): Promise<LoginResult> {
   const client = getStadianClient();
-  const response = await client.customers.login({ email, password });
+
+  let response: StorefrontLoginResponse;
+  try {
+    response = await client.customers.login({ email, password });
+  } catch (err) {
+    // Returned, not thrown: Next.js replaces server-action errors with a generic
+    // message in production, which would swallow "awaiting approval".
+    if (err instanceof StadianError) {
+      return { ok: false, code: err.code, message: err.message };
+    }
+    return { ok: false, code: "UNKNOWN", message: "Invalid email or password" };
+  }
 
   const cookieStore = await cookies();
   cookieStore.set(TOKEN_COOKIE, response.access_token, {
@@ -38,8 +55,12 @@ export async function loginCustomer(
     });
   }
 
-  return response;
+  return { ok: true, response };
 }
+
+export type RegisterResult =
+  | { ok: true; customer: StorefrontCustomerProfile }
+  | { ok: false; code: string; message: string };
 
 export async function registerCustomer(data: {
   email: string;
@@ -47,15 +68,32 @@ export async function registerCustomer(data: {
   firstName: string;
   lastName: string;
   phone?: string;
-}): Promise<StorefrontCustomerProfile> {
+  customerType?: "individual" | "business";
+  companyName?: string;
+  companyTaxId?: string;
+  companyWebsite?: string;
+}): Promise<RegisterResult> {
   const client = getStadianClient();
-  return client.customers.register({
-    email: data.email,
-    password: data.password,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    phone: data.phone,
-  });
+  try {
+    const customer = await client.customers.register({
+      email: data.email,
+      password: data.password,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+      customerType: data.customerType,
+      companyName: data.companyName,
+      companyTaxId: data.companyTaxId,
+      companyWebsite: data.companyWebsite,
+    });
+    return { ok: true, customer };
+  } catch (err) {
+    // Same reasoning as loginCustomer: keep the API's message readable in prod.
+    if (err instanceof StadianError) {
+      return { ok: false, code: err.code, message: err.message };
+    }
+    return { ok: false, code: "UNKNOWN", message: "Registration failed. Please try again." };
+  }
 }
 
 export async function refreshSession(): Promise<boolean> {
@@ -115,8 +153,7 @@ export async function getCustomerProfile(): Promise<StorefrontCustomerProfile | 
 }
 
 export async function getCustomerToken(): Promise<string | null> {
-  const cookieStore = await cookies();
-  return cookieStore.get(TOKEN_COOKIE)?.value ?? null;
+  return (await readCustomerToken()) ?? null;
 }
 
 export async function logoutCustomer(): Promise<void> {
