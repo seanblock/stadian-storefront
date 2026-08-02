@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getOrderHistory } from "@/app/actions/account";
+import { getStadianClient } from "@/lib/stadian";
+import { fetchWithRequiredAuth } from "@/lib/authed-fetch";
 import { formatCurrency } from "@/lib/utils";
 import {
   Card,
@@ -12,7 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export default async function OrderHistoryPage() {
-  const orders = await getOrderHistory();
+  // Account-only surface: a missing or lapsed session goes to /login.
+  const orders = await fetchWithRequiredAuth("/account/orders", (customerToken) =>
+    getStadianClient().orders.list({ customerToken, limit: 20, offset: 0 })
+  );
 
   return (
     <div className="grid gap-6">

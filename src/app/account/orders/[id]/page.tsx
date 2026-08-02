@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getStadianClient } from "@/lib/stadian";
-import { getCustomerToken } from "@/app/actions/auth";
+import { fetchWithRequiredAuth } from "@/lib/authed-fetch";
+import { StadianAuthError } from "@stadian/storefront-sdk";
 import { formatCurrency } from "@/lib/utils";
 import {
   Card,
@@ -20,17 +21,22 @@ interface PageProps {
 }
 
 export default async function OrderDetailPage({ params }: PageProps) {
-  const token = await getCustomerToken();
-  if (!token) notFound();
-
   const { id } = await params;
 
-  let order;
-  try {
-    order = await getStadianClient().orders.get({ orderId: id, customerToken: token });
-  } catch {
-    notFound();
-  }
+  // Account-only surface: a missing or lapsed session goes to /login; any
+  // other failure (wrong customer, unknown id) is a 404. Auth errors are
+  // rethrown to the wrapper so the login redirect wins over notFound().
+  const order = await fetchWithRequiredAuth(
+    `/account/orders/${id}`,
+    async (customerToken) => {
+      try {
+        return await getStadianClient().orders.get({ orderId: id, customerToken });
+      } catch (err) {
+        if (err instanceof StadianAuthError) throw err;
+        return null;
+      }
+    }
+  );
 
   if (!order) notFound();
 

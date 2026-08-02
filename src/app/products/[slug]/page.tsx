@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getStadianClient } from "@/lib/stadian";
-import { getCustomerToken } from "@/lib/customer-token";
+import { fetchWithOptionalAuth } from "@/lib/authed-fetch";
 import { arePricesHidden } from "@/lib/pricing-access";
 import { SignInForPricing } from "@/components/products/sign-in-for-pricing";
 import { getSiteUrl } from "@/lib/site-url";
@@ -73,13 +73,15 @@ export async function generateMetadata({
 export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const client = getStadianClient();
-  // Wholesale stores return prices only to signed-in buyers.
-  const customerToken = await getCustomerToken();
+  // Wholesale stores return prices only to signed-in buyers; a stale session
+  // retries each call signed-out (prices hidden) instead of crashing/404ing.
   const pricesHidden = await arePricesHidden();
 
   let product: ProductDetailExtended | null = null;
   try {
-    product = (await client.catalog.get(slug, { customerToken })) as ProductDetailExtended;
+    product = (await fetchWithOptionalAuth((customerToken) =>
+      client.catalog.get(slug, { customerToken })
+    )) as ProductDetailExtended;
   } catch {
     // Not a single product
   }
@@ -87,7 +89,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
   if (!product) {
     let redirectSlug: string | null = null;
     try {
-      const group = await client.productGroups.get(slug, { customerToken });
+      const group = await fetchWithOptionalAuth((customerToken) =>
+        client.productGroups.get(slug, { customerToken })
+      );
       if (group.products.length > 0) {
         redirectSlug = group.products[0].slug;
       }
@@ -102,7 +106,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   let group: StorefrontProductGroup | null = null;
   try {
-    const groupsResult = await client.productGroups.list({ customerToken });
+    const groupsResult = await fetchWithOptionalAuth((customerToken) =>
+      client.productGroups.list({ customerToken })
+    );
     group =
       groupsResult.items.find((g) =>
         g.products.some((p) => p.id === product.id)

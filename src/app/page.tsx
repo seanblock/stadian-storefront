@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { StorefrontCategory, StorefrontProduct } from "@stadian/storefront-sdk";
 import { getBranding } from "@/lib/branding";
 import { getStadianClient } from "@/lib/stadian";
-import { getCustomerToken } from "@/lib/customer-token";
+import { fetchWithOptionalAuth } from "@/lib/authed-fetch";
 import { arePricesHidden } from "@/lib/pricing-access";
 import { Hero } from "@/components/home/hero";
 import { TrustBar } from "@/components/home/trust-bar";
@@ -32,11 +32,10 @@ export default async function Home() {
   let featuredProducts: StorefrontProduct[] = [];
   try {
     const client = getStadianClient();
-    const result = await client.catalog.list({
-      page: 1,
-      limit: 12,
-      customerToken: await getCustomerToken(),
-    });
+    // A stale session degrades to the public catalog instead of crashing.
+    const result = await fetchWithOptionalAuth((customerToken) =>
+      client.catalog.list({ page: 1, limit: 12, customerToken })
+    );
     featuredProducts = result.items;
   } catch {
     // Fall through — sections gracefully hide when empty

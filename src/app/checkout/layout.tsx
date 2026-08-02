@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCustomerToken } from "@/lib/customer-token";
+import { getValidCustomerToken } from "@/lib/customer-token";
 import { isCheckoutLoginRequired } from "@/lib/pricing-access";
 
 /**
@@ -14,7 +14,7 @@ export default async function CheckoutLayout({
 }) {
   const [loginRequired, token] = await Promise.all([
     isCheckoutLoginRequired(),
-    getCustomerToken(),
+    getValidCustomerToken(),
   ]);
 
   if (loginRequired && !token) {

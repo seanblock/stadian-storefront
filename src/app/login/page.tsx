@@ -25,6 +25,8 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const sessionExpired = searchParams.get("reason") === "expired";
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -53,6 +55,12 @@ function LoginForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="grid gap-4">
+          {sessionExpired && !error && (
+            <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              Your session expired — sign in again.
+            </div>
+          )}
+
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}

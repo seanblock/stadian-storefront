@@ -1,5 +1,5 @@
 import { getStadianClient } from "@/lib/stadian";
-import { getCustomerToken } from "@/lib/customer-token";
+import { fetchWithOptionalAuth } from "@/lib/authed-fetch";
 import { ProductCard } from "@/components/products/product-card";
 
 interface RelatedProductsProps {
@@ -12,10 +12,10 @@ export async function RelatedProducts({
   categories,
 }: RelatedProductsProps) {
   const client = getStadianClient();
-  const { items: products } = await client.catalog.list({
-    limit: 50,
-    customerToken: await getCustomerToken(),
-  });
+  // Stale session → retry signed-out rather than crash the product page.
+  const { items: products } = await fetchWithOptionalAuth((customerToken) =>
+    client.catalog.list({ limit: 50, customerToken })
+  );
 
   const categorySlugs = new Set(categories.map((c) => c.slug));
 

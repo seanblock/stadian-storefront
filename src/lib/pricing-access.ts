@@ -1,6 +1,6 @@
 import type { StorefrontBranding, StorefrontRegistrationMode } from "@stadian/storefront-sdk";
 import { getBranding } from "./branding";
-import { getCustomerToken } from "./customer-token";
+import { getValidCustomerToken } from "./customer-token";
 
 type AccessBranding = Pick<
   StorefrontBranding,
@@ -45,7 +45,12 @@ export function registrationShapeFor(branding: AccessBranding): {
  * their place ("Sign in to see pricing" rather than "Contact for pricing").
  */
 export async function arePricesHidden(): Promise<boolean> {
-  const [branding, token] = await Promise.all([getBranding(), getCustomerToken()]);
+  // Valid-only: a present-but-expired token is a signed-out visitor — the API
+  // will withhold prices from it, so the UI must say "sign in", not blank out.
+  const [branding, token] = await Promise.all([
+    getBranding(),
+    getValidCustomerToken(),
+  ]);
   return pricesHiddenFor(branding, Boolean(token));
 }
 

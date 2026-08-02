@@ -3,16 +3,20 @@
 import { cookies } from "next/headers";
 import { getStadianClient } from "@/lib/stadian";
 import {
+  StadianAuthError,
   StadianError,
   type StorefrontCustomerProfile,
   type StorefrontLoginResponse,
 } from "@stadian/storefront-sdk";
 
-import { TOKEN_COOKIE, getCustomerToken as readCustomerToken } from "@/lib/customer-token";
-
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
-const REFRESH_TOKEN_COOKIE = "stadian_refresh_token";
-const REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+import { getValidCustomerToken } from "@/lib/customer-token";
+import {
+  TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  TOKEN_COOKIE_MAX_AGE,
+  REFRESH_COOKIE_MAX_AGE,
+  authCookieOptions,
+} from "@/lib/auth-cookies";
 
 export type LoginResult =
   | { ok: true; response: StorefrontLoginResponse }
@@ -37,22 +41,18 @@ export async function loginCustomer(
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(TOKEN_COOKIE, response.access_token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: COOKIE_MAX_AGE,
-    path: "/",
-  });
+  cookieStore.set(
+    TOKEN_COOKIE,
+    response.access_token,
+    authCookieOptions(TOKEN_COOKIE_MAX_AGE)
+  );
 
   if (response.refresh_token) {
-    cookieStore.set(REFRESH_TOKEN_COOKIE, response.refresh_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: REFRESH_COOKIE_MAX_AGE,
-      path: "/",
-    });
+    cookieStore.set(
+      REFRESH_TOKEN_COOKIE,
+      response.refresh_token,
+      authCookieOptions(REFRESH_COOKIE_MAX_AGE)
+    );
   }
 
   return { ok: true, response };
@@ -104,21 +104,17 @@ export async function refreshSession(): Promise<boolean> {
   try {
     const client = getStadianClient();
     const response = await client.customers.refreshToken({ refreshToken });
-    cookieStore.set(TOKEN_COOKIE, response.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: COOKIE_MAX_AGE,
-      path: "/",
-    });
+    cookieStore.set(
+      TOKEN_COOKIE,
+      response.access_token,
+      authCookieOptions(TOKEN_COOKIE_MAX_AGE)
+    );
     if (response.refresh_token) {
-      cookieStore.set(REFRESH_TOKEN_COOKIE, response.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: REFRESH_COOKIE_MAX_AGE,
-        path: "/",
-      });
+      cookieStore.set(
+        REFRESH_TOKEN_COOKIE,
+        response.refresh_token,
+        authCookieOptions(REFRESH_COOKIE_MAX_AGE)
+      );
     }
     return true;
   } catch {
@@ -129,8 +125,14 @@ export async function refreshSession(): Promise<boolean> {
 }
 
 export async function getCustomerProfile(): Promise<StorefrontCustomerProfile | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(TOKEN_COOKIE)?.value;
+  // Only present live tokens; an expired one would just 401. If the access
+  // token has lapsed but a refresh token remains, rotate first.
+  let token = await getValidCustomerToken();
+  if (!token) {
+    const refreshed = await refreshSession();
+    if (!refreshed) return null;
+    token = await getValidCustomerToken();
+  }
   if (!token) return null;
 
   try {
@@ -153,7 +155,9 @@ export async function getCustomerProfile(): Promise<StorefrontCustomerProfile | 
 }
 
 export async function getCustomerToken(): Promise<string | null> {
-  return (await readCustomerToken()) ?? null;
+  // Valid-only: callers use this to decide whether to act as a signed-in
+  // customer, and an expired token must not count as signed in.
+  return (await getValidCustomerToken()) ?? null;
 }
 
 export async function logoutCustomer(): Promise<void> {
@@ -185,31 +189,44 @@ export async function updateProfile(data: {
   lastName?: string;
   phone?: string;
 }): Promise<StorefrontCustomerProfile | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(TOKEN_COOKIE)?.value;
+  const token = await getValidCustomerToken();
   if (!token) return null;
 
   const client = getStadianClient();
-  return client.customers.update({
-    customerToken: token,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    phone: data.phone,
-  });
+  try {
+    return await client.customers.update({
+      customerToken: token,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone,
+    });
+  } catch (err) {
+    // A lapsed session behaves like "not signed in" — the same shape as a
+    // missing token — instead of throwing (server-action throws are masked
+    // in production).
+    if (err instanceof StadianAuthError) return null;
+    throw err;
+  }
 }
 
 export async function changePassword(
   currentPassword: string,
   newPassword: string,
 ): Promise<{ ok: boolean }> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(TOKEN_COOKIE)?.value;
+  const token = await getValidCustomerToken();
   if (!token) return { ok: false };
 
   const client = getStadianClient();
-  return client.customers.changePassword({
-    customerToken: token,
-    currentPassword,
-    newPassword,
-  });
+  try {
+    return await client.customers.changePassword({
+      customerToken: token,
+      currentPassword,
+      newPassword,
+    });
+  } catch (err) {
+    // Expired session or wrong current password — return the action's normal
+    // failure shape rather than a raw throw the client can't read in prod.
+    if (err instanceof StadianAuthError) return { ok: false };
+    throw err;
+  }
 }
