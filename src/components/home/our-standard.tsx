@@ -14,7 +14,7 @@ const STEPS = [
   {
     number: "03",
     title: "Cold-chain shipped",
-    body: "Orders ship in temperature-controlled packaging with tracking. Complimentary shipping on orders over $100.",
+    body: "Orders ship in temperature-controlled packaging where it counts, with tracking on every shipment.",
   },
 ] as const;
 
@@ -58,7 +58,7 @@ export function OurStandard() {
             className="group inline-flex items-center gap-3 text-sm font-medium uppercase tracking-[0.18em] text-foreground"
           >
             <span className="relative">
-              Shop the catalog
+              View the catalog
               <span className="absolute inset-x-0 -bottom-1 block h-px origin-left scale-x-100 bg-current transition-transform duration-500 group-hover:scale-x-[0.4]" />
             </span>
             <svg

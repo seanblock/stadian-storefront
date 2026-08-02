@@ -20,11 +20,11 @@ export function CategoriesGrid({ categories }: CategoriesGridProps) {
               Index
             </p>
             <h2 className="mt-2 font-serif text-4xl leading-tight tracking-tight text-foreground sm:text-5xl">
-              Shop by <span className="italic">category</span>
+              Browse by <span className="italic">category</span>
             </h2>
           </div>
           <span className="hidden font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
-            {String(items.length).padStart(2, "0")} departments
+            {String(items.length).padStart(2, "0")} categories
           </span>
         </div>
 

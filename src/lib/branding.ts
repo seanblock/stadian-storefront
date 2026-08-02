@@ -4,7 +4,7 @@ import type { StorefrontBranding } from "@stadian/storefront-sdk";
 
 const FALLBACK_BRANDING: StorefrontBranding = {
   store_name: "Store",
-  tagline: null,
+  tagline: "Wholesale supplements, handled with care",
   logo_url: null,
   primary_color: "#2563eb",
   accent_color: "#10b981",

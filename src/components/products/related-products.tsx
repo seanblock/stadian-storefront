@@ -33,7 +33,7 @@ export async function RelatedProducts({
 
   return (
     <div className="mt-16 border-t pt-10">
-      <h2 className="text-lg font-semibold">You May Also Like</h2>
+      <h2 className="text-lg font-semibold">Also in this category</h2>
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {related.map((product) => (
           <ProductCard key={product.id} product={product} />

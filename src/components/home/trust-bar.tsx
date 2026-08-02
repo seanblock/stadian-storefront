@@ -1,43 +1,68 @@
-import { ShieldCheck, Tag, Snowflake, Lock } from "lucide-react";
+import type { StorefrontTrustSignal } from "@stadian/storefront-sdk";
+import { LucideIcon } from "@/components/lucide-icon";
 
-const ITEMS = [
+// Wholesale-safe defaults, shown only when the tenant has not configured its
+// own trust signals in the Stadian admin (branding.trust_signals).
+const FALLBACK_SIGNALS: StorefrontTrustSignal[] = [
   {
-    icon: ShieldCheck,
     title: "Third-party tested",
-    body: "Every batch is tested by independent labs for purity and label accuracy.",
+    description:
+      "Every batch is tested by independent labs for purity and label accuracy.",
+    icon_name: "shield-check",
+    link_url: null,
+    link_text: null,
   },
   {
-    icon: Tag,
     title: "Batch-numbered",
-    body: "Every unit is labeled with its batch, traceable to its production run.",
+    description:
+      "Every unit is labeled with its batch, traceable to its production run.",
+    icon_name: "tag",
+    link_url: null,
+    link_text: null,
   },
   {
-    icon: Snowflake,
     title: "Cold-chain shipped",
-    body: "Probiotics and temperature-sensitive products ship in cold packaging.",
+    description:
+      "Temperature-sensitive products ship in cold packaging with tracking.",
+    icon_name: "snowflake",
+    link_url: null,
+    link_text: null,
   },
   {
-    icon: Lock,
-    title: "Secure checkout",
-    body: "Encrypted payment processing. Free shipping on orders over $100.",
+    title: "Sealed in-house",
+    description:
+      "Products are sealed under controlled conditions before they leave our door.",
+    icon_name: "lock",
+    link_url: null,
+    link_text: null,
   },
-] as const;
+];
 
-export function TrustBar() {
+export function TrustBar({ signals }: { signals?: StorefrontTrustSignal[] }) {
+  const items = signals && signals.length > 0 ? signals : FALLBACK_SIGNALS;
+
   return (
-    <section aria-label="Why buy from us" className="border-b border-border bg-background">
+    <section aria-label="Our standards" className="border-b border-border bg-background">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <ul className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
-          {ITEMS.map(({ icon: Icon, title, body }) => (
-            <li key={title} className="flex items-start gap-4 px-1 py-6 lg:px-7">
+          {items.map((signal) => (
+            <li key={signal.title} className="flex items-start gap-4 px-1 py-6 lg:px-7">
               <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                <Icon className="size-[18px] text-foreground" strokeWidth={1.75} />
+                <LucideIcon
+                  name={signal.icon_name ?? "check"}
+                  size={18}
+                  className="text-foreground"
+                />
               </span>
               <div>
-                <p className="text-sm font-semibold text-foreground">{title}</p>
-                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-                  {body}
+                <p className="text-sm font-semibold text-foreground">
+                  {signal.title}
                 </p>
+                {signal.description && (
+                  <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                    {signal.description}
+                  </p>
+                )}
               </div>
             </li>
           ))}

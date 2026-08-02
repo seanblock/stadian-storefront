@@ -28,6 +28,7 @@ const LINK_COLUMNS: { heading: string; links: { href: string; label: string }[] 
       { href: "/products", label: "Catalog" },
       { href: "/cart", label: "Cart" },
       { href: "/account", label: "My Account" },
+      { href: "/register", label: "Apply for an Account" },
     ],
   },
   {
@@ -93,7 +94,7 @@ export function Footer({ branding }: FooterProps) {
               className="mt-6 max-w-xs font-serif text-lg italic leading-snug"
               style={{ color: `${CREAM}d9` }}
             >
-              {tagline || "Everyday essentials, honestly made"}
+              {tagline || "Wholesale supplements, handled with care"}
             </p>
 
             {socialLinks && Object.keys(socialLinks).length > 0 && (

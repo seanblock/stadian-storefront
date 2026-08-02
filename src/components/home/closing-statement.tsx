@@ -42,7 +42,7 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
             “
           </span>
           Our mission is simple: quality supplements, handled with
-          uncompromising care, from our door to yours.
+          uncompromising care, from our door to your shelf.
           <span className="italic" style={{ color: `${NAVY}66` }}>
             ”
           </span>
@@ -60,10 +60,10 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
               — The {storeName} team
             </p>
             <p className="mt-4 text-sm leading-relaxed" style={{ color: NAVY_DIM }}>
-              We&apos;re a new company, and we intend to earn your trust the
-              old-fashioned way: careful handling, quality you can feel in
-              every detail, and straight answers. If you have a question about
-              a product or an order—we&apos;d genuinely like to hear from you.
+              We supply businesses that put their own name behind what they
+              sell. Every order is handled the same way: sealed in-house,
+              batch-numbered, and shipped cold-chain where it counts — so what
+              arrives is exactly what the label says.
             </p>
           </div>
 
@@ -74,7 +74,7 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
               style={{ color: NAVY }}
             >
               <span className="relative">
-                Begin shopping
+                View catalog
                 <span className="absolute inset-x-0 -bottom-1 block h-px origin-left scale-x-100 bg-current transition-transform duration-500 group-hover:scale-x-[0.4]" />
               </span>
               <svg
@@ -88,11 +88,11 @@ export function ClosingStatement({ branding }: ClosingStatementProps) {
               </svg>
             </Link>
             <Link
-              href="/about"
+              href="/register"
               className="text-sm font-medium uppercase tracking-[0.18em] transition-opacity hover:opacity-70"
               style={{ color: NAVY_DIM }}
             >
-              Read our story
+              Apply for an account
             </Link>
           </div>
         </div>

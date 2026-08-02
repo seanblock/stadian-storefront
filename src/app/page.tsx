@@ -18,7 +18,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     // Home shows the store name as-is (not "Home | Store").
     title: { absolute: name },
-    description: branding.tagline || `Shop ${name}.`,
+    description:
+      branding.tagline ||
+      `Wholesale supplements from ${name}. Pricing available to approved business accounts.`,
     alternates: { canonical: "/" },
   };
 }
@@ -60,7 +62,7 @@ export default async function Home() {
   return (
     <>
       <Hero branding={branding} featuredImage={heroFeature} />
-      <TrustBar />
+      <TrustBar signals={branding.trust_signals} />
       <BestSellers products={featuredProducts} pricesHidden={pricesHidden} />
       <OurStandard />
       <CategoriesGrid categories={categories} />

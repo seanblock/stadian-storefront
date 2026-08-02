@@ -18,7 +18,7 @@ export function PriceDisplay({
   className,
 }: PriceDisplayProps) {
   if (price == null)
-    return <span className="text-muted-foreground">No price</span>;
+    return <span className="text-muted-foreground">Pricing on request</span>;
 
   const onSale = compareAtPrice != null && compareAtPrice > price;
   const savingsPct = onSale

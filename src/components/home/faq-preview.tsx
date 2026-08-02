@@ -29,7 +29,7 @@ export async function FaqPreview() {
             Asked <span className="italic">often</span>
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            Straight answers about testing, shipping, storage, and compliance.
+            Straight answers about ordering, shipping, and storage.
           </p>
           <Link
             href="/faq"
