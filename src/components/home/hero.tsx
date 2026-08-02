@@ -23,13 +23,10 @@ const TRUST_CHIPS = [
   "Third-party tested",
   "Batch-numbered",
   "Cold-chain where it counts",
+  "Free shipping over $100",
 ] as const;
 
-const DEFAULT_SUPPORT_LINE =
-  "A focused catalog, supplied to businesses on account. Pricing opens when your application is approved.";
-
-export function Hero({ branding }: HeroProps) {
-  const supportLine = branding.tagline || DEFAULT_SUPPORT_LINE;
+export function Hero({ branding: _branding }: HeroProps) {
   return (
     <section
       className="relative isolate -mt-20 overflow-hidden pt-20 sm:-mt-[5.5rem] sm:pt-[5.5rem]"
@@ -72,22 +69,23 @@ export function Hero({ branding }: HeroProps) {
               className="reveal-up text-[11px] font-bold uppercase tracking-[0.28em]"
               style={{ color: GOLD }}
             >
-              Wholesale supply · Est. 2026
+              Third-party tested · Est. 2026
             </p>
 
             <h1
               className="reveal-up mt-4 text-balance text-[clamp(2.5rem,5.4vw,4.5rem)] font-black uppercase leading-[0.98] tracking-[-0.02em]"
               style={{ color: CREAM, animationDelay: "80ms" }}
             >
-              Wholesale supplements,{" "}
-              <span style={{ color: GOLD }}>held to spec</span>
+              Supplements you can{" "}
+              <span style={{ color: GOLD }}>actually trust</span>
             </h1>
 
             <p
               className="reveal-up mt-6 max-w-lg text-balance text-base leading-relaxed sm:text-lg"
               style={{ color: CREAM_DIM, animationDelay: "160ms" }}
             >
-              {supportLine}
+              Clean-label supplements — third-party tested, batch-numbered,
+              and shipped fresh. No proprietary-blend games.
             </p>
 
             <div
@@ -103,7 +101,7 @@ export function Hero({ branding }: HeroProps) {
                   boxShadow: `0 20px 50px -20px ${GOLD}88`,
                 }}
               >
-                <span>View catalog</span>
+                <span>Shop products</span>
                 <svg
                   className="size-4 transition-transform duration-500 group-hover:translate-x-1"
                   viewBox="0 0 24 24"
@@ -117,11 +115,11 @@ export function Hero({ branding }: HeroProps) {
                 </svg>
               </Link>
               <Link
-                href="/register"
+                href="/about"
                 className="inline-flex items-center gap-2 rounded-full border px-7 py-4 text-sm font-medium uppercase tracking-[0.22em] transition-colors duration-300 hover:border-current"
                 style={{ borderColor: `${CREAM}30`, color: CREAM }}
               >
-                Apply for an account
+                Our story
               </Link>
             </div>
 
