@@ -1,11 +1,14 @@
 import { HttpClient } from "./client";
 import { PaymentsResource } from "./resources/payments";
+import { RepResource } from "./resources/rep";
 import type { CheckoutFlowResponse, PaginatedList, StoreConfig, StorefrontBranding, StorefrontCart, StorefrontCommission, StorefrontCustomerProfile, StorefrontFaqResponse, StorefrontIntakeForm, StorefrontIntakeSubmission, StorefrontLoginResponse, StorefrontOrder, StorefrontPageResponse, StorefrontPayout, StorefrontProduct, StorefrontProductDetail, StorefrontProductGroup, StorefrontRefreshResponse, StorefrontWebhookSubscription, ShippingEstimateResponse } from "./types";
 export * from "./types";
 export * from "./errors";
 export { HttpClient } from "./client";
 export type { HttpClientConfig, RequestOptions } from "./client";
 export { PaymentsResource } from "./resources/payments";
+export { RepResource } from "./resources/rep";
+export type { RepBindCartParams, RepCheckoutParams, RepCreateCustomerParams, RepListOrdersParams, RepSearchCustomersParams, } from "./resources/rep";
 export { PaymentForm } from "./payment-form";
 export type { PaymentFormContainerIds, TokenizeResult } from "./payment-form";
 export interface CatalogListParams {
@@ -318,6 +321,8 @@ export declare class StadianClient {
     readonly productGroups: ProductGroupsResource;
     /** Payment gateway config and stored payment methods. */
     readonly payments: PaymentsResource;
+    /** Sales-rep (POS) surface: customer search/create, on-behalf checkout. */
+    readonly rep: RepResource;
     /** Store configuration (feature flags). */
     readonly config: ConfigResource;
     constructor(config: StadianClientConfig);

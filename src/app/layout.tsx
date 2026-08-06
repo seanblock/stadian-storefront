@@ -9,6 +9,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { CartProvider } from "@/providers/cart-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { ChromeGate } from "@/components/layout/chrome-gate";
 import { StoreClosed } from "@/components/store-closed";
 import { AgeGate } from "@/components/age-gate";
 import { PREVIEW_COOKIE, verifyPreviewToken } from "@/lib/preview-access";
@@ -132,10 +133,18 @@ export default async function RootLayout({
             <ThemeProvider>
               <AuthProvider>
                 <CartProvider enabled={cartEnabled}>
-                  <Header branding={branding} cartEnabled={cartEnabled} />
+                  <ChromeGate>
+                    <Header branding={branding} cartEnabled={cartEnabled} />
+                  </ChromeGate>
                   <main className="flex-1">{children}</main>
-                  <Footer branding={branding} />
-                  {cartEnabled && <CartDrawer />}
+                  <ChromeGate>
+                    <Footer branding={branding} />
+                  </ChromeGate>
+                  {cartEnabled && (
+                    <ChromeGate>
+                      <CartDrawer />
+                    </ChromeGate>
+                  )}
                 </CartProvider>
               </AuthProvider>
             </ThemeProvider>

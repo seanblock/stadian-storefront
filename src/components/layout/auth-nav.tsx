@@ -6,7 +6,7 @@ import { useAuth } from "@/providers/auth-provider";
 const GOLD = "#d4a951";
 
 export function AuthNav() {
-  const { customer, isAuthenticated, logout, loading } = useAuth();
+  const { customer, isAuthenticated, isSalesRep, logout, loading } = useAuth();
 
   if (loading) return null;
 
@@ -28,6 +28,19 @@ export function AuthNav() {
 
   return (
     <div className="flex items-center gap-1">
+      {isSalesRep && (
+        <Link
+          href="/rep"
+          className="group inline-flex items-center gap-2 px-2.5 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.22em] opacity-75 transition-opacity duration-300 hover:opacity-100"
+        >
+          <span
+            aria-hidden
+            className="size-1 rounded-full transition-transform duration-300 group-hover:scale-150"
+            style={{ background: GOLD }}
+          />
+          Rep Portal
+        </Link>
+      )}
       <Link
         href="/account"
         className="group inline-flex items-center gap-2 px-2.5 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.22em] opacity-75 transition-opacity duration-300 hover:opacity-100"

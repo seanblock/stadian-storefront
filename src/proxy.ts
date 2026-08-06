@@ -8,7 +8,7 @@ import {
 } from "@/lib/auth-cookies";
 import { isTokenExpired } from "@/lib/jwt-expiry";
 
-const protectedPaths = ["/account"];
+const protectedPaths = ["/account", "/rep"];
 
 /** Refresh this many seconds before the access token actually expires. */
 const REFRESH_SKEW_SECONDS = 60;

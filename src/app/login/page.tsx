@@ -33,8 +33,11 @@ function LoginForm() {
     setSubmitting(true);
 
     try {
-      await login(email, password);
-      const redirectTo = searchParams.get("redirect") || "/account";
+      const profile = await login(email, password);
+      // Sales reps land on their POS dashboard; an explicit ?redirect= wins
+      // (that's how the proxy round-trips /rep/* through login).
+      const fallback = profile.is_sales_rep ? "/rep" : "/account";
+      const redirectTo = searchParams.get("redirect") || fallback;
       router.push(redirectTo);
     } catch (err) {
       setError(

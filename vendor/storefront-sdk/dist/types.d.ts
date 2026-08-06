@@ -173,6 +173,75 @@ export interface StorefrontCustomerProfile {
     affiliate_link_slug: string | null;
     commission_rate: number | null;
     affiliate_status: string | null;
+    /** True when the user's role allows placing orders on behalf of customers
+     *  (unlocks the sales-rep / POS surface). */
+    is_sales_rep?: boolean;
+}
+export interface RepCustomer {
+    id: string;
+    email: string;
+    name: string | null;
+    phone: string | null;
+    customer_type: 'individual' | 'business';
+    company_name: string | null;
+    account_status: 'active' | 'pending' | 'rejected';
+    created_at: string;
+    /** Most recent order's ship-to (single-customer endpoint only) — POS prefill. */
+    last_ship_to?: Record<string, unknown> | null;
+}
+export interface RepCustomersResponse {
+    items: RepCustomer[];
+    has_more: boolean;
+}
+export interface RepCheckoutResponse extends StorefrontOrder {
+    /** Durable pay-by-link URL (link-capable gateways only). */
+    payment_link_url?: string | null;
+    payment_link_email_sent?: boolean;
+}
+export interface RepOrderItem {
+    product_id: string;
+    product_name: string | null;
+    quantity: number;
+    unit_price: number;
+    line_total: number;
+}
+export interface RepOrderSummary {
+    id: string;
+    order_number: string | null;
+    status: string;
+    customer_id: string;
+    customer_name: string | null;
+    customer_email: string | null;
+    subtotal: number;
+    discount_amount: number;
+    tax_amount: number;
+    shipping_amount: number;
+    total: number;
+    payment_method: string | null;
+    payment_link_url: string | null;
+    payment_link_status: string | null;
+    created_at: string;
+    items: RepOrderItem[];
+}
+export interface RepOrdersResponse {
+    items: RepOrderSummary[];
+    has_more: boolean;
+}
+export interface RepPeriodStats {
+    count: number;
+    revenue: number;
+}
+export interface RepDashboard {
+    today: RepPeriodStats;
+    this_week: RepPeriodStats;
+    this_month: RepPeriodStats;
+    all_time: RepPeriodStats;
+    commissions: {
+        pending: number;
+        approved: number;
+        paid: number;
+    };
+    commission_rate: number | null;
 }
 export interface StorefrontLoginResponse {
     access_token: string;

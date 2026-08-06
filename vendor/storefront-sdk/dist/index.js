@@ -1,10 +1,12 @@
 import { HttpClient } from "./client";
 import { PaymentsResource } from "./resources/payments";
+import { RepResource } from "./resources/rep";
 // Re-export everything consumers need
 export * from "./types";
 export * from "./errors";
 export { HttpClient } from "./client";
 export { PaymentsResource } from "./resources/payments";
+export { RepResource } from "./resources/rep";
 export { PaymentForm } from "./payment-form";
 // ---------------------------------------------------------------------------
 // Resource classes
@@ -392,6 +394,8 @@ export class StadianClient {
     productGroups;
     /** Payment gateway config and stored payment methods. */
     payments;
+    /** Sales-rep (POS) surface: customer search/create, on-behalf checkout. */
+    rep;
     /** Store configuration (feature flags). */
     config;
     constructor(config) {
@@ -412,6 +416,7 @@ export class StadianClient {
         this.webhooks = new WebhooksResource(this.http);
         this.productGroups = new ProductGroupsResource(this.http);
         this.payments = new PaymentsResource(this.http);
+        this.rep = new RepResource(this.http);
         this.config = new ConfigResource(this.http);
     }
 }

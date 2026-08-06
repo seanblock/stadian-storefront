@@ -21,7 +21,9 @@ interface AuthContextValue {
   loading: boolean;
   isAuthenticated: boolean;
   isAffiliate: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** Role allows placing orders on behalf of customers — unlocks /rep. */
+  isSalesRep: boolean;
+  login: (email: string, password: string) => Promise<StorefrontCustomerProfile>;
   register: (data: RegisterData) => Promise<StorefrontCustomerProfile>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -80,6 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // their try/catch and the API's message reaches the user intact.
     if (!result.ok) throw new AuthFailure(result.message, result.code);
     setCustomer(result.response.customer);
+    // Returned so callers can branch on the fresh profile (e.g. the login page
+    // sends sales reps to /rep) without racing the state update.
+    return result.response.customer;
   }, []);
 
   const register = useCallback(
@@ -105,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAffiliate =
     customer?.affiliate_code !== null &&
     customer?.affiliate_code !== undefined;
+  const isSalesRep = customer?.is_sales_rep === true;
 
   return (
     <AuthContext
@@ -113,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isAuthenticated,
         isAffiliate,
+        isSalesRep,
         login,
         register,
         logout,
