@@ -23,10 +23,34 @@ test.beforeEach(async ({ context }) => {
  */
 
 test("checkout form renders and is fillable (up to submit)", async ({ page }) => {
-  // ── Step 1: Navigate to /products and iterate to find a purchasable one ─
+  // ── Step 0: Detect wholesale (B2B) pricing gate ───────────────────────
+  // When the tenant hides prices until login, no product ever shows an
+  // "Add to Cart" button to a guest, and guest checkout is disabled. In
+  // that mode the contract to test is the GATE, not the form.
+  await page.goto("/products");
+  // waitFor (not isVisible) — the dev server may still be compiling/streaming
+  // the page; an instant visibility check races the render.
+  const pricesGated = await page
+    .getByText(/sign in to see pricing/i)
+    .first()
+    .waitFor({ timeout: 10_000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (pricesGated) {
+    // A guest hitting /checkout must be bounced to login (or the cart),
+    // never shown the checkout form.
+    await page.goto("/checkout");
+    await expect(page).toHaveURL(/\/(login|cart)/);
+    await expect(
+      page.getByRole("heading", { name: /checkout/i })
+    ).not.toBeVisible();
+    return;
+  }
+
+  // ── Step 1: Iterate product pages to find a purchasable one ───────────
   // The first product may not be purchasable online (no Add-to-Cart).
   // Walk every unique product href until we find one with an "Add to Cart" button.
-  await page.goto("/products");
   const hrefs = await page
     .locator('a[href^="/products/"]')
     .evaluateAll(
