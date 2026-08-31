@@ -10,6 +10,7 @@ import {
   type ComponentProps,
 } from "react";
 import type {
+  ManualPaymentMethod,
   PaymentClientConfig,
   StoredPaymentMethod,
 } from "@/app/actions/payments";
@@ -127,6 +128,8 @@ function PaymentField({
 /* ------------------------------------------------------------------ */
 
 export interface PaymentData {
+  /** Manual/offline method key ("zelle", "ach", …) when no gateway is used. */
+  paymentMethod?: string;
   paymentToken?: string;
   paymentType?: "card" | "ach";
   paymentFlow?: "embedded" | "redirect";
@@ -137,6 +140,10 @@ export interface PaymentData {
 export interface PaymentSectionHandle {
   getPaymentData: () => Promise<PaymentData>;
   getBillingState: () => { sameAsShipping: boolean; billingAddress?: Address };
+  /** The offline method the buyer picked, or null. Synchronous on purpose:
+   *  handleSubmit validates it before its first await, while the form event's
+   *  currentTarget is still live. */
+  getManualSelection: () => string | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -146,6 +153,12 @@ export interface PaymentSectionHandle {
 interface PaymentSectionProps {
   config: PaymentClientConfig | null;
   storedMethods: StoredPaymentMethod[];
+  /** Offline methods the store accepts (Zelle, ACH, …). Used when no card
+   *  gateway is configured — the buyer picks one and pays after ordering. */
+  manualMethods: ManualPaymentMethod[];
+  /** Fired when the buyer picks an offline method, so the page can clear the
+   *  "choose how you'd like to pay" error it raised on the blocked submit. */
+  onManualMethodChange?: () => void;
   isAuthenticated: boolean;
   billingErrors?: Record<string, string | undefined>;
   onValidityRecheck?: () => void;
@@ -170,6 +183,30 @@ const CARD_FIELD_IDS = {
   cardExpiry: "sf-card-expiry",
   cardCvv: "sf-card-cvv",
 } as const;
+/**
+ * Human label for a manual-payment detail field. The API returns config field
+ * names (`ach_routing_number`, `zelle_email`), which are method-prefixed; the
+ * method is already the heading, so the prefix is dropped and the rest
+ * title-cased. Explicit entries cover the cases where that reads badly.
+ */
+const MANUAL_FIELD_LABELS: Record<string, string> = {
+  cashapp_cashtag: "$Cashtag",
+  venmo_handle: "Venmo Handle",
+  zelle_email: "Zelle Email",
+  check_payable_to: "Make Check Payable To",
+  check_mailing_address: "Mail To",
+};
+
+function manualFieldLabel(field: string): string {
+  const explicit = MANUAL_FIELD_LABELS[field];
+  if (explicit) return explicit;
+  return field
+    .replace(/^(ach|wire|zelle|venmo|cashapp|check)_/, "")
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 const ACH_FIELD_IDS = {
   accountNumber: "sf-ach-account",
   routingNumber: "sf-ach-routing",
@@ -199,11 +236,16 @@ interface PaymentFormStatic {
 export const PaymentSection = forwardRef<
   PaymentSectionHandle,
   PaymentSectionProps
->(function PaymentSection({ config, storedMethods, isAuthenticated, billingErrors, onValidityRecheck, showErrors, visible = true }, ref) {
+>(function PaymentSection({ config, storedMethods, manualMethods, onManualMethodChange, isAuthenticated, billingErrors, onValidityRecheck, showErrors, visible = true }, ref) {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(
     storedMethods.find((m) => m.is_default)?.id ?? null,
   );
   const [paymentType, setPaymentType] = useState<"card" | "ach">("card");
+  // Offline method the buyer chose. Preselect when there is only one — a
+  // single-option radio group is a formality, not a decision.
+  const [manualMethod, setManualMethod] = useState<string | null>(
+    manualMethods.length === 1 ? manualMethods[0].key : null,
+  );
   const [sameAsShipping, setSameAsShipping] = useState(true);
   const [saveCard, setSaveCard] = useState(false);
   const [formReady, setFormReady] = useState(false);
@@ -287,8 +329,17 @@ export const PaymentSection = forwardRef<
 
   /* ---- Expose getPaymentData to the parent ----------------------- */
   const getPaymentData = useCallback(async (): Promise<PaymentData> => {
-    // No gateway configured — manual / payment-pending flow
+    // No gateway configured — the buyer pays offline. Send the method they
+    // picked: the platform only emails payment instructions (and alerts the
+    // store) for a recognised manual method, so an empty value here means the
+    // buyer is never told where to send the money.
     if (!config?.gateway_enabled) {
+      if (manualMethods.length > 0) {
+        if (!manualMethod) {
+          throw new Error("Please choose how you'd like to pay.");
+        }
+        return { paymentMethod: manualMethod };
+      }
       return {};
     }
 
@@ -318,7 +369,7 @@ export const PaymentSection = forwardRef<
 
     // Fallback — form not mounted (SDK not available yet)
     throw new Error("Payment form is still loading. Please wait a moment and try again.");
-  }, [config, selectedMethod, saveCard, isAuthenticated, formReady]);
+  }, [config, selectedMethod, saveCard, isAuthenticated, formReady, manualMethod, manualMethods]);
 
   const getBillingState = useCallback((): { sameAsShipping: boolean; billingAddress?: Address } => {
     if (sameAsShipping) return { sameAsShipping: true as const, billingAddress: undefined };
@@ -337,23 +388,91 @@ export const PaymentSection = forwardRef<
     };
   }, [sameAsShipping]);
 
-  useImperativeHandle(ref, () => ({ getPaymentData, getBillingState }), [getPaymentData, getBillingState]);
+  const getManualSelection = useCallback(() => manualMethod, [manualMethod]);
+
+  useImperativeHandle(
+    ref,
+    () => ({ getPaymentData, getBillingState, getManualSelection }),
+    [getPaymentData, getBillingState, getManualSelection],
+  );
 
   /* ================================================================ */
   /*  Render                                                          */
   /* ================================================================ */
 
-  // No gateway — manual payment fallback
+  // No gateway — the buyer pays offline (Zelle, ACH, wire, check...).
   if (!config?.gateway_enabled) {
+    const selected = manualMethods.find((m) => m.key === manualMethod);
     return (
       <div className="flex flex-col gap-4">
-        <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-4 dark:border-yellow-700 dark:bg-yellow-950/30">
-          <p className="text-sm text-muted-foreground">
-            No payment is collected now. Your order will be placed as{" "}
-            <strong>payment pending</strong>, and our team will email you with
-            payment details and next steps to complete it.
-          </p>
-        </div>
+        {manualMethods.length > 0 ? (
+          <>
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-2 text-sm font-medium">
+                How would you like to pay?
+              </legend>
+              {manualMethods.map((method) => (
+                <label
+                  key={method.key}
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
+                    manualMethod === method.key
+                      ? "border-primary bg-primary/5"
+                      : "border-input hover:bg-muted/50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="manual_payment_method"
+                    value={method.key}
+                    checked={manualMethod === method.key}
+                    onChange={() => {
+                      setManualMethod(method.key);
+                      onManualMethodChange?.();
+                      onValidityRecheck?.();
+                    }}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  <span className="text-sm font-medium">{method.label}</span>
+                </label>
+              ))}
+            </fieldset>
+
+            {showErrors && !manualMethod && (
+              <p className="text-sm text-destructive">
+                Please choose how you&apos;d like to pay.
+              </p>
+            )}
+
+            {selected && (
+              <div className="rounded-lg border bg-muted/40 p-4">
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Place your order first. We&apos;ll email you these details
+                  along with your order number, which you should include as the
+                  payment reference so we can match it to your order.
+                </p>
+                {selected.customer_instructions && (
+                  <p className="mb-3 text-sm">{selected.customer_instructions}</p>
+                )}
+                <dl className="flex flex-col gap-1.5">
+                  {Object.entries(selected.details).map(([field, value]) => (
+                    <div key={field} className="flex flex-wrap gap-x-2 text-sm">
+                      <dt className="font-medium">{manualFieldLabel(field)}:</dt>
+                      <dd className="text-muted-foreground">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-4 dark:border-yellow-700 dark:bg-yellow-950/30">
+            <p className="text-sm text-muted-foreground">
+              No payment is collected now. Your order will be placed as{" "}
+              <strong>payment pending</strong>, and our team will email you with
+              payment details and next steps to complete it.
+            </p>
+          </div>
+        )}
         <BillingAddress
           sameAsShipping={sameAsShipping}
           onSameAsShippingChange={setSameAsShipping}

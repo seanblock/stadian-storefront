@@ -26,6 +26,22 @@ export interface StoredPaymentMethod {
   is_default: boolean;
 }
 
+/**
+ * A manual (offline) payment method the store accepts — Zelle, ACH, wire,
+ * check. The buyer picks one at checkout, the order is placed as
+ * `pending_payment`, and the unmasked payment details are emailed to them.
+ *
+ * `details` is keyed by the tenant config field name (`zelle_email`,
+ * `ach_routing_number`, …) and is already masked by the API — an account
+ * number arrives as `****1234`. Safe to display; not enough to pay with.
+ */
+export interface ManualPaymentMethod {
+  key: "venmo" | "cashapp" | "zelle" | "wire" | "ach" | "check";
+  label: string;
+  customer_instructions: string | null;
+  details: Record<string, string>;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Server Actions                                                    */
 /* ------------------------------------------------------------------ */
@@ -41,6 +57,20 @@ export async function getPaymentConfig(): Promise<PaymentClientConfig | null> {
     );
   } catch {
     return null;
+  }
+}
+
+export async function getManualPaymentMethods(): Promise<ManualPaymentMethod[]> {
+  try {
+    const http = getHttpClient();
+    // Backend route: /v1/storefront/payment-methods
+    const res = await http.request<{ payment_methods: ManualPaymentMethod[] }>(
+      "GET",
+      "/payment-methods",
+    );
+    return res.payment_methods ?? [];
+  } catch {
+    return [];
   }
 }
 

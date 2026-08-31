@@ -188,6 +188,12 @@ export interface RepCustomer {
     created_at: string;
     /** Most recent order's ship-to (single-customer endpoint only) — POS prefill. */
     last_ship_to?: Record<string, unknown> | null;
+    /** Assigned to the calling rep (vs an unclaimed house account). */
+    is_mine?: boolean;
+    /** Orders THIS rep placed for them — never another rep's. */
+    order_count?: number;
+    total_spent?: number;
+    last_order_at?: string | null;
 }
 export interface RepCustomersResponse {
     items: RepCustomer[];
@@ -240,6 +246,9 @@ export interface RepDashboard {
         pending: number;
         approved: number;
         paid: number;
+        /** Commission on this rep's orders that have not been paid yet. */
+        unrealized?: number;
+        unrealized_order_count?: number;
     };
     commission_rate: number | null;
 }
@@ -394,6 +403,27 @@ export interface PaymentClientConfig {
     js_library_url: string | null;
     public_key: string | null;
     form_config: Record<string, unknown>;
+}
+/**
+ * A manual (offline) payment method the tenant accepts — Zelle, ACH, wire,
+ * check, Venmo, Cash App. The customer picks one at checkout and receives
+ * instructions by email; the order stays `pending_payment` until an operator
+ * confirms the money arrived.
+ *
+ * `details` is keyed by the tenant config field name (e.g. `zelle_email`,
+ * `ach_routing_number`). Sensitive values are masked by the API — an account
+ * number arrives as `****1234`, so `details` is safe to render publicly but is
+ * NOT sufficient to actually pay. The unmasked values go out in the emailed
+ * instructions only.
+ */
+export interface ManualPaymentMethod {
+    key: "venmo" | "cashapp" | "zelle" | "wire" | "ach" | "check";
+    label: string;
+    customer_instructions: string | null;
+    details: Record<string, string>;
+}
+export interface ManualPaymentMethodsResponse {
+    payment_methods: ManualPaymentMethod[];
 }
 export interface StoreConfig {
     features: {

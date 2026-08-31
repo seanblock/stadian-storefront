@@ -7,8 +7,10 @@ import { useAuth } from "@/providers/auth-provider";
 import { OrderSummary } from "@/components/cart/order-summary";
 import { createOrder } from "@/app/actions/checkout";
 import {
+  getManualPaymentMethods,
   getPaymentConfig,
   getStoredPaymentMethods,
+  type ManualPaymentMethod,
   type PaymentClientConfig,
   type StoredPaymentMethod,
 } from "@/app/actions/payments";
@@ -79,6 +81,7 @@ export default function CheckoutPage() {
   const [summaries, setSummaries] = useState<{ contact?: string; shipping?: string }>({});
 
   const [paymentConfig, setPaymentConfig] = useState<PaymentClientConfig | null>(null);
+  const [manualMethods, setManualMethods] = useState<ManualPaymentMethod[]>([]);
   const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
   const [configLoading, setConfigLoading] = useState(true);
   const [checkoutFlow, setCheckoutFlow] = useState<CheckoutFlowResponse | null>(null);
@@ -156,13 +159,15 @@ export default function CheckoutPage() {
     let cancelled = false;
     async function loadPaymentData() {
       try {
-        const [config, methods] = await Promise.all([
+        const [config, methods, manual] = await Promise.all([
           getPaymentConfig(),
           isAuthenticated ? getStoredPaymentMethods() : Promise.resolve([]),
+          getManualPaymentMethods(),
         ]);
         if (cancelled) return;
         setPaymentConfig(config);
         setStoredMethods(methods);
+        setManualMethods(manual);
       } finally {
         if (!cancelled) setConfigLoading(false);
       }
@@ -255,6 +260,20 @@ export default function CheckoutPage() {
       // Focus the first invalid field
       const firstKey = Object.keys(errs)[0];
       formRef.current?.querySelector<HTMLElement>(`[name="${firstKey}"]`)?.focus();
+      return;
+    }
+
+    // An offline store must know HOW the buyer intends to pay — that choice is
+    // what triggers the payment-instruction email. Checked synchronously: any
+    // await here would detach the form event before FormData is built below.
+    if (
+      !paymentConfig?.gateway_enabled &&
+      manualMethods.length > 0 &&
+      !paymentRef.current?.getManualSelection()
+    ) {
+      submitAttemptedRef.current = true;
+      setSubmitAttempted(true);
+      setError("Please choose how you'd like to pay.");
       return;
     }
 
@@ -504,6 +523,8 @@ export default function CheckoutPage() {
                   <PaymentSection
                     ref={paymentRef}
                     config={paymentConfig}
+                    manualMethods={manualMethods}
+                    onManualMethodChange={() => setError(null)}
                     storedMethods={storedMethods}
                     isAuthenticated={isAuthenticated}
                     billingErrors={fieldErrors}
@@ -554,8 +575,9 @@ export default function CheckoutPage() {
 
                 <p className="hidden items-center justify-center gap-1.5 text-center text-xs text-muted-foreground lg:flex">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Secure checkout — your card is encrypted and never stored on our
-                  servers.
+                  {paymentConfig?.gateway_enabled
+                    ? "Secure checkout — your card is encrypted and never stored on our servers."
+                    : "Secure checkout — no card details are collected on this order."}
                 </p>
               </>
             )}
