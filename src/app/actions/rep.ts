@@ -153,11 +153,20 @@ export async function getRepDashboard(): Promise<RepResult<RepDashboard>> {
 /** Product catalog for the POS grid, priced with the rep's token (B2B stores
  *  hide prices from anonymous callers). Line prices in the CART come from the
  *  bound customer's tier; this grid price is indicative. */
-export async function getRepProducts(): Promise<
-  RepResult<import("@stadian/storefront-sdk").StorefrontProduct[]>
-> {
+/**
+ * The POS catalog. Pass the attached customer so tiles price at THEIR tier —
+ * without it the grid shows the rep's own pricing, which can disagree with the
+ * cart line in front of the customer.
+ */
+export async function getRepProducts(
+  customerId?: string
+): Promise<RepResult<import("@stadian/storefront-sdk").StorefrontProduct[]>> {
   return withRepAuth(async (customerToken) => {
-    const page = await getStadianClient().catalog.list({ limit: 100, customerToken });
+    const page = await getStadianClient().rep.listProducts({
+      customerToken,
+      customerId,
+      limit: 100,
+    });
     return page.items;
   });
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { isValidElement } from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -48,9 +49,19 @@ function Button({
   size = "default",
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+  // Base UI assumes it is rendering a native <button> and warns when `render`
+  // swaps in anything else — most often a Next <Link>, which is an <a>. Infer
+  // it from the rendered element so no call site has to remember; a function
+  // `render` is opaque, so leave that to the caller. An explicit nativeButton
+  // still wins, since props spread last.
+  const nativeButton = isValidElement(props.render)
+    ? props.render.type === "button"
+    : true
+
   return (
     <ButtonPrimitive
       data-slot="button"
+      nativeButton={nativeButton}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

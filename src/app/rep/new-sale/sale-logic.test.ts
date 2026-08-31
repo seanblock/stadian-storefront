@@ -3,6 +3,8 @@ import {
   availableModes,
   buildShipTo,
   isAddressComplete,
+  paymentModeAvailability,
+  soleAvailableMode,
   validateSaleAddress,
 } from "./sale-logic";
 import type { PaymentClientConfig } from "@/app/actions/payments";
@@ -84,5 +86,50 @@ describe("buildShipTo", () => {
     expect(shipTo.first_name).toBe("");
     expect(shipTo.last_name).toBe("");
     expect("phone" in shipTo).toBe(false);
+  });
+});
+
+describe("paymentModeAvailability", () => {
+  const modes = (card: boolean, link: boolean) => ({ card, link, invoice: true });
+
+  test("a store with no gateway can only invoice — card and link are both disabled", () => {
+    const a = paymentModeAvailability(modes(false, false), false);
+    expect(a.card.available).toBe(false);
+    expect(a.card.reason).toMatch(/set up/i);
+    expect(a.link.available).toBe(false);
+    expect(a.link.reason).toBeTruthy();
+    expect(a.invoice.available).toBe(true);
+    expect(soleAvailableMode(a)).toBe("invoice");
+  });
+
+  test("an embedded gateway enables card but not link", () => {
+    const a = paymentModeAvailability(modes(true, false), false);
+    expect(a.card.available).toBe(true);
+    expect(a.card.reason).toBeNull();
+    expect(a.link.available).toBe(false);
+    expect(soleAvailableMode(a)).toBeNull(); // card + invoice
+  });
+
+  test("a link gateway enables link but not card", () => {
+    const a = paymentModeAvailability(modes(false, true), false);
+    expect(a.link.available).toBe(true);
+    expect(a.card.available).toBe(false);
+    expect(soleAvailableMode(a)).toBeNull();
+  });
+
+  test("while the config is loading nothing claims to be unsupported", () => {
+    const a = paymentModeAvailability(modes(false, false), true);
+    expect(a.card.available).toBe(false);
+    expect(a.card.reason).toBeNull(); // disabled, but no misleading message
+    expect(a.link.reason).toBeNull();
+  });
+
+  test("invoice never depends on a gateway", () => {
+    for (const loading of [true, false]) {
+      expect(paymentModeAvailability(modes(false, false), loading).invoice).toEqual({
+        available: true,
+        reason: null,
+      });
+    }
   });
 });

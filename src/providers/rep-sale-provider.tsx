@@ -34,6 +34,11 @@ interface StoredSale {
 
 interface RepSaleContextValue {
   saleSessionId: string | null;
+  /**
+   * False until the persisted sale has been read back. Callers must not mint a
+   * new sale before this flips, or they race hydration and wipe the stored one.
+   */
+  hydrated: boolean;
   customer: RepCustomer | null;
   cart: StorefrontCart | null;
   cartBusy: boolean;
@@ -68,15 +73,25 @@ export function RepSaleProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomerState] = useState<RepCustomer | null>(null);
   const [cart, setCart] = useState<StorefrontCart | null>(null);
   const [cartBusy, setCartBusy] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   // Hydrate a persisted sale after mount (sessionStorage is client-only).
   // State lands in the async continuation so the effect body itself never
   // sets state synchronously (react-hooks/set-state-in-effect).
+  //
+  // `hydrated` must flip on BOTH paths: consumers gate their "no sale yet, mint
+  // one" fallback on it. React runs child effects before parent ones, so a page
+  // that minted unconditionally on mount would overwrite sessionStorage before
+  // this ever read it — which silently dropped the customer and cart on every
+  // mid-sale refresh.
   useEffect(() => {
     const stored = readStored();
-    if (!stored) return;
     let cancelled = false;
     (async () => {
+      if (!stored) {
+        if (!cancelled) setHydrated(true);
+        return;
+      }
       let hydratedCart: StorefrontCart | null = null;
       try {
         hydratedCart = await getCart(stored.saleSessionId);
@@ -87,6 +102,7 @@ export function RepSaleProvider({ children }: { children: ReactNode }) {
       setSaleSessionId(stored.saleSessionId);
       setCustomerState(stored.customer);
       setCart(hydratedCart);
+      setHydrated(true);
     })();
     return () => {
       cancelled = true;
@@ -207,6 +223,7 @@ export function RepSaleProvider({ children }: { children: ReactNode }) {
     <RepSaleContext
       value={{
         saleSessionId,
+        hydrated,
         customer,
         cart,
         cartBusy,

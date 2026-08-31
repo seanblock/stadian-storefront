@@ -32,7 +32,7 @@ export function QtyStepper({
         <Minus className="size-4" />
       </button>
       <span
-        className={`inline-flex items-center justify-center font-medium tabular-nums ${size === "md" ? "min-w-12 text-lg" : "min-w-9 text-sm"}`}
+        className={`inline-flex items-center justify-center font-medium tabular-nums ${size === "md" ? "min-w-8 text-lg sm:min-w-12" : "min-w-9 text-sm"}`}
         aria-live="polite"
       >
         {quantity}

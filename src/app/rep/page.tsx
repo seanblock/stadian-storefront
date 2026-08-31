@@ -42,22 +42,19 @@ export default function RepDashboardPage() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6">
-      {/* Quick actions */}
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button
-          className="h-16 flex-1 text-lg"
-          style={{ background: GOLD, color: NAVY }}
-          render={<Link href="/rep/new-sale" />}
-        >
-          New Sale
-        </Button>
-        <Button variant="outline" className="h-16 bg-white px-8" render={<Link href="/rep/customers" />}>
-          Customers
-        </Button>
-        <Button variant="outline" className="h-16 bg-white px-8" render={<Link href="/rep/orders" />}>
-          Orders
-        </Button>
-      </div>
+      {/*
+        Only the primary action lives here — Customers/Orders are one tap away
+        in the nav (top bar on desktop, bottom bar on phones), so buttons for
+        them were duplicates. New Sale stays because a rep starting a sale wants
+        a thumb-sized target, not an 11px nav tab.
+      */}
+      <Button
+        className="h-16 w-full text-lg"
+        style={{ background: GOLD, color: NAVY }}
+        render={<Link href="/rep/new-sale" />}
+      >
+        New Sale
+      </Button>
 
       {error && (
         <p className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">

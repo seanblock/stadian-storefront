@@ -29,17 +29,20 @@ import {
   type PaymentSectionHandle,
 } from "@/components/checkout/payment-section";
 import { AddressFields } from "@/components/checkout/address-fields";
-import { CustomerSearch } from "@/components/rep/customer-search";
-import { CustomerCreateDialog } from "@/components/rep/customer-create-dialog";
+import { CustomerChip, CustomerPickerSheet } from "@/components/rep/customer-picker";
 import { ProductPad } from "@/components/rep/product-pad";
 import { SaleCartRail } from "@/components/rep/sale-cart-rail";
+import { SaleOrderBar } from "@/components/rep/sale-order-bar";
 import { PaymentModeCards, type PaymentMode } from "@/components/rep/payment-mode-cards";
 import { PayLinkResult } from "@/components/rep/pay-link-result";
 import { fmtCurrency } from "@/components/rep/format";
 import {
   availableModes,
   buildShipTo,
+  paymentModeAvailability,
+  soleAvailableMode,
   validateSaleAddress,
+  SALE_STEPS,
   type SaleStep,
 } from "./sale-logic";
 import { Button } from "@/components/ui/button";
@@ -53,22 +56,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
 
 const GOLD = "#d4a951";
 const NAVY = "#0a1a2e";
 
 const STEP_TITLES: Record<Exclude<SaleStep, "done">, string> = {
-  customer: "Customer",
-  cart: "Build order",
-  shipping: "Shipping",
-  payment: "Payment",
+  build: "Build order",
+  checkout: "Checkout",
 };
 
 export default function NewSalePage() {
   const sale = useRepSale();
   const {
     saleSessionId,
+    hydrated,
     customer,
     cart,
     cartBusy,
@@ -81,7 +83,8 @@ export default function NewSalePage() {
     clearSale,
   } = sale;
 
-  const [step, setStep] = useState<SaleStep>("customer");
+  const [step, setStep] = useState<SaleStep>("build");
+  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
   const [products, setProducts] = useState<StorefrontProduct[] | null>(null);
   const [paymentConfig, setPaymentConfig] = useState<PaymentClientConfig | null>(null);
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
@@ -100,28 +103,33 @@ export default function NewSalePage() {
   const formRef = useRef<HTMLFormElement>(null);
   const paymentRef = useRef<PaymentSectionHandle>(null);
 
-  // A sale needs a session before anything else happens.
+  // A sale needs a session before anything else happens — but only once the
+  // provider has read sessionStorage back. Minting on mount would clobber a
+  // sale still being restored (child effects run before parent ones), which is
+  // how a mid-sale refresh used to lose the customer and the whole cart.
   useEffect(() => {
-    if (!saleSessionId && !result) startSale();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
-  }, []);
-
-  // Resume a persisted sale mid-flow — render-time state adjustment (the
-  // React-endorsed alternative to a setState-in-effect).
-  const [prevCustomerId, setPrevCustomerId] = useState<string | null>(null);
-  if ((customer?.id ?? null) !== prevCustomerId) {
-    setPrevCustomerId(customer?.id ?? null);
-    if (customer && step === "customer" && !result) setStep("cart");
-  }
+    if (hydrated && !saleSessionId && !result) startSale();
+  }, [hydrated, saleSessionId, result, startSale]);
 
   useEffect(() => {
-    getRepProducts().then((r) => setProducts(r.ok ? r.data : []));
     getPaymentConfig().then(setPaymentConfig);
   }, []);
 
+  // Refetch the catalog whenever the attached customer changes — the grid must
+  // show the price the cart will charge, not the rep's own tier.
+  useEffect(() => {
+    let cancelled = false;
+    getRepProducts(customer?.id).then((r) => {
+      if (!cancelled) setProducts(r.ok ? r.data : []);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [customer?.id]);
+
   // Shipping options depend on the cart's contents.
   useEffect(() => {
-    if (step !== "shipping" || !saleSessionId) return;
+    if (step !== "checkout" || !saleSessionId) return;
     getShippingOptions(saleSessionId).then((options) => {
       setShippingOptions(options);
       setShippingMethodId((current) => current ?? options[0]?.method_id);
@@ -129,6 +137,27 @@ export default function NewSalePage() {
   }, [step, saleSessionId, cart?.items.length]);
 
   const modes = useMemo(() => availableModes(paymentConfig), [paymentConfig]);
+  const modeAvailability = useMemo(
+    () => paymentModeAvailability(modes, paymentConfig === null),
+    [modes, paymentConfig]
+  );
+
+  // A store with no gateway can only invoice. Preselect it rather than making
+  // the rep tap the one tile that was ever going to work. Render-time state
+  // adjustment, not a setState-in-effect (which cascades renders).
+  const soleMode = paymentConfig === null ? null : soleAvailableMode(modeAvailability);
+  const [prevSoleMode, setPrevSoleMode] = useState<PaymentMode | null>(null);
+  if (soleMode !== prevSoleMode) {
+    setPrevSoleMode(soleMode);
+    if (soleMode && mode === null) setMode(soleMode);
+  }
+
+  const shippingLabel = useMemo(() => {
+    if (!shippingMethodId) return null;
+    const option = shippingOptions.find((o) => o.method_id === shippingMethodId);
+    if (!option) return null;
+    return option.price === 0 ? "Free" : fmtCurrency(option.price);
+  }, [shippingMethodId, shippingOptions]);
 
   const handleSelectCustomer = useCallback(
     async (next: RepCustomer) => {
@@ -137,7 +166,7 @@ export default function NewSalePage() {
         // Fetch the detail (includes last ship-to for prefill).
         const detail = await getRepCustomer(next.id);
         await selectCustomer(detail.ok ? detail.data : next);
-        setStep("cart");
+        setCustomerPickerOpen(false);
         const shipTo = detail.ok ? detail.data.last_ship_to : null;
         if (shipTo) {
           // AddressFields is uncontrolled; prefill imperatively after render.
@@ -167,18 +196,6 @@ export default function NewSalePage() {
       country: String(data?.get("country") ?? "") || "US",
     };
   }, []);
-
-  const goToPayment = useCallback(() => {
-    const address = readShippingAddress();
-    const errors = validateSaleAddress(address);
-    setAddressErrors(errors);
-    if (Object.keys(errors).length > 0) {
-      setShowErrors(true);
-      return;
-    }
-    setShowErrors(false);
-    setStep("payment");
-  }, [readShippingAddress]);
 
   const placeOrder = useCallback(
     async (chosenMode: PaymentMode) => {
@@ -241,6 +258,22 @@ export default function NewSalePage() {
     [saleSessionId, customer, readShippingAddress, shippingMethodId, clearSale]
   );
 
+  // Shipping and payment share one screen, so the address is validated at the
+  // moment of sale rather than at a step boundary. Errors surface in place —
+  // the rep never leaves the screen to fix a ZIP.
+  const submitSale = useCallback(() => {
+    const errors = validateSaleAddress(readShippingAddress());
+    setAddressErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setShowErrors(true);
+      return;
+    }
+    setShowErrors(false);
+    if (!mode) return;
+    if (mode === "invoice") setConfirmInvoice(true);
+    else placeOrder(mode);
+  }, [readShippingAddress, mode, placeOrder]);
+
   async function handleApplyCode() {
     setDiscountError(null);
     const code = discountEntry.trim();
@@ -254,7 +287,7 @@ export default function NewSalePage() {
     setResult(null);
     setMode(null);
     setShippingMethodId(undefined);
-    setStep("customer");
+    setStep("build");
     setError(null);
     startSale();
   }
@@ -312,14 +345,14 @@ export default function NewSalePage() {
   }
 
   /* ---- Main flow ---------------------------------------------------- */
-  const stepIndex = ["customer", "cart", "shipping", "payment"].indexOf(step);
+  const stepIndex = SALE_STEPS.indexOf(step);
 
   return (
-    <div className="mx-auto flex max-w-7xl gap-4 px-4 py-4 sm:px-6">
-      <div className="min-w-0 flex-1">
+    <div className="mx-auto flex h-full w-full min-h-0 max-w-7xl gap-4 overflow-hidden px-4 py-4 sm:px-6">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* Step header */}
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 overflow-x-auto">
+        <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+          <div className="flex items-center gap-2 overflow-x-auto sm:gap-3">
             {(Object.keys(STEP_TITLES) as Array<Exclude<SaleStep, "done">>).map(
               (s, i) => (
                 <button
@@ -327,7 +360,7 @@ export default function NewSalePage() {
                   type="button"
                   disabled={i > stepIndex}
                   onClick={() => setStep(s)}
-                  className={`flex min-h-11 shrink-0 items-center gap-2 text-sm font-medium transition-opacity disabled:opacity-40 ${
+                  className={`flex min-h-11 shrink-0 items-center gap-1.5 text-[13px] font-medium transition-opacity disabled:opacity-40 sm:gap-2 sm:text-sm ${
                     step === s ? "text-[#0a1a2e]" : "text-muted-foreground"
                   }`}
                 >
@@ -350,35 +383,42 @@ export default function NewSalePage() {
               clearSale();
               resetForNewSale();
             }}
-            className="h-10 shrink-0 rounded-md px-3 text-xs font-medium text-muted-foreground hover:bg-muted"
+            aria-label="Cancel sale"
+            className="flex size-11 shrink-0 items-center justify-center rounded-md text-xs font-medium text-muted-foreground hover:bg-muted sm:size-auto sm:h-10 sm:px-3"
           >
-            Cancel sale
+            <X className="size-5 sm:hidden" aria-hidden />
+            <span className="hidden sm:inline">Cancel sale</span>
           </button>
         </div>
 
+        {/* Who the sale is for, present in every step rather than gating the
+            first one. On wide screens the rail repeats it; on narrow ones this
+            chip is the only place it appears above the order bar. */}
+        <div className="mb-4 flex shrink-0 lg:hidden">
+          <CustomerChip
+            customer={customer}
+            onOpen={() => setCustomerPickerOpen(true)}
+          />
+        </div>
+
         {error && (
-          <p className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="mb-4 shrink-0 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}
           </p>
         )}
 
-        {/* Step 1 — customer */}
-        <section className={step === "customer" ? "flex flex-col gap-4" : "hidden"}>
-          <CustomerSearch onSelect={handleSelectCustomer} autoFocus />
-          <div className="flex justify-center">
-            <CustomerCreateDialog onCreated={handleSelectCustomer} />
-          </div>
-        </section>
-
-        {/* Step 2 — build cart */}
-        <section className={step === "cart" ? "flex flex-col gap-4" : "hidden"}>
-          {products === null ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-56" />
-              ))}
-            </div>
-          ) : (
+        {/* Step 1 — build the order (catalog + customer live together) */}
+        <section
+          className={step === "build" ? "flex min-h-0 flex-1 flex-col" : "hidden"}
+        >
+          <div className="min-h-0 flex-1">
+            {products === null ? (
+              <div className="grid h-full auto-rows-max grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 xl:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Skeleton key={i} className="h-56" />
+                ))}
+              </div>
+            ) : (
             <ProductPad
               products={products}
               cart={cart}
@@ -388,28 +428,34 @@ export default function NewSalePage() {
                 q <= 0 ? removeItem(itemId) : updateItem(itemId, q)
               }
             />
-          )}
-          <div className="sticky bottom-0 -mx-4 border-t border-border bg-white/95 p-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
+            )}
+          </div>
+          <div className="mt-3 shrink-0 rounded-xl border border-border bg-white p-3">
+            {/* One customer control per screen — the rail header on wide
+                viewports, the chip on narrow ones. This stays purely the step
+                advance, gated on having both a customer and a line. */}
             <Button
               className="h-14 w-full text-base"
-              disabled={!cart || cart.items.length === 0}
-              onClick={() => setStep("shipping")}
+              disabled={!customer || !cart || cart.items.length === 0}
+              onClick={() => setStep("checkout")}
             >
-              Continue to shipping
+              Continue to checkout
               <ArrowRight className="ml-2 size-5" />
             </Button>
           </div>
         </section>
 
-        {/* Step 3 — shipping (form stays mounted so FormData persists) */}
+        {/* Step 2 — checkout: shipping AND payment on one screen. Kept mounted
+            so FormData persists and Accept.js survives step changes. */}
         <form
           ref={formRef}
-          className={step === "shipping" ? "flex flex-col gap-5" : "hidden"}
+          className={step === "checkout" ? "flex min-h-0 flex-1 flex-col" : "hidden"}
           onSubmit={(e) => {
             e.preventDefault();
-            goToPayment();
+            submitSale();
           }}
         >
+          <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto">
           <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
             <h2 className="mb-3 font-serif text-xl text-[#0a1a2e]">Ship to</h2>
             <AddressFields
@@ -471,37 +517,12 @@ export default function NewSalePage() {
               <p className="mt-2 text-sm text-destructive">{discountError}</p>
             )}
           </div>
-
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-14 px-5"
-              onClick={() => setStep("cart")}
-            >
-              <ArrowLeft className="mr-2 size-5" />
-              Back
-            </Button>
-            <Button type="submit" className="h-14 flex-1 text-base">
-              Continue to payment
-              <ArrowRight className="ml-2 size-5" />
-            </Button>
-          </div>
-        </form>
-
-        {/* Step 4 — payment (kept mounted once reached so Accept.js survives) */}
-        <section className={step === "payment" ? "flex flex-col gap-5" : "hidden"}>
           <PaymentModeCards
             value={mode}
             onChange={setMode}
             disabled={submitting}
-            linkAvailable={modes.link}
+            availability={modeAvailability}
           />
-          {!modes.card && mode === "card" && (
-            <p className="text-sm text-muted-foreground">
-              On-page card entry is not enabled for this store.
-            </p>
-          )}
 
           <div className={mode === "card" && modes.card ? "" : "hidden"}>
             <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
@@ -509,8 +530,12 @@ export default function NewSalePage() {
                 ref={paymentRef}
                 config={paymentConfig}
                 storedMethods={[]}
+                // The POS only mounts this in card mode (gateway enabled), so the
+                // offline picker never renders here. Reps take offline payment
+                // through the Invoice mode tile instead.
+                manualMethods={[]}
                 isAuthenticated={false}
-                visible={step === "payment" && mode === "card"}
+                visible={step === "checkout" && mode === "card"}
               />
             </div>
           </div>
@@ -527,13 +552,14 @@ export default function NewSalePage() {
               person (age verification where applicable).
             </span>
           </label>
+          </div>
 
-          <div className="flex gap-2">
+          <div className="mt-4 flex shrink-0 gap-2">
             <Button
               type="button"
               variant="outline"
               className="h-14 px-5"
-              onClick={() => setStep("shipping")}
+              onClick={() => setStep("build")}
               disabled={submitting}
             >
               <ArrowLeft className="mr-2 size-5" />
@@ -544,10 +570,7 @@ export default function NewSalePage() {
               className="h-14 flex-1 text-base"
               style={{ background: GOLD, color: NAVY }}
               disabled={!mode || submitting || (mode === "card" && !modes.card)}
-              onClick={() => {
-                if (mode === "invoice") setConfirmInvoice(true);
-                else if (mode) placeOrder(mode);
-              }}
+              onClick={submitSale}
             >
               {submitting
                 ? "Placing order…"
@@ -560,28 +583,47 @@ export default function NewSalePage() {
                       : "Select a payment method"}
             </Button>
           </div>
-        </section>
+        </form>
+
+        {/* Below lg there is no room for the rail, and a POS that hides the
+            total has failed its one job. This bar keeps line count, customer
+            and total on the bottom edge — in the thumb zone — and expands to
+            the full order on tap. */}
+        <div className="mt-3 shrink-0 lg:hidden">
+          <SaleOrderBar
+            customer={customer}
+            cart={cart}
+            cartBusy={cartBusy}
+            shippingLabel={shippingLabel}
+            onSetQuantity={(itemId, q) =>
+              q <= 0 ? removeItem(itemId) : updateItem(itemId, q)
+            }
+            onRemove={removeItem}
+            onChangeCustomer={() => setCustomerPickerOpen(true)}
+          />
+        </div>
       </div>
 
-      {/* Right rail — running order */}
-      <aside className="sticky top-20 hidden h-[calc(100vh-6rem)] w-[360px] shrink-0 lg:block">
+      {/* Right rail — running order (wide screens only; below lg the pinned
+          SaleOrderBar carries the same information) */}
+      <aside className="hidden h-full w-[360px] shrink-0 lg:block">
         <SaleCartRail
           customer={customer}
           cart={cart}
           cartBusy={cartBusy}
-          shippingLabel={
-            shippingMethodId
-              ? (() => {
-                  const opt = shippingOptions.find((o) => o.method_id === shippingMethodId);
-                  return opt ? (opt.price === 0 ? "Free" : fmtCurrency(opt.price)) : null;
-                })()
-              : null
-          }
+          shippingLabel={shippingLabel}
           onSetQuantity={(itemId, q) => (q <= 0 ? removeItem(itemId) : updateItem(itemId, q))}
           onRemove={removeItem}
-          onChangeCustomer={() => setStep("customer")}
+          onRestore={(productId, quantity) => addItem(productId, quantity)}
+          onChangeCustomer={() => setCustomerPickerOpen(true)}
         />
       </aside>
+
+      <CustomerPickerSheet
+        open={customerPickerOpen}
+        onOpenChange={setCustomerPickerOpen}
+        onSelect={handleSelectCustomer}
+      />
 
       {/* Invoice confirmation */}
       <Dialog open={confirmInvoice} onOpenChange={setConfirmInvoice}>

@@ -47,9 +47,21 @@ test("rep signs in, lands on POS dashboard, and walks the new-sale flow", async 
   ).toBeVisible();
   await expect(page.getByText(/rep portal/i).first()).toBeVisible();
 
-  // ── Step 1: pick a customer ───────────────────────────────────────────
+  // ── Step 1: build the order ───────────────────────────────────────────
+  // The catalog is live immediately — attaching a customer is a drawer, not a
+  // gate, so a rep can start ringing items before the account is chosen.
   await page.getByRole("link", { name: /^new sale$/i }).last().click();
   await page.waitForURL(/\/rep\/new-sale/);
+
+  const addButton = page.getByRole("button", { name: /^add$/i }).first();
+  await addButton.waitFor({ timeout: 20_000 });
+  await addButton.click();
+
+  // ── Attach the customer from the drawer ───────────────────────────────
+  // Wide viewports use the rail header; narrow ones the "Walk-in" chip.
+  const railCustomer = page.getByRole("button", { name: /selling to/i }).first();
+  const chipCustomer = page.getByRole("button", { name: /walk-in/i }).first();
+  await ((await railCustomer.count()) > 0 ? railCustomer : chipCustomer).click();
 
   const firstCustomer = page
     .locator("button", { hasText: "@" }) // customer rows show the email
@@ -57,19 +69,14 @@ test("rep signs in, lands on POS dashboard, and walks the new-sale flow", async 
   await firstCustomer.waitFor({ timeout: 15_000 });
   await firstCustomer.click();
 
-  // ── Step 2: build the cart ────────────────────────────────────────────
-  const addButton = page.getByRole("button", { name: /^add$/i }).first();
-  await addButton.waitFor({ timeout: 20_000 });
-  await addButton.click();
-
   // The rail (or mobile summary) reflects the line; continue is enabled.
-  const continueShipping = page.getByRole("button", {
-    name: /continue to shipping/i,
+  const continueCheckout = page.getByRole("button", {
+    name: /continue to checkout/i,
   });
-  await expect(continueShipping).toBeEnabled({ timeout: 15_000 });
-  await continueShipping.click();
+  await expect(continueCheckout).toBeEnabled({ timeout: 15_000 });
+  await continueCheckout.click();
 
-  // ── Step 3: shipping ──────────────────────────────────────────────────
+  // ── Step 2: checkout — shipping AND payment on one screen ─────────────
   await page.locator('[id="rep-ship-line1"]').fill("100 Test Ave");
   await page.locator('[id="rep-ship-city"]').fill("Austin");
   await page.locator('[id="rep-ship-zip"]').fill("78701");
@@ -87,9 +94,7 @@ test("rep signs in, lands on POS dashboard, and walks the new-sale flow", async 
   }
   await expect(page.locator('[name="country"]')).not.toHaveValue("");
 
-  await page.getByRole("button", { name: /continue to payment/i }).click();
-
-  // ── Step 4: payment modes ─────────────────────────────────────────────
+  // No step boundary — payment modes are already on screen below shipping.
   const invoiceMode = page.getByRole("radio", { name: /invoice/i });
   await expect(invoiceMode).toBeVisible();
   await invoiceMode.click();

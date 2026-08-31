@@ -45,8 +45,8 @@ export function CustomerSearch({
   }, [query]);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="relative">
+    <div className="flex min-h-0 flex-col gap-3">
+      <div className="relative shrink-0">
         <Search className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
@@ -66,7 +66,7 @@ export function CustomerSearch({
         </p>
       )}
 
-      <div className="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border bg-white">
+      <div className="flex min-h-0 flex-col divide-y divide-border overflow-y-auto rounded-xl border border-border bg-white">
         {loading ? (
           <div className="flex flex-col gap-2 p-3">
             <Skeleton className="h-12" />

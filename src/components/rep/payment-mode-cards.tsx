@@ -1,6 +1,7 @@
 "use client";
 
 import { CreditCard, FileText, Link2 } from "lucide-react";
+import type { PaymentModeAvailability } from "@/app/rep/new-sale/sale-logic";
 
 export type PaymentMode = "card" | "link" | "invoice";
 
@@ -34,19 +35,20 @@ export function PaymentModeCards({
   value,
   onChange,
   disabled,
-  linkAvailable = true,
+  availability,
 }: {
   value: PaymentMode | null;
   onChange: (mode: PaymentMode) => void;
   disabled?: boolean;
-  /** Gateways without pay-by-link support gray the link option out. */
-  linkAvailable?: boolean;
+  /** Per-mode usability — see paymentModeAvailability(). */
+  availability: Record<PaymentMode, PaymentModeAvailability>;
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Payment method">
       {MODES.map(({ mode, title, description, icon: Icon }) => {
         const active = value === mode;
-        const unavailable = mode === "link" && !linkAvailable;
+        const { available, reason } = availability[mode];
+        const unavailable = !available;
         return (
           <button
             key={mode}
@@ -71,7 +73,7 @@ export function PaymentModeCards({
             <span
               className={`text-xs leading-snug ${active ? "text-white/70" : "text-muted-foreground"}`}
             >
-              {unavailable ? "Not available on this store's gateway." : description}
+              {reason ?? description}
             </span>
           </button>
         );
