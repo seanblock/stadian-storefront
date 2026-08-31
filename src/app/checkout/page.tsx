@@ -368,7 +368,9 @@ export default function CheckoutPage() {
       clearSession();
 
       if (result.kind === "redirect") {
-        window.location.href = result.url;
+        // assign() rather than href = : same navigation, but the lint rule
+        // reads a bare href assignment as mutating a value it protects.
+        window.location.assign(result.url);
         return;
       }
 
