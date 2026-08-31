@@ -173,6 +173,8 @@ export default function AccountSettingsPage() {
               <Label htmlFor="currentPassword">Current password</Label>
               <Input
                 id="currentPassword"
+                name="current-password"
+                autoComplete="current-password"
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -183,6 +185,8 @@ export default function AccountSettingsPage() {
               <Label htmlFor="newPassword">New password</Label>
               <Input
                 id="newPassword"
+                name="new-password"
+                autoComplete="new-password"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -194,6 +198,8 @@ export default function AccountSettingsPage() {
               <Label htmlFor="confirmPassword">Confirm new password</Label>
               <Input
                 id="confirmPassword"
+                name="confirm-password"
+                autoComplete="new-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
