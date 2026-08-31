@@ -5,15 +5,24 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthShell } from "@/components/layout/auth-shell";
+
+// Matches the register form — the two pages sit either side of one link, so
+// they have to feel like the same store.
+const FIELD = "h-11 rounded-lg px-3.5 text-[15px]";
+const FIELD_LABEL =
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/70";
+const SUBMIT =
+  "h-12 w-full rounded-full text-[11.5px] font-bold uppercase tracking-[0.22em] transition-transform duration-300 hover:-translate-y-0.5 disabled:hover:translate-y-0";
+
+const POINTS = [
+  "Your pricing, applied the moment you sign in",
+  "Every order, invoice and batch number in one place",
+  "Reorder in a click from your account history",
+  "Saved addresses — checkout in under a minute",
+] as const;
 
 function LoginForm() {
   const router = useRouter();
@@ -49,80 +58,95 @@ function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Sign In</CardTitle>
-        <CardDescription>
-          Enter your email and password to access your account.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="grid gap-4">
-          {sessionExpired && !error && (
-            <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
-              Your session expired — sign in again.
-            </div>
-          )}
+    <form onSubmit={handleSubmit} className="grid gap-5">
+      {sessionExpired && !error && (
+        <div className="rounded-lg border border-border bg-muted/50 px-3.5 py-2.5 text-sm text-muted-foreground">
+          Your session expired — sign in again.
+        </div>
+      )}
 
-          {error && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </div>
-          )}
+      {error && (
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/50 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive"
+        >
+          {error}
+        </div>
+      )}
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+      <div className="grid gap-2">
+        <Label htmlFor="email" className={FIELD_LABEL}>
+          Email
+        </Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="you@example.com"
+          required
+          autoComplete="email"
+          className={FIELD}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Link href="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground">
-              Forgot password?
-            </Link>
-          </div>
+      <div className="grid gap-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <Label htmlFor="password" className={FIELD_LABEL}>
+            Password
+          </Label>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+        <Input
+          id="password"
+          type="password"
+          required
+          autoComplete="current-password"
+          className={FIELD}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
 
-          <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? "Signing in..." : "Sign In"}
-          </Button>
+      <Button type="submit" disabled={submitting} className={`mt-2 ${SUBMIT}`}>
+        {submitting ? "Signing in..." : "Sign in"}
+      </Button>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/register"
-              className="font-medium text-primary hover:underline"
-            >
-              Create one
-            </Link>
-          </p>
-        </form>
-      </CardContent>
-    </Card>
+      <p className="border-t border-border pt-5 text-center text-sm text-muted-foreground">
+        Don&apos;t have an account?{" "}
+        <Link
+          href="/register"
+          className="font-medium text-foreground underline-offset-4 hover:underline"
+        >
+          Create one
+        </Link>
+      </p>
+    </form>
   );
 }
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center px-4">
-      <Suspense fallback={<Card className="w-full max-w-sm"><CardContent className="py-8 text-center text-sm text-muted-foreground">Loading...</CardContent></Card>}>
+    <AuthShell
+      eyebrow="Account access"
+      headline={<>Welcome back</>}
+      blurb="Sign in to see your pricing, your order history and everything you've bought."
+      points={POINTS}
+    >
+      <Suspense
+        fallback={
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Loading...
+          </p>
+        }
+      >
         <LoginForm />
       </Suspense>
-    </div>
+    </AuthShell>
   );
 }

@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import type { StorefrontCustomerProfile } from "@stadian/storefront-sdk";
 import {
   loginCustomer as loginAction,
@@ -55,6 +56,7 @@ export interface RegisterData {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [customer, setCustomer] =
     useState<StorefrontCustomerProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,7 +106,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await logoutAction();
     setCustomer(null);
-  }, []);
+    // Signing out from inside /account would otherwise leave the customer on a
+    // page they can no longer see the contents of. Send them home, and refresh
+    // so server components re-render without the (now deleted) auth cookies.
+    router.replace("/");
+    router.refresh();
+  }, [router]);
 
   const isAuthenticated = customer !== null;
   const isAffiliate =
