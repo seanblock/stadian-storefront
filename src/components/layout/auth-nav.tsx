@@ -52,13 +52,16 @@ export function AuthNav() {
         />
         {customer?.first_name || "Account"}
       </Link>
+      {/* Labelled, not a glyph. This was a bare "↗" at 45% opacity, which reads
+          as an external-link marker — the one thing it is not — so signing out
+          was effectively undiscoverable. Matches the micro-label style of the
+          links beside it. */}
       <button
         type="button"
         onClick={() => logout()}
-        className="text-[11px] font-medium opacity-45 transition-opacity duration-300 hover:opacity-80"
-        aria-label="Sign out"
+        className="px-2.5 py-1.5 text-[10.5px] font-medium uppercase tracking-[0.22em] opacity-55 transition-opacity duration-300 hover:opacity-100"
       >
-        ↗
+        Sign out
       </button>
     </div>
   );
