@@ -102,6 +102,7 @@ class CheckoutResource {
                 billing_address: params.billingAddress,
                 shipping_method_id: params.shippingMethodId,
                 affiliate_ref: params.affiliateRef,
+                age_verification_accepted: params.ageVerificationAccepted,
                 notes: params.notes,
                 payment_method: params.paymentMethod,
                 payment_reference: params.paymentReference,

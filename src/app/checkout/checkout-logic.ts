@@ -87,10 +87,14 @@ export interface BuildPayloadInput {
   customerToken: string | undefined;
   notes: string | undefined;
   paymentData: PaymentData;
+  /** Buyer ticked the age confirmation. Recorded server-side before the
+   *  compliance guard runs. */
+  ageVerificationAccepted?: boolean;
 }
 
 export function buildOrderPayload(input: BuildPayloadInput) {
   return {
+    ageVerificationAccepted: input.ageVerificationAccepted,
     customerEmail: input.email,
     shippingAddress: input.shipping,
     billingAddress: input.sameAsShipping ? undefined : input.billing,

@@ -37,6 +37,7 @@ export async function createOrder(
     savePaymentMethod?: boolean;
     shippingMethodId?: string;
     customerToken?: string;
+    ageVerificationAccepted?: boolean;
   }
 ): Promise<CreateOrderResult> {
   const cookieStore = await cookies();
@@ -73,6 +74,7 @@ export async function createOrder(
       customerToken,
       shippingMethodId: data.shippingMethodId,
       affiliateRef: referralCode || undefined,
+      ageVerificationAccepted: data.ageVerificationAccepted,
     });
 
     if (referralCode) {

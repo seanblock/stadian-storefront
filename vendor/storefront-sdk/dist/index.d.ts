@@ -69,6 +69,10 @@ export interface CheckoutCreateParams {
     savePaymentMethod?: boolean;
     customerToken?: string;
     affiliateRef?: string;
+    /** Buyer ticked the age confirmation at checkout. Recorded before the
+     *  compliance guard runs, so a first-time buyer can satisfy the age
+     *  requirement in the same action that places the order. */
+    ageVerificationAccepted?: boolean;
 }
 export interface IntakeSubmitParams {
     intakeFormId: string;

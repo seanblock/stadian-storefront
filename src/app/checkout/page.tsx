@@ -82,6 +82,7 @@ export default function CheckoutPage() {
 
   const [paymentConfig, setPaymentConfig] = useState<PaymentClientConfig | null>(null);
   const [manualMethods, setManualMethods] = useState<ManualPaymentMethod[]>([]);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
   const [configLoading, setConfigLoading] = useState(true);
   const [checkoutFlow, setCheckoutFlow] = useState<CheckoutFlowResponse | null>(null);
@@ -154,6 +155,21 @@ export default function CheckoutPage() {
       router.push("/cart");
     }
   }, [loading, cart, router]);
+
+  // Learn the compliance requirements up front, not at submit. The age
+  // disclaimer is the one that matters: the guard rejects the order without it,
+  // so the buyer needs a way to confirm BEFORE they press Place Order.
+  useEffect(() => {
+    let cancelled = false;
+    const sessionId = getSessionId();
+    if (!sessionId) return;
+    getCheckoutFlow(sessionId, "").then((flow) => {
+      if (!cancelled && flow) setCheckoutFlow(flow);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,6 +282,13 @@ export default function CheckoutPage() {
     // An offline store must know HOW the buyer intends to pay — that choice is
     // what triggers the payment-instruction email. Checked synchronously: any
     // await here would detach the form event before FormData is built below.
+    if (needsAgeConfirmation && !ageConfirmed) {
+      submitAttemptedRef.current = true;
+      setSubmitAttempted(true);
+      setError("Please confirm you meet the minimum age requirement.");
+      return;
+    }
+
     if (
       !paymentConfig?.gateway_enabled &&
       manualMethods.length > 0 &&
@@ -319,6 +342,9 @@ export default function CheckoutPage() {
         customerToken: undefined, // resolved in Task 10
         notes: (data.get("notes") as string) || undefined,
         paymentData,
+        // Recorded server-side before the compliance guard runs, so the buyer
+        // satisfies the age requirement in the same action that places the order.
+        ageVerificationAccepted: needsAgeConfirmation && ageConfirmed,
       });
 
       const sessionId = getSessionId();
@@ -383,11 +409,31 @@ export default function CheckoutPage() {
     );
   }
 
+  // The age disclaimer is the one requirement the buyer can satisfy right here,
+  // by ticking the box below — so it must not count as a blocker the way an
+  // unverified identity or a restricted shipping state does.
+  const ageStep = checkoutFlow?.steps.find(
+    (s) => s.step === "disclaimer" && s.type === "age_verification",
+  );
+  const needsAgeConfirmation = !!ageStep && !ageStep.completed;
+
+  const hasUnresolvableBlocker =
+    checkoutFlow != null &&
+    (checkoutFlow.blocked_products.length > 0 ||
+      checkoutFlow.steps.some(
+        (s) =>
+          s.required &&
+          !s.completed &&
+          s.step !== "payment" &&
+          !(s.step === "disclaimer" && s.type === "age_verification"),
+      ));
+
   const placeOrderDisabled =
     submitting ||
     configLoading ||
     !formFilled ||
-    (checkoutFlow != null && !checkoutFlow.ready_to_checkout);
+    hasUnresolvableBlocker ||
+    (needsAgeConfirmation && !ageConfirmed);
 
   return (
     <div className="container mx-auto max-w-5xl px-4 py-12">
@@ -541,6 +587,42 @@ export default function CheckoutPage() {
                     visible={step === 3}
                   />
                 )}
+
+                {/* Age confirmation. The compliance guard requires a recorded
+                    acceptance for age-restricted products and will reject the
+                    order without one, so it has to be collectable here — a
+                    first-time buyer has no other way to give it. */}
+                {needsAgeConfirmation && (
+                  <div
+                    className={`rounded-lg border p-4 ${
+                      submitAttempted && !ageConfirmed
+                        ? "border-destructive bg-destructive/5"
+                        : "border-border bg-muted/40"
+                    }`}
+                  >
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={ageConfirmed}
+                        onChange={(e) => {
+                          setAgeConfirmed(e.target.checked);
+                          if (e.target.checked) setError(null);
+                        }}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                      />
+                      <span className="text-sm">
+                        {ageStep?.description ??
+                          "I confirm I meet the minimum age requirement for these products."}
+                      </span>
+                    </label>
+                    {submitAttempted && !ageConfirmed && (
+                      <p className="mt-2 pl-7 text-sm text-destructive">
+                        Please confirm this to place your order.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="notes">
                     Order notes{" "}
