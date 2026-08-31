@@ -364,7 +364,15 @@ export default function CheckoutPage() {
   }
 
   if (confirmedOrder) {
-    return <OrderConfirmation order={confirmedOrder} email={lastEmail} />;
+    return (
+      <OrderConfirmation
+        order={confirmedOrder}
+        email={lastEmail}
+        manualMethod={manualMethods.find(
+          (m) => m.key === confirmedOrder.payment_method,
+        )}
+      />
+    );
   }
 
   if (loading || !cart || cart.items.length === 0) {

@@ -13,6 +13,25 @@ export class RepResource {
     auth(token) {
         return { Authorization: `Bearer ${token}` };
     }
+    /**
+     * The catalog priced for the customer the rep is selling to.
+     *
+     * Without `customerId` prices come from the rep's own tier and are only
+     * indicative — pass the attached customer so the grid matches what the cart
+     * will actually charge.
+     */
+    listProducts(params) {
+        return this.http.request("GET", "/rep/products", {
+            headers: this.auth(params.customerToken),
+            query: {
+                customer_id: params.customerId,
+                page: params.page,
+                limit: params.limit,
+                search: params.search,
+                category_id: params.categoryId,
+            },
+        });
+    }
     /** Search the store's customers (staff never appear). */
     searchCustomers(params) {
         return this.http.request("GET", "/rep/customers", {

@@ -1,5 +1,14 @@
 import type { HttpClient } from "../client";
-import type { RepCheckoutResponse, RepCustomer, RepCustomersResponse, RepDashboard, RepOrderSummary, RepOrdersResponse } from "../types";
+import type { PaginatedList, RepCheckoutResponse, RepCustomer, RepCustomersResponse, RepDashboard, RepOrderSummary, RepOrdersResponse, StorefrontProduct } from "../types";
+export interface RepListProductsParams {
+    customerToken: string;
+    /** Price the grid at this customer's tier. Omit for the rep's own tier. */
+    customerId?: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+    categoryId?: string;
+}
 export interface RepSearchCustomersParams {
     customerToken: string;
     search?: string;
@@ -55,6 +64,14 @@ export declare class RepResource {
     private http;
     constructor(http: HttpClient);
     private auth;
+    /**
+     * The catalog priced for the customer the rep is selling to.
+     *
+     * Without `customerId` prices come from the rep's own tier and are only
+     * indicative — pass the attached customer so the grid matches what the cart
+     * will actually charge.
+     */
+    listProducts(params: RepListProductsParams): Promise<PaginatedList<StorefrontProduct>>;
     /** Search the store's customers (staff never appear). */
     searchCustomers(params: RepSearchCustomersParams): Promise<RepCustomersResponse>;
     /** Single customer, including their most recent ship-to for prefill. */

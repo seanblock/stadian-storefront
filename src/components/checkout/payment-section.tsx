@@ -24,6 +24,7 @@ import {
   formatCvv,
   cvvMaxLength,
 } from "./card-format";
+import { manualFieldLabel } from "./manual-payment";
 import { StoredMethods } from "./stored-methods";
 import { BillingAddress } from "./billing-address";
 import { Label } from "@/components/ui/label";
@@ -183,30 +184,6 @@ const CARD_FIELD_IDS = {
   cardExpiry: "sf-card-expiry",
   cardCvv: "sf-card-cvv",
 } as const;
-/**
- * Human label for a manual-payment detail field. The API returns config field
- * names (`ach_routing_number`, `zelle_email`), which are method-prefixed; the
- * method is already the heading, so the prefix is dropped and the rest
- * title-cased. Explicit entries cover the cases where that reads badly.
- */
-const MANUAL_FIELD_LABELS: Record<string, string> = {
-  cashapp_cashtag: "$Cashtag",
-  venmo_handle: "Venmo Handle",
-  zelle_email: "Zelle Email",
-  check_payable_to: "Make Check Payable To",
-  check_mailing_address: "Mail To",
-};
-
-function manualFieldLabel(field: string): string {
-  const explicit = MANUAL_FIELD_LABELS[field];
-  if (explicit) return explicit;
-  return field
-    .replace(/^(ach|wire|zelle|venmo|cashapp|check)_/, "")
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
 const ACH_FIELD_IDS = {
   accountNumber: "sf-ach-account",
   routingNumber: "sf-ach-routing",

@@ -132,6 +132,9 @@ export interface StorefrontOrder {
     id: string;
     order_number: string | null;
     status: string;
+    /** The offline method the buyer chose ("zelle", "ach", …), when there was
+     *  one. Needed to show them how to pay while the order awaits payment. */
+    payment_method?: string | null;
     subtotal: number;
     discount_amount: number;
     tax_amount: number;

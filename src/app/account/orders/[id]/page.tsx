@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { getManualPaymentMethods } from "@/app/actions/payments";
+import { manualFieldLabel } from "@/components/checkout/manual-payment";
 
 export const metadata: Metadata = { title: "Order Details" };
 
@@ -42,6 +44,13 @@ export default async function OrderDetailPage({ params }: PageProps) {
 
   const showPaymentWarning =
     order.status === "pending" || order.status === "pending_payment";
+
+  // For an order awaiting an offline payment, look up the details for the
+  // method the buyer chose. This page is where a logged-in buyer lands after
+  // checkout, so it — not just the emailed copy — has to tell them how to pay.
+  const manualMethod = showPaymentWarning && order.payment_method
+    ? (await getManualPaymentMethods()).find((m) => m.key === order.payment_method)
+    : undefined;
   const isCancelled = order.status === "cancelled";
   const headerIcon = isCancelled ? "M6 18 18 6 M6 6l12 12" : "M20 6 9 17l-5-5";
   const headerColor = isCancelled
@@ -137,13 +146,47 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 Payment Required
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                Your order has been received but payment has not yet been
-                collected. Please complete your payment according to the
-                instructions provided by the store. Your order will be processed
-                once payment is confirmed.
-              </p>
+            <CardContent className="text-sm text-yellow-800 dark:text-yellow-300">
+              {manualMethod ? (
+                <>
+                  <p className="mb-3">
+                    We&rsquo;ve reserved your items. Send your payment by{" "}
+                    <strong>{manualMethod.label}</strong> using the details below
+                    and we&rsquo;ll start preparing your order as soon as it
+                    arrives.
+                  </p>
+                  {manualMethod.customer_instructions && (
+                    <p className="mb-3">{manualMethod.customer_instructions}</p>
+                  )}
+                  <dl className="flex flex-col gap-1.5">
+                    {Object.entries(manualMethod.details).map(([field, value]) => (
+                      <div key={field} className="flex flex-wrap gap-x-2">
+                        <dt className="font-medium">{manualFieldLabel(field)}:</dt>
+                        <dd>{value}</dd>
+                      </div>
+                    ))}
+                    <div className="flex flex-wrap gap-x-2">
+                      <dt className="font-medium">Amount:</dt>
+                      <dd className="tabular-nums">{formatCurrency(order.total)}</dd>
+                    </div>
+                    <div className="flex flex-wrap gap-x-2">
+                      <dt className="font-medium">Reference / memo:</dt>
+                      <dd>Order {order.order_number ?? order.id.slice(0, 8)}</dd>
+                    </div>
+                  </dl>
+                  <p className="mt-3">
+                    Include the order number as the payment reference so we can
+                    match your payment.
+                  </p>
+                </>
+              ) : (
+                <p>
+                  Your order has been received but payment has not yet been
+                  collected. Please complete your payment according to the
+                  instructions provided by the store. Your order will be processed
+                  once payment is confirmed.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
