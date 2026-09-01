@@ -5,6 +5,7 @@ import { getHttpClient } from "@/lib/stadian";
 import {
   PREVIEW_COOKIE,
   PREVIEW_MAX_AGE,
+  hasPreviewSecret,
   makePreviewToken,
 } from "@/lib/preview-access";
 
@@ -24,6 +25,17 @@ export async function submitPreviewPassword(
   const trimmed = password.trim();
   if (!trimmed) return { ok: false, reason: "invalid" };
 
+  // Checked before the password is verified, never after: branching on the
+  // secret only once we know the password was right would tell an attacker
+  // when they had guessed it, on a deployment that grants nothing either way.
+  if (!hasPreviewSecret()) {
+    console.error(
+      "[preview-access] No signing secret is set (STOREFRONT_PREVIEW_SECRET " +
+        "or STADIAN_API_KEY) — preview grants cannot be issued."
+    );
+    return { ok: false, reason: "unavailable" };
+  }
+
   let ok = false;
   try {
     const res = await getHttpClient().request<{ ok: boolean }>(
@@ -39,14 +51,11 @@ export async function submitPreviewPassword(
   if (!ok) return { ok: false, reason: "invalid" };
 
   const expiresAt = Math.floor(Date.now() / 1000) + PREVIEW_MAX_AGE;
+  // Unreachable given the check above; a null here would mean the secret was
+  // removed mid-request, so fail closed as an ordinary rejection rather than
+  // reporting anything back about the password.
   const token = makePreviewToken(expiresAt);
-  if (!token) {
-    console.error(
-      "[preview-access] Correct password, but no signing secret is set " +
-        "(STOREFRONT_PREVIEW_SECRET or STADIAN_API_KEY) — cannot issue a grant."
-    );
-    return { ok: false, reason: "unavailable" };
-  }
+  if (!token) return { ok: false, reason: "invalid" };
 
   const cookieStore = await cookies();
   cookieStore.set(PREVIEW_COOKIE, token, {

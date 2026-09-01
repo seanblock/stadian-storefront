@@ -21,6 +21,16 @@ function getSecret(): string {
   return process.env.STOREFRONT_PREVIEW_SECRET || process.env.STADIAN_API_KEY || "";
 }
 
+/**
+ * Whether this deployment can issue grants at all. Callers check this BEFORE
+ * verifying a password: deciding afterwards would make the response depend on
+ * whether the guess was right, turning a misconfigured deployment into an
+ * oracle that confirms a correct password while refusing access.
+ */
+export function hasPreviewSecret(): boolean {
+  return getSecret() !== "";
+}
+
 function sign(payload: string, secret: string): string {
   return crypto.createHmac("sha256", secret).update(payload).digest("hex");
 }
