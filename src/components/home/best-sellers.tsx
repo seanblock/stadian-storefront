@@ -98,24 +98,31 @@ export function BestSellers({ products, pricesHidden = false }: BestSellersProps
                 </div>
                 <div className="mt-4 px-0.5">
                   <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="line-clamp-1 font-serif text-lg leading-snug">
+                    {/* min-w-0: a flex item defaults to min-width:auto, so without
+                        it the title refuses to shrink below its content and the
+                        clamp has nothing to work with. */}
+                    <h3 className="min-w-0 flex-1 line-clamp-1 font-serif text-lg leading-snug">
                       {product.name}
                     </h3>
-                    <span className="shrink-0 text-sm font-bold">
-                      {pricesHidden ? (
-                        <span
-                          className="text-[10px] font-medium uppercase tracking-[0.14em]"
-                          style={{ color: NAVY_DIM }}
-                        >
-                          Sign in for pricing
-                        </span>
-                      ) : product.price != null ? (
-                        formatCurrency(product.price)
-                      ) : (
-                        ""
-                      )}
-                    </span>
+                    {!pricesHidden && product.price != null && (
+                      <span className="shrink-0 text-sm font-bold">
+                        {formatCurrency(product.price)}
+                      </span>
+                    )}
                   </div>
+                  {/* On its own line, not opposite the title. "Sign in for
+                      pricing" is ~19 characters of letter-spaced uppercase, and
+                      sat next to the name it left a two-column phone card
+                      rendering the product as "C…". A price is short enough to
+                      share the row; this is not. */}
+                  {pricesHidden && (
+                    <p
+                      className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em]"
+                      style={{ color: NAVY_DIM }}
+                    >
+                      Sign in for pricing
+                    </p>
+                  )}
                   <div className="mt-0.5 flex items-baseline justify-between gap-3">
                     {product.form_type ? (
                       <p
