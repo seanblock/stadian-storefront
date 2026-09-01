@@ -14,7 +14,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { getManualPaymentMethods } from "@/app/actions/payments";
-import { manualFieldLabel } from "@/components/checkout/manual-payment";
+import {
+  hasMaskedDetail,
+  manualFieldLabel,
+} from "@/components/checkout/manual-payment";
 
 export const metadata: Metadata = { title: "Order Details" };
 
@@ -173,6 +176,12 @@ export default async function OrderDetailPage({ params }: PageProps) {
                       <dt className="font-medium">Reference / memo:</dt>
                       <dd>Order {order.order_number ?? order.id.slice(0, 8)}</dd>
                     </div>
+                    {hasMaskedDetail(manualMethod.details) && (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Part of these details is hidden for security. The full
+                        account details are in your confirmation email.
+                      </p>
+                    )}
                   </dl>
                   <p className="mt-3">
                     Include the order number as the payment reference so we can

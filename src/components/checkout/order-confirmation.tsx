@@ -4,7 +4,7 @@ import { CheckCircle2, Clock, Mail, Package } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { ManualPaymentMethod } from "@/app/actions/payments";
-import { manualFieldLabel } from "./manual-payment";
+import { hasMaskedDetail, manualFieldLabel } from "./manual-payment";
 
 export interface ConfirmedOrder {
   id: string;
@@ -118,6 +118,12 @@ export function OrderConfirmation({
                 <dd className="text-muted-foreground">Order {orderRef}</dd>
               </div>
             </dl>
+            {hasMaskedDetail(manualMethod.details) && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Part of these details is hidden for security. The full account
+                details are in the confirmation email we sent you.
+              </p>
+            )}
             <p className="mt-3 text-muted-foreground">
               Include the order number as the payment reference so we can match your
               payment. We&rsquo;ll start preparing your order once it arrives.

@@ -87,11 +87,12 @@ export function AuthShell({
       </aside>
 
       {/* Form column */}
-      {/* Matches the panel's full-bleed height so a short form (sign in) sits
+      {/* div, not <main> — the root layout already renders the page <main>.
+          Matches the panel's full-bleed height so a short form (sign in) sits
           centred against it, while a long one (register) just scrolls. */}
-      <main className="flex items-start justify-center px-5 py-12 sm:px-10 lg:min-h-[calc(100vh-5.5rem)] lg:items-center lg:py-20">
+      <div className="flex items-start justify-center px-5 py-12 sm:px-10 lg:min-h-[calc(100vh-5.5rem)] lg:items-center lg:py-20">
         <div className="w-full max-w-md">{children}</div>
-      </main>
+      </div>
     </div>
   );
 }

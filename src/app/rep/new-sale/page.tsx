@@ -98,6 +98,20 @@ export default function NewSalePage() {
   const [disclaimersConfirmed, setDisclaimersConfirmed] = useState(true);
   const [result, setResult] = useState<RepCheckoutResponse | null>(null);
   const [discountEntry, setDiscountEntry] = useState("");
+
+  // Every cart mutation throws — requireSession() when the sale has gone away,
+  // StadianError for stock and session failures — and each call site below is a
+  // tap on a POS button. Unhandled, the rejection is swallowed: the rep taps Add
+  // and simply watches nothing happen. Route failures to the same error banner
+  // the rest of the flow already uses.
+  const runCartAction = useCallback(async (action: () => Promise<unknown>) => {
+    setError(null);
+    try {
+      await action();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update the sale");
+    }
+  }, []);
   const [discountError, setDiscountError] = useState<string | null>(null);
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -423,9 +437,11 @@ export default function NewSalePage() {
               products={products}
               cart={cart}
               cartBusy={cartBusy}
-              onAdd={(productId) => addItem(productId, 1)}
+              onAdd={(productId) => runCartAction(() => addItem(productId, 1))}
               onSetQuantity={(itemId, q) =>
-                q <= 0 ? removeItem(itemId) : updateItem(itemId, q)
+                runCartAction(() =>
+                  q <= 0 ? removeItem(itemId) : updateItem(itemId, q)
+                )
               }
             />
             )}
@@ -596,9 +612,11 @@ export default function NewSalePage() {
             cartBusy={cartBusy}
             shippingLabel={shippingLabel}
             onSetQuantity={(itemId, q) =>
-              q <= 0 ? removeItem(itemId) : updateItem(itemId, q)
+              runCartAction(() =>
+                q <= 0 ? removeItem(itemId) : updateItem(itemId, q)
+              )
             }
-            onRemove={removeItem}
+            onRemove={(itemId) => runCartAction(() => removeItem(itemId))}
             onChangeCustomer={() => setCustomerPickerOpen(true)}
           />
         </div>
@@ -612,9 +630,13 @@ export default function NewSalePage() {
           cart={cart}
           cartBusy={cartBusy}
           shippingLabel={shippingLabel}
-          onSetQuantity={(itemId, q) => (q <= 0 ? removeItem(itemId) : updateItem(itemId, q))}
-          onRemove={removeItem}
-          onRestore={(productId, quantity) => addItem(productId, quantity)}
+          onSetQuantity={(itemId, q) =>
+            runCartAction(() => (q <= 0 ? removeItem(itemId) : updateItem(itemId, q)))
+          }
+          onRemove={(itemId) => runCartAction(() => removeItem(itemId))}
+          onRestore={(productId, quantity) =>
+            runCartAction(() => addItem(productId, quantity))
+          }
           onChangeCustomer={() => setCustomerPickerOpen(true)}
         />
       </aside>

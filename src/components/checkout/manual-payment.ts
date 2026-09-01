@@ -27,3 +27,13 @@ export function manualFieldLabel(field: string): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
+
+/**
+ * True when any detail came back masked. The API deliberately redacts wire/ACH
+ * account numbers in public responses (they arrive as `****1234`), sending the
+ * full details by email instead — so a buyer on those methods is looking at
+ * something they cannot actually pay with, and has to be told where the rest is.
+ */
+export function hasMaskedDetail(details: Record<string, string>): boolean {
+  return Object.values(details).some((value) => value.startsWith("****"));
+}

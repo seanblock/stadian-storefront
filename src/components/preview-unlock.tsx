@@ -8,20 +8,20 @@ const CREAM = "#F5F1E6";
 export function PreviewUnlock() {
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<null | "invalid" | "unavailable">(null);
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!password.trim() || pending) return;
-    setError(false);
+    setError(null);
     startTransition(async () => {
       const res = await submitPreviewPassword(password);
       if (res.ok) {
         // Reload so the server re-renders the now-unlocked store.
         window.location.reload();
       } else {
-        setError(true);
+        setError(res.reason);
       }
     });
   }
@@ -51,14 +51,14 @@ export function PreviewUnlock() {
         value={password}
         onChange={(e) => {
           setPassword(e.target.value);
-          setError(false);
+          setError(null);
         }}
         placeholder="Preview password"
-        aria-invalid={error}
+        aria-invalid={error !== null}
         className="w-full rounded-md border px-3 py-2 text-center text-sm outline-none"
         style={{
           background: "color-mix(in srgb, " + CREAM + " 8%, transparent)",
-          borderColor: error
+          borderColor: error !== null
             ? "#e2708a"
             : "color-mix(in srgb, " + CREAM + " 30%, transparent)",
           color: CREAM,
@@ -74,7 +74,9 @@ export function PreviewUnlock() {
       </button>
       {error ? (
         <p className="text-xs" style={{ color: "#e2708a" }}>
-          Incorrect password. Please try again.
+          {error === "unavailable"
+            ? "Preview access isn't configured for this store yet."
+            : "Incorrect password. Please try again."}
         </p>
       ) : null}
     </form>
