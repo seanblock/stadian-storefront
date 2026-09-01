@@ -6,6 +6,7 @@ import { useCart } from "@/providers/cart-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { OrderSummary } from "@/components/cart/order-summary";
 import { createOrder } from "@/app/actions/checkout";
+import { Turnstile } from "@/components/turnstile";
 import {
   getManualPaymentMethods,
   getPaymentConfig,
@@ -88,6 +89,10 @@ export default function CheckoutPage() {
   const [checkoutFlow, setCheckoutFlow] = useState<CheckoutFlowResponse | null>(null);
 
   // Validation state
+  const [turnstileToken, setTurnstileToken] = useState("");
+  // A Turnstile token is single-use: a rejected order leaves the buyer holding
+  // a spent one, so any failed submit issues a fresh challenge.
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [formFilled, setFormFilled] = useState(false);
@@ -348,10 +353,15 @@ export default function CheckoutPage() {
       });
 
       const sessionId = getSessionId();
-      const createResult = await createOrder(sessionId, payload);
+      const createResult = await createOrder(sessionId, {
+        ...payload,
+        turnstileToken,
+      });
 
       if (!createResult.ok) {
         setError(formatCheckoutError(createResult));
+        setTurnstileToken("");
+        setTurnstileReset((n) => n + 1);
         setSubmitting(false);
         return;
       }
@@ -384,6 +394,8 @@ export default function CheckoutPage() {
       setLastEmail(email);
       setConfirmedOrder(order);
     } catch (err) {
+      setTurnstileToken("");
+      setTurnstileReset((n) => n + 1);
       // createOrder returns expected API errors as data; this only catches
       // unexpected throws (e.g. payment tokenization before the request).
       setError(err instanceof Error ? err.message : "Failed to place order. Please try again.");
@@ -650,6 +662,15 @@ export default function CheckoutPage() {
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {error}
               </p>
+            )}
+
+            {step === 3 && (
+              <Turnstile
+                action="checkout"
+                onToken={setTurnstileToken}
+                resetKey={turnstileReset}
+                className="flex justify-center"
+              />
             )}
 
             {/* Desktop place-order — only at the final step (earlier steps use

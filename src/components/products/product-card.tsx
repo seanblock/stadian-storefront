@@ -52,6 +52,16 @@ export async function ProductCard({ product }: ProductCardProps) {
               </svg>
             </div>
           )}
+
+          {/* Sold out is worth knowing before the click, not after. in_stock is
+              false only for tracked products with nothing available. */}
+          {product.in_stock === false && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/70">
+              <span className="rounded-full bg-foreground/85 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-background">
+                Sold Out
+              </span>
+            </div>
+          )}
         </div>
 
         <CardHeader>

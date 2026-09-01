@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { getStadianClient } from "@/lib/stadian";
+import { getVisitorClient } from "@/lib/stadian";
 import { getCustomerToken } from "@/app/actions/auth";
 import { StadianError, type StorefrontOrder } from "@stadian/storefront-sdk";
 import type { Address } from "@/app/checkout/checkout-logic";
@@ -38,6 +38,10 @@ export async function createOrder(
     shippingMethodId?: string;
     customerToken?: string;
     ageVerificationAccepted?: boolean;
+    /** Issuer prefix of the card, when we collected it ourselves. Feeds the
+     *  API's card-testing guard, which never sees the card otherwise. */
+    cardBin?: string;
+    turnstileToken?: string;
   }
 ): Promise<CreateOrderResult> {
   const cookieStore = await cookies();
@@ -57,7 +61,7 @@ export async function createOrder(
 
   const customerToken = (await getCustomerToken()) ?? undefined;
 
-  const client = getStadianClient();
+  const client = await getVisitorClient();
   try {
     const order = await client.checkout.create({
       sessionToken: sessionId,
@@ -70,6 +74,10 @@ export async function createOrder(
       paymentFlow: data.paymentFlow,
       storedPaymentMethodId: data.storedPaymentMethodId,
       savePaymentMethod: data.savePaymentMethod,
+      cardBin: data.cardBin,
+      // Verified by the API against the tenant's own Turnstile secret — this
+      // storefront never holds it.
+      turnstileToken: data.turnstileToken,
       notes: notes || undefined,
       customerToken,
       shippingMethodId: data.shippingMethodId,

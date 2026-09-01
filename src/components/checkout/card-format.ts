@@ -43,3 +43,17 @@ export function cvvMaxLength(brand: CardBrand): number {
 export function formatCvv(value: string, maxLen: number): string {
   return value.replace(/\D/g, "").slice(0, maxLen);
 }
+
+/**
+ * The issuer prefix (first six digits) of a card number, or undefined if the
+ * buyer hasn't typed enough yet.
+ *
+ * A BIN identifies a bank, not a card, and is sent to the API to feed its
+ * card-testing guard — tokenization means the API never sees the number
+ * itself, so without this it cannot tell one issuer's cards being burned
+ * through from ordinary traffic.
+ */
+export function cardBin(value: string): string | undefined {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 6 ? digits.slice(0, 6) : undefined;
+}

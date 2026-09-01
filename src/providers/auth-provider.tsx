@@ -24,8 +24,12 @@ interface AuthContextValue {
   isAffiliate: boolean;
   /** Role allows placing orders on behalf of customers — unlocks /rep. */
   isSalesRep: boolean;
-  login: (email: string, password: string) => Promise<StorefrontCustomerProfile>;
-  register: (data: RegisterData) => Promise<StorefrontCustomerProfile>;
+  login: (
+    email: string,
+    password: string,
+    turnstileToken?: string,
+  ) => Promise<StorefrontCustomerProfile>;
+  register: (data: RegisterData) => Promise<RegisterOutcome>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -41,6 +45,14 @@ export class AuthFailure extends Error {
   }
 }
 
+export interface RegisterOutcome {
+  customer: StorefrontCustomerProfile;
+  /** Whether the new customer is already signed in. False on approval-mode
+   *  stores (the account is "pending" and cannot sign in), and on the rare
+   *  case where the account was created but the automatic sign-in failed. */
+  signedIn: boolean;
+}
+
 export interface RegisterData {
   email: string;
   password: string;
@@ -51,6 +63,9 @@ export interface RegisterData {
   companyName?: string;
   companyTaxId?: string;
   companyWebsite?: string;
+  /** Turnstile challenge response, verified server-side before the account is
+   *  created. Absent when Turnstile isn't configured. */
+  turnstileToken?: string;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -77,8 +92,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh();
   }, [refresh]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const result = await loginAction(email, password);
+  const login = useCallback(async (
+    email: string,
+    password: string,
+    turnstileToken?: string,
+  ) => {
+    const result = await loginAction(email, password, turnstileToken);
     // The action returns failures rather than throwing (Next.js masks
     // server-action errors in production); re-throw client-side so callers keep
     // their try/catch and the API's message reaches the user intact.
@@ -89,19 +108,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result.response.customer;
   }, []);
 
-  const register = useCallback(
-    async (data: RegisterData) => {
-      const result = await registerAction(data);
-      if (!result.ok) throw new AuthFailure(result.message, result.code);
-      const profile = result.customer;
-      // An approval-mode store creates the account "pending" — signing in would
-      // be refused, so hand the profile back and let the caller say so.
-      if (profile.account_status === "pending") return profile;
-      await login(data.email, data.password);
-      return profile;
-    },
-    [login]
-  );
+  const register = useCallback(async (data: RegisterData) => {
+    const result = await registerAction(data);
+    if (!result.ok) throw new AuthFailure(result.message, result.code);
+    const profile = result.customer;
+    // registerCustomer signs the new customer in itself — a second sign-in from
+    // here would need its own Turnstile token, and the one spent registering is
+    // single-use. An approval-mode store returns signedIn: false, because a
+    // "pending" account can't sign in at all; the caller says so.
+    if (result.signedIn) setCustomer(profile);
+    return { customer: profile, signedIn: result.signedIn };
+  }, []);
 
   const logout = useCallback(async () => {
     await logoutAction();

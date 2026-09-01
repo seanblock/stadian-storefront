@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthShell, FieldGroupHeading } from "@/components/layout/auth-shell";
+import { Turnstile } from "@/components/turnstile";
 
 interface RegisterFormProps {
   /** Store vets applicants: the account is created but can't sign in yet. */
@@ -55,6 +56,10 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [awaitingApproval, setAwaitingApproval] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  // Bumped to issue a fresh challenge — a Turnstile token is single-use, so a
+  // rejected submit leaves the visitor holding one that can't be retried.
+  const [turnstileReset, setTurnstileReset] = useState(0);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -73,12 +78,13 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
     setSubmitting(true);
 
     try {
-      const profile = await register({
+      const { customer: profile, signedIn } = await register({
         email,
         password,
         firstName,
         lastName,
         phone: phone || undefined,
+        turnstileToken,
         ...(isWholesale
           ? {
               customerType: "business" as const,
@@ -95,11 +101,22 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
         return;
       }
 
+      // The account exists but the automatic sign-in didn't take. /account
+      // would just bounce them to the login page; send them there ourselves,
+      // with a note, rather than through a redirect that looks like a bug.
+      if (!signedIn) {
+        router.push("/login?reason=registered");
+        return;
+      }
+
       router.push("/account");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Registration failed. Please try again."
       );
+      // The spent token can't be replayed, so a retry needs a new challenge.
+      setTurnstileToken("");
+      setTurnstileReset((n) => n + 1);
     } finally {
       setSubmitting(false);
     }
@@ -328,6 +345,13 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
         </div>
+
+        <Turnstile
+          action="register"
+          onToken={setTurnstileToken}
+          resetKey={turnstileReset}
+          className="mt-1 flex justify-center"
+        />
 
         <Button type="submit" disabled={submitting} className={`mt-2 ${SUBMIT}`}>
           {submitting

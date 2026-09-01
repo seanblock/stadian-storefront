@@ -7,12 +7,14 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://secure.networkmerchants.com https://jstest.authorize.net https://js.authorize.net",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://secure.networkmerchants.com https://jstest.authorize.net https://js.authorize.net https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' https://fonts.gstatic.com",
       "connect-src 'self' https:",
-      "frame-src 'self' https://secure.networkmerchants.com https://jstest.authorize.net https://js.authorize.net",
+      // Turnstile renders its challenge in an iframe from challenges.cloudflare.com;
+      // without it here the widget silently never appears.
+      "frame-src 'self' https://secure.networkmerchants.com https://jstest.authorize.net https://js.authorize.net https://challenges.cloudflare.com",
     ].join("; "),
   },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },

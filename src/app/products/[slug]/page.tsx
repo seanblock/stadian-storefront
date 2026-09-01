@@ -437,7 +437,13 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 </p>
               </div>
             ) : (
-              <AddToCartButton productId={product.id} />
+              <AddToCartButton
+                productId={product.id}
+                inStock={product.in_stock}
+                availableQuantity={product.available_quantity}
+                minOrderQuantity={product.min_order_quantity}
+                maxOrderQuantity={product.max_order_quantity}
+              />
             )}
           </div>
 
@@ -686,7 +692,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
       />
 
       {/* Sticky mobile CTA */}
-      {product.price != null && (
+      {product.price != null && product.in_stock && (
         <StickyCartBar
           productName={displayName}
           price={product.price}

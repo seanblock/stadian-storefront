@@ -7,10 +7,12 @@ export class HttpClient {
     baseUrl;
     maxRetries;
     timeoutMs;
+    clientIp;
     constructor(config) {
         // Strip trailing slash so we can safely append paths
         this.apiKey = config.apiKey;
         this.baseUrl = config.baseUrl.replace(/\/+$/, "");
+        this.clientIp = config.clientIp;
         this.maxRetries = config.maxRetries ?? 3;
         // Abort a single attempt after this many ms so a slow or unreachable API
         // never wedges server-side rendering. Each attempt gets its own timer.
@@ -28,6 +30,8 @@ export class HttpClient {
             "X-API-Key": this.apiKey,
             "Content-Type": "application/json",
             Accept: "application/json",
+            // Identifies the visitor this call is being made for. See clientIp.
+            ...(this.clientIp ? { "X-Storefront-Client-IP": this.clientIp } : {}),
             ...options.headers,
         };
         const init = {

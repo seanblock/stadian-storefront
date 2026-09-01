@@ -20,6 +20,10 @@ export interface StorefrontGroupProduct {
     default_price: number | null;
     categories: StorefrontCategory[];
     requires_intake: boolean;
+    /** False only when this variant is tracked and has nothing available. */
+    in_stock: boolean;
+    /** Units available now. Null means inventory isn't tracked. */
+    available_quantity: number | null;
 }
 export interface StorefrontProductGroup {
     id: string;
@@ -29,6 +33,8 @@ export interface StorefrontProductGroup {
     image_url: string | null;
     product_count: number;
     products: StorefrontGroupProduct[];
+    /** False only when every variant in the group is sold out. */
+    in_stock: boolean;
 }
 export interface StorefrontProduct {
     id: string;
@@ -42,6 +48,10 @@ export interface StorefrontProduct {
     categories: StorefrontCategory[];
     requires_intake?: boolean;
     badges: StorefrontBadge[];
+    /** False only when the product is inventory-tracked and has nothing available. */
+    in_stock: boolean;
+    /** Units available now. Null means inventory isn't tracked — no cap applies. */
+    available_quantity: number | null;
 }
 export interface StorefrontVariant {
     id: string;
@@ -179,6 +189,12 @@ export interface StorefrontCustomerProfile {
     /** True when the user's role allows placing orders on behalf of customers
      *  (unlocks the sales-rep / POS surface). */
     is_sales_rep?: boolean;
+    /** Session issued by registration itself, so a storefront never has to call
+     *  login straight afterwards — for a Turnstile tenant that second call would
+     *  have no valid challenge to present. Null on approval-mode stores, where a
+     *  "pending" account may not hold a token. */
+    access_token?: string | null;
+    refresh_token?: string | null;
 }
 export interface RepCustomer {
     id: string;
@@ -301,6 +317,10 @@ export interface StorefrontBranding {
     age_gate_enabled?: boolean;
     age_gate_min_age?: number;
     age_gate_redirect_url?: string | null;
+    /** Public Turnstile site key for this tenant's own Cloudflare widget. Null
+     *  when the merchant hasn't configured bot protection — the storefront then
+     *  renders no challenge and the API requires none. */
+    turnstile_site_key?: string | null;
     /** B2B: checkout is closed to guests — shoppers must sign in to order. */
     require_login_to_checkout?: boolean;
     /** B2B: prices and the cart are only available to signed-in account holders. */

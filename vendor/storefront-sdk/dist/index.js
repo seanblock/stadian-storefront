@@ -111,6 +111,8 @@ class CheckoutResource {
                 payment_flow: params.paymentFlow,
                 stored_payment_method_id: params.storedPaymentMethodId,
                 save_payment_method: params.savePaymentMethod,
+                card_bin: params.cardBin,
+                turnstile_token: params.turnstileToken,
             },
         };
         if (params.customerToken) {
@@ -197,6 +199,7 @@ class CustomersResource {
                 company_name: params.companyName,
                 company_tax_id: params.companyTaxId,
                 company_website: params.companyWebsite,
+                turnstile_token: params.turnstileToken,
             },
         });
     }
@@ -206,6 +209,7 @@ class CustomersResource {
             body: {
                 email: params.email,
                 password: params.password,
+                turnstile_token: params.turnstileToken,
             },
         });
     }
@@ -405,6 +409,7 @@ export class StadianClient {
             baseUrl: config.baseUrl,
             maxRetries: config.maxRetries,
             timeoutMs: config.timeoutMs,
+            clientIp: config.clientIp,
         });
         this.catalog = new CatalogResource(this.http);
         this.cart = new CartResource(this.http);

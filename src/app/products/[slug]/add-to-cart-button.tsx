@@ -6,14 +6,39 @@ import { Button } from "@/components/ui/button";
 
 interface AddToCartButtonProps {
   productId: string;
+  /** Units available now. Null means inventory isn't tracked — no cap. */
+  availableQuantity?: number | null;
+  inStock?: boolean;
+  minOrderQuantity?: number;
+  maxOrderQuantity?: number | null;
 }
 
-export function AddToCartButton({ productId }: AddToCartButtonProps) {
+/**
+ * The quantity stepper used to increment without limit, and the product's own
+ * min/max order quantity was never applied on the storefront at all — a buyer
+ * only found out at checkout, as a 422 after filling in payment details.
+ */
+export function AddToCartButton({
+  productId,
+  availableQuantity = null,
+  inStock = true,
+  minOrderQuantity = 1,
+  maxOrderQuantity = null,
+}: AddToCartButtonProps) {
   const { addItem } = useCart();
-  const [quantity, setQuantity] = useState(1);
+  const min = Math.max(1, minOrderQuantity);
+  const [quantity, setQuantity] = useState(min);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The tightest of: what's on the shelf, and what the merchant allows per order.
+  const caps = [availableQuantity, maxOrderQuantity].filter(
+    (n): n is number => typeof n === "number"
+  );
+  const max = caps.length > 0 ? Math.min(...caps) : null;
+  const soldOut = !inStock || (availableQuantity != null && availableQuantity < min);
+  const atMax = max != null && quantity >= max;
 
   const handleAdd = async () => {
     setAdding(true);
@@ -34,6 +59,23 @@ export function AddToCartButton({ productId }: AddToCartButtonProps) {
     }
   };
 
+  if (soldOut) {
+    return (
+      <div className="flex flex-col gap-3">
+        <Button
+          className="h-14 w-full rounded-full text-sm font-bold uppercase tracking-[0.22em]"
+          size="lg"
+          disabled
+        >
+          Out of Stock
+        </Button>
+        <p className="text-center text-sm text-muted-foreground">
+          This product is temporarily unavailable.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {/* Quantity */}
@@ -44,8 +86,10 @@ export function AddToCartButton({ productId }: AddToCartButtonProps) {
         <div className="flex h-10 items-center rounded-lg bg-muted">
           <button
             type="button"
-            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            className="flex h-full w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Decrease quantity"
+            onClick={() => setQuantity((q) => Math.max(min, q - 1))}
+            disabled={quantity <= min}
+            className="flex h-full w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7h8" /></svg>
           </button>
@@ -54,12 +98,26 @@ export function AddToCartButton({ productId }: AddToCartButtonProps) {
           </span>
           <button
             type="button"
-            onClick={() => setQuantity((q) => q + 1)}
-            className="flex h-full w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Increase quantity"
+            onClick={() => setQuantity((q) => (max != null ? Math.min(max, q + 1) : q + 1))}
+            disabled={atMax}
+            className="flex h-full w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 3v8M3 7h8" /></svg>
           </button>
         </div>
+
+        {min > 1 && (
+          <span className="text-xs text-muted-foreground">Min {min}</span>
+        )}
+        {availableQuantity != null && availableQuantity <= 10 && (
+          <span className="text-xs font-medium text-amber-600 dark:text-amber-500">
+            Only {availableQuantity} left
+          </span>
+        )}
+        {availableQuantity == null && atMax && maxOrderQuantity != null && (
+          <span className="text-xs text-muted-foreground">Max {maxOrderQuantity} per order</span>
+        )}
       </div>
 
       {/* Add to Cart — full width, brand gold */}

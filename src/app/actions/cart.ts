@@ -1,16 +1,20 @@
 "use server";
 
-import { getStadianClient } from "@/lib/stadian";
+import { getVisitorClient } from "@/lib/stadian";
 import { fetchWithOptionalAuth } from "@/lib/authed-fetch";
 import { StadianError, type StorefrontCart } from "@stadian/storefront-sdk";
 
+// Cart calls are visitor-scoped (getVisitorClient): they are the highest-volume
+// thing a stranger can trigger repeatedly, so the API must be able to meter one
+// visitor without metering the whole store.
+//
 // Every cart call runs through fetchWithOptionalAuth: a stale customer token
 // retries the same call as a guest instead of throwing StadianAuthError back
 // through the server action (which production masks into a useless generic
 // error). B2B stores then return the closed-cart shape the UI already handles.
 
 export async function getCart(sessionId: string): Promise<StorefrontCart> {
-  const client = getStadianClient();
+  const client = await getVisitorClient();
   return fetchWithOptionalAuth((customerToken) =>
     client.cart.get({ sessionToken: sessionId, customerToken })
   );
@@ -21,7 +25,7 @@ export async function addToCart(
   productId: string,
   quantity: number
 ): Promise<StorefrontCart> {
-  const client = getStadianClient();
+  const client = await getVisitorClient();
   return fetchWithOptionalAuth((customerToken) =>
     client.cart.addItem({
       sessionToken: sessionId,
@@ -37,7 +41,7 @@ export async function updateCartItem(
   itemId: string,
   quantity: number
 ): Promise<StorefrontCart> {
-  const client = getStadianClient();
+  const client = await getVisitorClient();
   return fetchWithOptionalAuth((customerToken) =>
     client.cart.updateItem({
       sessionToken: sessionId,
@@ -52,7 +56,7 @@ export async function removeCartItem(
   sessionId: string,
   itemId: string
 ): Promise<StorefrontCart> {
-  const client = getStadianClient();
+  const client = await getVisitorClient();
   return fetchWithOptionalAuth((customerToken) =>
     client.cart.removeItem({
       sessionToken: sessionId,
@@ -66,9 +70,10 @@ export async function applyDiscountCode(
   sessionId: string,
   code: string,
 ): Promise<{ success: boolean; error?: string }> {
+  const client = await getVisitorClient();
   try {
     await fetchWithOptionalAuth((customerToken) =>
-      getStadianClient().cart.applyCode({
+      client.cart.applyCode({
         sessionToken: sessionId,
         code,
         customerToken,
@@ -82,8 +87,9 @@ export async function applyDiscountCode(
 }
 
 export async function removeDiscountCode(sessionId: string): Promise<StorefrontCart> {
+  const client = await getVisitorClient();
   return fetchWithOptionalAuth((customerToken) =>
-    getStadianClient().cart.removeCode({
+    client.cart.removeCode({
       sessionToken: sessionId,
       customerToken,
     })

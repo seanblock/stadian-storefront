@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  cardBin,
   detectCardBrand,
   formatCardNumber,
   formatExpiry,
@@ -53,5 +54,26 @@ describe("cvvMaxLength + formatCvv", () => {
     expect(formatCvv("12345", cvvMaxLength("amex"))).toBe("1234");
     expect(formatCvv("12345", cvvMaxLength("visa"))).toBe("123");
     expect(formatCvv("1a2b", 3)).toBe("12");
+  });
+});
+
+describe("cardBin", () => {
+  it("takes the first six digits", () => {
+    expect(cardBin("4111 1111 1111 1111")).toBe("411111");
+  });
+
+  it("ignores formatting characters", () => {
+    expect(cardBin("3782-822463 10005")).toBe("378282");
+  });
+
+  it("returns undefined until six digits are typed", () => {
+    expect(cardBin("4111")).toBeUndefined();
+    expect(cardBin("")).toBeUndefined();
+  });
+
+  it("returns exactly six digits, never more", () => {
+    // The API's velocity guard rejects anything but a 6-digit BIN, and we must
+    // never send more of the card than the issuer prefix.
+    expect(cardBin("4111111111111111")).toHaveLength(6);
   });
 });

@@ -67,6 +67,16 @@ export interface CheckoutCreateParams {
     paymentFlow?: "embedded" | "redirect";
     storedPaymentMethodId?: string;
     savePaymentMethod?: boolean;
+    /** Issuer prefix (first 6 digits) of the card being used, when the storefront
+     *  collects the card itself rather than in a gateway iframe. Feeds the API's
+     *  card-testing velocity guard, which otherwise never sees the card at all —
+     *  tokenization means the API only receives a one-time opaque token. A BIN
+     *  identifies a bank, not a card; it is counted, never stored. */
+    cardBin?: string;
+    /** Cloudflare Turnstile challenge response. Required only for tenants with
+     *  the Turnstile plugin configured; the API verifies it against that
+     *  tenant's own secret key. */
+    turnstileToken?: string;
     customerToken?: string;
     affiliateRef?: string;
     /** Buyer ticked the age confirmation at checkout. Recorded before the
@@ -93,10 +103,18 @@ export interface CustomerRegisterParams {
     companyName?: string;
     companyTaxId?: string;
     companyWebsite?: string;
+    /** Cloudflare Turnstile challenge response. Required only for tenants with
+     *  the Turnstile plugin configured; the API verifies it against that
+     *  tenant's own secret key. */
+    turnstileToken?: string;
 }
 export interface CustomerLoginParams {
     email: string;
     password: string;
+    /** Cloudflare Turnstile challenge response. Required only for tenants with
+     *  the Turnstile plugin configured; the API verifies it against that
+     *  tenant's own secret key. */
+    turnstileToken?: string;
 }
 export interface CustomerMeParams {
     customerToken: string;
@@ -288,6 +306,11 @@ export interface StadianClientConfig {
     maxRetries?: number;
     /** Abort a single request attempt after this many ms. Defaults to 10000. */
     timeoutMs?: number;
+    /** The end user's IP, when this client acts on behalf of one. Forwarded to
+     *  the API so rate limiting and the checkout velocity guard can tell one
+     *  visitor from another — a server-side storefront otherwise looks like a
+     *  single enormous customer. Build a client per request, never a singleton. */
+    clientIp?: string;
 }
 /**
  * Stadian Storefront SDK client.

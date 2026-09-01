@@ -67,6 +67,16 @@ export async function ProductGroupCard({ group }: ProductGroupCardProps) {
               </span>
             </div>
           )}
+
+          {/* Sold out only when every variant is — a group whose 10mg is gone but
+              whose 5mg is stocked is still buyable. */}
+          {group.in_stock === false && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/70">
+              <span className="rounded-full bg-foreground/85 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-background">
+                Sold Out
+              </span>
+            </div>
+          )}
         </div>
 
         <CardHeader>

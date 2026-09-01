@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { getStadianClient } from "@/lib/stadian";
+import { getStadianClient, getVisitorClient } from "@/lib/stadian";
 import {
   StadianAuthError,
   StadianError,
@@ -22,24 +22,8 @@ export type LoginResult =
   | { ok: true; response: StorefrontLoginResponse }
   | { ok: false; code: string; message: string };
 
-export async function loginCustomer(
-  email: string,
-  password: string
-): Promise<LoginResult> {
-  const client = getStadianClient();
-
-  let response: StorefrontLoginResponse;
-  try {
-    response = await client.customers.login({ email, password });
-  } catch (err) {
-    // Returned, not thrown: Next.js replaces server-action errors with a generic
-    // message in production, which would swallow "awaiting approval".
-    if (err instanceof StadianError) {
-      return { ok: false, code: err.code, message: err.message };
-    }
-    return { ok: false, code: "UNKNOWN", message: "Invalid email or password" };
-  }
-
+/** Start the customer's session. Both sign-in paths land here. */
+async function setSessionCookies(response: StorefrontLoginResponse) {
   const cookieStore = await cookies();
   cookieStore.set(
     TOKEN_COOKIE,
@@ -54,12 +38,52 @@ export async function loginCustomer(
       authCookieOptions(REFRESH_COOKIE_MAX_AGE)
     );
   }
+}
 
+/** Sign in and start a session.
+ *
+ *  The Turnstile token (when the store uses Turnstile) is verified by the API
+ *  against that tenant's own secret — this storefront never holds it. */
+async function signIn(
+  email: string,
+  password: string,
+  turnstileToken?: string
+): Promise<LoginResult> {
+  const client = await getVisitorClient();
+
+  let response: StorefrontLoginResponse;
+  try {
+    response = await client.customers.login({ email, password, turnstileToken });
+  } catch (err) {
+    // Returned, not thrown: Next.js replaces server-action errors with a generic
+    // message in production, which would swallow "awaiting approval".
+    if (err instanceof StadianError) {
+      return { ok: false, code: err.code, message: err.message };
+    }
+    return { ok: false, code: "UNKNOWN", message: "Invalid email or password" };
+  }
+
+  await setSessionCookies(response);
   return { ok: true, response };
 }
 
+export async function loginCustomer(
+  email: string,
+  password: string,
+  turnstileToken?: string
+): Promise<LoginResult> {
+  return signIn(email, password, turnstileToken);
+}
+
 export type RegisterResult =
-  | { ok: true; customer: StorefrontCustomerProfile }
+  | {
+      ok: true;
+      customer: StorefrontCustomerProfile;
+      /** True when the session is already live — the caller must NOT sign in
+       *  again. False on approval-mode stores, where the account exists but
+       *  can't sign in yet. */
+      signedIn: boolean;
+    }
   | { ok: false; code: string; message: string };
 
 export async function registerCustomer(data: {
@@ -72,8 +96,9 @@ export async function registerCustomer(data: {
   companyName?: string;
   companyTaxId?: string;
   companyWebsite?: string;
+  turnstileToken?: string;
 }): Promise<RegisterResult> {
-  const client = getStadianClient();
+  const client = await getVisitorClient();
   try {
     const customer = await client.customers.register({
       email: data.email,
@@ -85,8 +110,24 @@ export async function registerCustomer(data: {
       companyName: data.companyName,
       companyTaxId: data.companyTaxId,
       companyWebsite: data.companyWebsite,
+      turnstileToken: data.turnstileToken,
     });
-    return { ok: true, customer };
+
+    // Registration issues the session itself, so we never call login here: that
+    // second call would face its own Turnstile check, and the token just spent
+    // on registering can't be replayed. One challenge, one signup.
+    //
+    // Approval-mode stores create the account "pending" and issue no tokens.
+    if (!customer.access_token || !customer.refresh_token) {
+      return { ok: true, customer, signedIn: false };
+    }
+
+    await setSessionCookies({
+      access_token: customer.access_token,
+      refresh_token: customer.refresh_token,
+      customer,
+    });
+    return { ok: true, customer, signedIn: true };
   } catch (err) {
     // Same reasoning as loginCustomer: keep the API's message readable in prod.
     if (err instanceof StadianError) {
@@ -167,7 +208,7 @@ export async function logoutCustomer(): Promise<void> {
 }
 
 export async function forgotPassword(email: string): Promise<{ ok: boolean }> {
-  const client = getStadianClient();
+  const client = await getVisitorClient();
   return client.customers.forgotPassword({ email });
 }
 

@@ -18,6 +18,7 @@ import type { Address } from "@/app/checkout/checkout-logic";
 import { CreditCard, Lock } from "lucide-react";
 import {
   type CardBrand,
+  cardBin,
   detectCardBrand,
   formatCardNumber,
   formatExpiry,
@@ -136,6 +137,13 @@ export interface PaymentData {
   paymentFlow?: "embedded" | "redirect";
   storedPaymentMethodId?: string;
   savePaymentMethod?: boolean;
+  /** First six digits of the card — the issuer prefix, not the card. Sent so
+   *  the API's card-testing guard can spot one bank's cards being burned
+   *  through behind rotating emails and addresses; tokenization means it never
+   *  sees the card itself. Only available on gateways where we render the card
+   *  input (Accept.js); gateways that use their own iframe (Collect.js) keep
+   *  the number out of our page entirely, and this stays undefined. */
+  cardBin?: string;
 }
 
 export interface PaymentSectionHandle {
@@ -341,12 +349,23 @@ export const PaymentSection = forwardRef<
         paymentToken: result.token,
         paymentType: result.payment_type,
         savePaymentMethod: isAuthenticated ? saveCard : undefined,
+        cardBin:
+          result.payment_type === "card" ? cardBin(cardNumberVal) : undefined,
       };
     }
 
     // Fallback — form not mounted (SDK not available yet)
     throw new Error("Payment form is still loading. Please wait a moment and try again.");
-  }, [config, selectedMethod, saveCard, isAuthenticated, formReady, manualMethod, manualMethods]);
+  }, [
+    config,
+    selectedMethod,
+    saveCard,
+    isAuthenticated,
+    formReady,
+    manualMethod,
+    manualMethods,
+    cardNumberVal,
+  ]);
 
   const getBillingState = useCallback((): { sameAsShipping: boolean; billingAddress?: Address } => {
     if (sameAsShipping) return { sameAsShipping: true as const, billingAddress: undefined };
