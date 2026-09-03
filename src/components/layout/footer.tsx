@@ -1,9 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { StorefrontBranding } from "@stadian/storefront-sdk";
+import {
+  defaultFdaDisclaimer,
+  renderDisclaimerText,
+} from "@/lib/disclaimer-text";
 
 interface FooterProps {
   branding: StorefrontBranding;
+  /**
+   * The tenant's active `fda_supplement` disclaimer text, when they have
+   * published one. Null falls back to the platform default wording.
+   */
+  fdaDisclaimer?: string | null;
 }
 
 // Fixed brand palette — the footer is the navy "close" of the cream page.
@@ -47,16 +56,20 @@ const LINK_COLUMNS: { heading: string; links: { href: string; label: string }[] 
   },
 ];
 
-const fdaDisclaimer = (storeName: string) =>
-  `These statements have not been evaluated by the Food and Drug Administration. Products sold by ${storeName} are not intended to diagnose, treat, cure, or prevent any disease. Nothing on this site is medical advice.`;
-
-export function Footer({ branding }: FooterProps) {
+export function Footer({ branding, fdaDisclaimer }: FooterProps) {
   const socialLinks = branding.social_links;
   const footerText = branding.footer_text;
   const storeName = branding.store_name || "Store";
   const tagline = branding.tagline;
   const logoUrl = branding.logo_url || "/logo.png";
   const year = new Date().getFullYear();
+  // Tenant copy wins; the platform default only covers a store that has not
+  // published its own version yet. The short "†" note in the bottom bar
+  // restates the default's claim, so it only accompanies the default.
+  const usingDefaultDisclaimer = !fdaDisclaimer?.trim();
+  const disclaimerText = usingDefaultDisclaimer
+    ? defaultFdaDisclaimer(storeName)
+    : renderDisclaimerText(fdaDisclaimer as string, storeName);
 
   return (
     <footer
@@ -159,10 +172,10 @@ export function Footer({ branding }: FooterProps) {
           style={{ borderColor: `${CREAM}14` }}
         >
           <p
-            className="max-w-4xl text-xs leading-relaxed"
+            className="max-w-4xl whitespace-pre-line text-xs leading-relaxed"
             style={{ color: `${CREAM}80` }}
           >
-            {fdaDisclaimer(storeName)}
+            {disclaimerText}
           </p>
         </div>
 
@@ -176,12 +189,14 @@ export function Footer({ branding }: FooterProps) {
               ? footerText
               : `© ${year} ${storeName}. All rights reserved.`}
           </p>
-          <p
-            className="text-[11px] uppercase tracking-[0.16em]"
-            style={{ color: `${CREAM}66` }}
-          >
-            † These statements have not been evaluated by the FDA.
-          </p>
+          {usingDefaultDisclaimer && (
+            <p
+              className="text-[11px] uppercase tracking-[0.16em]"
+              style={{ color: `${CREAM}66` }}
+            >
+              † These statements have not been evaluated by the FDA.
+            </p>
+          )}
         </div>
       </div>
 

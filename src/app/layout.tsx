@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import { cookies } from "next/headers";
 import { getBranding, brandingToCssVars } from "@/lib/branding";
+import { getActiveDisclaimer } from "@/lib/disclaimers";
 import { getSiteUrl } from "@/lib/site-url";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -66,7 +67,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const branding = await getBranding();
+  // The footer's FDA wording is the tenant's own published disclaimer; fetched
+  // beside branding (both ~30s cached) so a store never waits on it twice.
+  const [branding, fdaDisclaimer] = await Promise.all([
+    getBranding(),
+    getActiveDisclaimer("fda_supplement"),
+  ]);
   const cssVars = brandingToCssVars(branding);
 
   // Sitewide Organization entity → brand knowledge panel / sameAs in search.
@@ -138,7 +144,10 @@ export default async function RootLayout({
                   </ChromeGate>
                   <main className="flex-1">{children}</main>
                   <ChromeGate>
-                    <Footer branding={branding} />
+                    <Footer
+                      branding={branding}
+                      fdaDisclaimer={fdaDisclaimer?.content ?? null}
+                    />
                   </ChromeGate>
                   {cartEnabled && (
                     <ChromeGate>
