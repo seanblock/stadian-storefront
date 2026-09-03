@@ -66,6 +66,9 @@ export interface RegisterData {
   /** Turnstile challenge response, verified server-side before the account is
    *  created. Absent when Turnstile isn't configured. */
   turnstileToken?: string;
+  /** The visitor ticked "I agree to the Terms of Service and Privacy Policy".
+   *  Recorded against the tenant's active versions once the account exists. */
+  acceptedTerms?: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);

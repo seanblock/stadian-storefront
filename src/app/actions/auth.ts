@@ -1,7 +1,8 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { getStadianClient, getVisitorClient } from "@/lib/stadian";
+import { getStadianClient, getVisitorClient, getVisitorIp } from "@/lib/stadian";
+import { recordDisclaimerAcceptance } from "@/lib/disclaimers";
 import {
   StadianAuthError,
   StadianError,
@@ -97,7 +98,17 @@ export async function registerCustomer(data: {
   companyTaxId?: string;
   companyWebsite?: string;
   turnstileToken?: string;
+  /** Registration form's "I agree to the Terms of Service and Privacy Policy". */
+  acceptedTerms?: boolean;
 }): Promise<RegisterResult> {
+  if (!data.acceptedTerms) {
+    return {
+      ok: false,
+      code: "TERMS_NOT_ACCEPTED",
+      message: "Please agree to the Terms of Service and Privacy Policy to continue.",
+    };
+  }
+
   const client = await getVisitorClient();
   try {
     const customer = await client.customers.register({
@@ -127,6 +138,14 @@ export async function registerCustomer(data: {
       refresh_token: customer.refresh_token,
       customer,
     });
+
+    // The acceptance endpoint is customer-scoped, so this is the first moment
+    // it can be recorded: the account exists and we hold its token. (Approval-
+    // mode stores return no token, so their assent cannot be recorded until
+    // the API accepts it on the register call itself.) The account is already
+    // created; a failed record must not turn a successful signup into an error.
+    await recordTermsAcceptance(customer.access_token);
+
     return { ok: true, customer, signedIn: true };
   } catch (err) {
     // Same reasoning as loginCustomer: keep the API's message readable in prod.
@@ -134,6 +153,25 @@ export async function registerCustomer(data: {
       return { ok: false, code: err.code, message: err.message };
     }
     return { ok: false, code: "UNKNOWN", message: "Registration failed. Please try again." };
+  }
+}
+
+/**
+ * Record the new customer's assent to the tenant's active Terms of Service
+ * and Privacy Policy versions. Best-effort by design (see caller); failures
+ * are logged so a broken disclaimer setup is visible without blocking signup.
+ */
+async function recordTermsAcceptance(accessToken: string): Promise<void> {
+  const ip = await getVisitorIp();
+  const results = await Promise.allSettled(
+    (["terms_of_service", "privacy_policy"] as const).map((type) =>
+      recordDisclaimerAcceptance(type, accessToken, ip),
+    ),
+  );
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.error("Failed to record disclaimer acceptance at registration", result.reason);
+    }
   }
 }
 

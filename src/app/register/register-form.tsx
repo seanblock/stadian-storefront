@@ -53,6 +53,8 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [termsAttempted, setTermsAttempted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [awaitingApproval, setAwaitingApproval] = useState(false);
@@ -75,6 +77,12 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
       return;
     }
 
+    if (!agreedToTerms) {
+      setTermsAttempted(true);
+      setError("Please agree to the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -85,6 +93,7 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
         lastName,
         phone: phone || undefined,
         turnstileToken,
+        acceptedTerms: agreedToTerms,
         ...(isWholesale
           ? {
               customerType: "business" as const,
@@ -344,6 +353,58 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
+        </div>
+
+        <div
+          className={`rounded-lg border p-4 ${
+            termsAttempted && !agreedToTerms
+              ? "border-destructive bg-destructive/5"
+              : "border-border bg-muted/40"
+          }`}
+        >
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              name="acceptTerms"
+              required
+              checked={agreedToTerms}
+              aria-invalid={termsAttempted && !agreedToTerms ? true : undefined}
+              onChange={(e) => {
+                setAgreedToTerms(e.target.checked);
+                if (e.target.checked) {
+                  setTermsAttempted(false);
+                  setError(null);
+                }
+              }}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+            />
+            <span className="text-sm leading-relaxed">
+              I agree to the{" "}
+              <Link
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
+          {termsAttempted && !agreedToTerms && (
+            <p className="mt-2 pl-7 text-sm text-destructive">
+              Please agree to continue.
+            </p>
+          )}
         </div>
 
         <Turnstile
