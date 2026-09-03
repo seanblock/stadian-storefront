@@ -237,3 +237,19 @@
     animation: none !important;
   }
 }
+
+/* iOS/iPadOS Safari zooms the whole page in when you focus a form control whose
+   text is under 16px — which is every field the design sizes at 15px or text-sm
+   (login, register, the rep POS on a tablet). Floor form controls at 16px on
+   touch devices so focusing a field never zooms; pointer-fine devices keep the
+   designed sizes. Unlayered on purpose: it has to beat Tailwind's utilities,
+   which live in @layer utilities. A control that wants to be *larger* than 16px
+   on touch must set its size inside this same media query. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea,
+  [contenteditable]:not([contenteditable="false"]) {
+    font-size: max(16px, 1em);
+  }
+}
