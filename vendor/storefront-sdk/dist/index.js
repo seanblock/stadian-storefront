@@ -200,6 +200,7 @@ class CustomersResource {
                 company_tax_id: params.companyTaxId,
                 company_website: params.companyWebsite,
                 turnstile_token: params.turnstileToken,
+                accepted_disclaimers: params.acceptedDisclaimers,
             },
         });
     }

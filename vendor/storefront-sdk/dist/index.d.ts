@@ -107,6 +107,11 @@ export interface CustomerRegisterParams {
      *  the Turnstile plugin configured; the API verifies it against that
      *  tenant's own secret key. */
     turnstileToken?: string;
+    /** Disclaimer versions the registrant assented to (terms and privacy).
+     *  Recorded by the API on the register call itself, so it works for
+     *  approval-mode stores too, where a pending account holds no token and
+     *  could not call `disclaimers.accept` afterwards. */
+    acceptedDisclaimers?: Array<"terms_of_service" | "privacy_policy">;
 }
 export interface CustomerLoginParams {
     email: string;
