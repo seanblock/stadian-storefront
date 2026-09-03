@@ -37,6 +37,9 @@ type ProductDetailExtended = StorefrontProductDetail & {
   extended_description?: string | null;
   faqs?: { q: string; a: string }[];
   images?: string[];
+  /** Per-product regulatory/usage disclaimer (Product.disclaimer). Renders
+   *  only once the catalog API starts exposing it; null/absent is a no-op. */
+  disclaimer?: string | null;
 };
 
 interface PageProps {
@@ -605,6 +608,24 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 );
               })}
           </Accordion>
+
+          {/* Per-product disclaimer — sits with the description copy so the
+              caveat is read alongside the claims it qualifies. */}
+          {product.disclaimer?.trim() && (
+            <aside
+              aria-label="Product disclaimer"
+              className="mt-6 flex gap-3 rounded-lg border border-border bg-muted/40 p-4"
+            >
+              <LucideIcon
+                name="info"
+                size={16}
+                className="mt-0.5 shrink-0 text-muted-foreground"
+              />
+              <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                {product.disclaimer}
+              </p>
+            </aside>
+          )}
 
           {/* Meta badges */}
           <div className="mt-6 flex flex-wrap gap-2">
