@@ -1,7 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { getStadianClient, getVisitorClient, getVisitorIp } from "@/lib/stadian";
+import { getStadianClient, getVisitorClient } from "@/lib/stadian";
 import {
   StadianAuthError,
   StadianError,
@@ -231,12 +231,12 @@ export async function resetPassword(
   token: string,
   newPassword: string
 ): Promise<{ ok: boolean }> {
-  const client = getStadianClient();
+  const client = await getVisitorClient();
   return client.customers.resetPassword({ token, newPassword });
 }
 
 export async function verifyEmail(token: string): Promise<{ ok: boolean }> {
-  const client = getStadianClient();
+  const client = await getVisitorClient();
   return client.customers.verifyEmail({ token });
 }
 
