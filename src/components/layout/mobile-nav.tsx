@@ -33,7 +33,7 @@ const TRUST_POINTS = [
   "Third-party tested",
   "Batch-numbered",
   "Sealed in-house",
-  "Free shipping over $100",
+  "Free shipping over $299.99",
 ] as const;
 
 interface MobileNavProps {

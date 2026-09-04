@@ -36,7 +36,7 @@ const WHOLESALE_POINTS = [
 const RETAIL_POINTS = [
   "Third-party tested, batch-numbered inventory",
   "Sealed in-house before it leaves our door",
-  "Free shipping on orders over $100",
+  "Free shipping on orders over $299.99",
   "Track orders and reorder from your account",
 ] as const;
 
