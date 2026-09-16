@@ -118,6 +118,11 @@ export function OrderConfirmation({
                 <dd className="text-muted-foreground">Order {orderRef}</dd>
               </div>
             </dl>
+            {manualMethod.key.startsWith("bank_transfer_") && (
+              <Link className="mt-3 inline-block font-medium underline" href={`/account/orders/${order.id}`}>
+                View secure bank instructions
+              </Link>
+            )}
             {hasMaskedDetail(manualMethod.details) && (
               <p className="mt-3 text-xs text-muted-foreground">
                 Part of these details is hidden for security. The full account
@@ -138,7 +143,9 @@ export function OrderConfirmation({
         <p className="text-muted-foreground">
           {awaitingPayment ? (
             <>
-              We&rsquo;ve emailed these payment details to{" "}
+              {manualMethod?.key.startsWith("bank_transfer_")
+                ? "Your bank instructions are available on your account order page. Order updates go to "
+                : "We've emailed these payment details to "}
               <span className="font-medium text-foreground">{email}</span> so you
               have them to hand. We&rsquo;ll confirm as soon as your payment lands.
             </>

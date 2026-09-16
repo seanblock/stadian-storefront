@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getStadianClient } from "@/lib/stadian";
+import { getHttpClient, getStadianClient } from "@/lib/stadian";
 import { fetchWithRequiredAuth } from "@/lib/authed-fetch";
 import { StadianAuthError } from "@stadian/storefront-sdk";
 import { formatCurrency } from "@/lib/utils";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { BankTransferInstructions, type BankTransferDetails } from "@/components/checkout/bank-transfer-instructions";
 import { getManualPaymentMethods } from "@/app/actions/payments";
 import {
   hasMaskedDetail,
@@ -51,7 +52,15 @@ export default async function OrderDetailPage({ params }: PageProps) {
   // For an order awaiting an offline payment, look up the details for the
   // method the buyer chose. This page is where a logged-in buyer lands after
   // checkout, so it — not just the emailed copy — has to tell them how to pay.
-  const manualMethod = showPaymentWarning && order.payment_method
+  const isBankTransfer = order.payment_method?.startsWith("bank_transfer_");
+  const bankTransfer = showPaymentWarning && isBankTransfer
+    ? await fetchWithRequiredAuth(`/account/orders/${id}`, (customerToken) =>
+        getHttpClient().request<BankTransferDetails | null>("GET", `/orders/${encodeURIComponent(id)}/bank-transfer`, {
+          headers: { Authorization: `Bearer ${customerToken}` },
+        })
+      )
+    : null;
+  const manualMethod = showPaymentWarning && !isBankTransfer && order.payment_method
     ? (await getManualPaymentMethods()).find((m) => m.key === order.payment_method)
     : undefined;
   const isCancelled = order.status === "cancelled";
@@ -88,7 +97,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
           </p>
         )}
         <Badge variant="secondary" className="capitalize">
-          {order.status}
+          {order.status.replace(/_/g, " ")}
         </Badge>
       </div>
 
@@ -150,7 +159,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-yellow-800 dark:text-yellow-300">
-              {manualMethod ? (
+              {bankTransfer ? <BankTransferInstructions instructions={bankTransfer} /> : manualMethod ? (
                 <>
                   <p className="mb-3">
                     We&rsquo;ve reserved your items. Send your payment by{" "}

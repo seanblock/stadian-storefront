@@ -323,6 +323,9 @@ export const PaymentSection = forwardRef<
         if (!manualMethod) {
           throw new Error("Please choose how you'd like to pay.");
         }
+        if (manualMethod.startsWith("bank_transfer_") && !isAuthenticated) {
+          throw new Error("Please sign in to pay by bank transfer.");
+        }
         return { paymentMethod: manualMethod };
       }
       return {};
@@ -442,9 +445,9 @@ export const PaymentSection = forwardRef<
             {selected && (
               <div className="rounded-lg border bg-muted/40 p-4">
                 <p className="mb-3 text-sm text-muted-foreground">
-                  Place your order first. We&apos;ll email you these details
-                  along with your order number, which you should include as the
-                  payment reference so we can match it to your order.
+                  {selected.key.startsWith("bank_transfer_")
+                    ? "Place your order to view bank instructions securely in your account. Send payment from your own bank using your order number as the reference."
+                    : "Place your order first. We'll email you these details along with your order number, which you should include as the payment reference."}
                 </p>
                 {selected.customer_instructions && (
                   <p className="mb-3 text-sm">{selected.customer_instructions}</p>

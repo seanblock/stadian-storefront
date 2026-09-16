@@ -29,14 +29,15 @@ export interface StoredPaymentMethod {
 /**
  * A manual (offline) payment method the store accepts — Zelle, ACH, wire,
  * check. The buyer picks one at checkout, the order is placed as
- * `pending_payment`, and the unmasked payment details are emailed to them.
+ * `pending_payment`. Legacy methods email instructions; the Bank Transfer
+ * plugin exposes instructions only on the authenticated order page.
  *
  * `details` is keyed by the tenant config field name (`zelle_email`,
  * `ach_routing_number`, …) and is already masked by the API — an account
  * number arrives as `****1234`. Safe to display; not enough to pay with.
  */
 export interface ManualPaymentMethod {
-  key: "venmo" | "cashapp" | "zelle" | "wire" | "ach" | "check";
+  key: "venmo" | "cashapp" | "zelle" | "wire" | "ach" | "check" | "bank_transfer_ach" | "bank_transfer_wire";
   label: string;
   customer_instructions: string | null;
   details: Record<string, string>;
