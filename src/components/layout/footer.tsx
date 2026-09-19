@@ -44,6 +44,7 @@ const LINK_COLUMNS: { heading: string; links: { href: string; label: string }[] 
     heading: "Support",
     links: [
       { href: "/faq", label: "FAQ" },
+      { href: "/order-access", label: "Find my order" },
       { href: "/about", label: "About Us" },
     ],
   },

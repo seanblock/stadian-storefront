@@ -37,6 +37,8 @@ export interface StorefrontProductGroup {
     in_stock: boolean;
 }
 export interface StorefrontProduct {
+    /** True when a saved COA is available to this customer. */
+    has_coa?: boolean;
     id: string;
     name: string;
     slug: string;
@@ -52,6 +54,8 @@ export interface StorefrontProduct {
     in_stock: boolean;
     /** Units available now. Null means inventory isn't tracked — no cap applies. */
     available_quantity: number | null;
+    min_order_quantity?: number;
+    max_order_quantity?: number | null;
 }
 export interface StorefrontVariant {
     id: string;
@@ -125,6 +129,9 @@ export interface StorefrontCartItem {
     quantity: number;
     unit_price: number;
     line_total: number;
+  available_quantity?: number | null;
+  min_order_quantity?: number;
+  max_order_quantity?: number | null;
 }
 export interface StorefrontCart {
     id: string;
@@ -138,7 +145,28 @@ export interface StorefrontCart {
     discount_code?: string | null;
     free_shipping?: boolean;
 }
+export interface StorefrontOrderItem {
+    id: string;
+    product_id: string;
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    line_total: number;
+}
+export interface StorefrontShippingAddress {
+    first_name?: string;
+    last_name?: string;
+    line1?: string;
+    line2?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    country?: string;
+}
 export interface StorefrontOrder {
+  refunded_at?: string | null;
+  refund_amount?: number;
+  refund_status?: string;
     id: string;
     order_number: string | null;
     status: string;
@@ -156,6 +184,10 @@ export interface StorefrontOrder {
     payment_error?: string | null;
     redirect_url?: string | null;
     shipping_amount?: number;
+    processing_fee?: number;
+    items?: StorefrontOrderItem[];
+    shipping_address?: StorefrontShippingAddress | null;
+  tracking_numbers?: Array<{ tracking_number: string; carrier?: string | null }>;
 }
 export interface StorefrontIntakeForm {
     id: string;
@@ -229,8 +261,13 @@ export interface RepOrderItem {
     quantity: number;
     unit_price: number;
     line_total: number;
+  product_slug?: string | null;
+  has_coa?: boolean;
 }
 export interface RepOrderSummary {
+  refunded_at?: string | null;
+  refund_amount?: number;
+  refund_status?: string;
     id: string;
     order_number: string | null;
     status: string;
@@ -247,6 +284,9 @@ export interface RepOrderSummary {
     payment_link_status: string | null;
     created_at: string;
     items: RepOrderItem[];
+  shipping_address?: StorefrontShippingAddress | null;
+  processing_fee?: number;
+  tracking_numbers?: Array<{ tracking_number: string; carrier?: string | null }>;
 }
 export interface RepOrdersResponse {
     items: RepOrderSummary[];
@@ -270,6 +310,7 @@ export interface RepDashboard {
         unrealized_order_count?: number;
     };
     commission_rate: number | null;
+    commission_active?: boolean;
 }
 export interface StorefrontLoginResponse {
     access_token: string;

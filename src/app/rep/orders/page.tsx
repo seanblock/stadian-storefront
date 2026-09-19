@@ -23,6 +23,8 @@ export default function RepOrdersPage() {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     // `loading` is flipped on by the click handlers; this effect only fetches.
@@ -30,19 +32,20 @@ export default function RepOrdersPage() {
     getRepOrders({ status, limit: PAGE_SIZE, offset }).then((r) => {
       if (cancelled) return;
       if (r.ok) {
+        setError(null);
         setOrders((prev) =>
           offset === 0 ? r.data.items : [...(prev ?? []), ...r.data.items]
         );
         setHasMore(r.data.has_more);
-      } else if (offset === 0) {
-        setOrders([]);
+      } else {
+        setError(r.message);
       }
       setLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [status, offset]);
+  }, [status, offset, attempt]);
 
   const shown = orders ?? [];
   const shownValue = shown.reduce((sum, o) => sum + o.total, 0);
@@ -53,11 +56,11 @@ export default function RepOrdersPage() {
       <div>
         <h1 className="font-serif text-3xl text-[#0a1a2e]">My sales</h1>
         <p className="text-sm text-muted-foreground">
-          {orders === null
+          {error ? "Sales could not be refreshed." : orders === null
             ? "Loading your sales…"
             : shown.length === 0
               ? "Orders you place appear here."
-              : `${shown.length} ${shown.length === 1 ? "order" : "orders"} · ${fmtCurrency(shownValue)}${
+              : `${shown.length} ${shown.length === 1 ? "order" : "orders"} shown · ${fmtCurrency(shownValue)} in this list${
                   awaiting.length > 0
                     ? ` · ${awaiting.length} awaiting payment (${fmtCurrency(
                         awaiting.reduce((sum, o) => sum + o.total, 0)
@@ -74,6 +77,7 @@ export default function RepOrdersPage() {
             type="button"
             onClick={() => {
               setLoading(true);
+              setAttempt((n) => n + 1);
               setStatus(f.status);
               setOffset(0);
             }}
@@ -89,7 +93,12 @@ export default function RepOrdersPage() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-white">
-        {orders === null || (loading && offset === 0) ? (
+        {error ? (
+          <div role="alert" className="p-4">
+            <p>{error}</p>
+            <Button className="mt-3" variant="outline" disabled={loading} onClick={() => { setLoading(true); setAttempt((n) => n + 1); }}>Retry orders</Button>
+          </div>
+        ) : orders === null || (loading && offset === 0) ? (
           <div className="flex flex-col gap-2 p-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-14" />

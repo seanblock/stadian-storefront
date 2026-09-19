@@ -5,11 +5,12 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import type { StorefrontCart } from "@stadian/storefront-sdk";
-import { getSessionId } from "@/lib/session";
+import { getSessionId, clearSession } from "@/lib/session";
 import {
   getCart,
   addToCart as addToCartAction,
@@ -26,6 +27,7 @@ interface CartContextValue {
   updateItem: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   refresh: () => Promise<void>;
+  resetCart: () => void;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -58,8 +60,19 @@ export function CartProvider({
   const [cart, setCart] = useState<StorefrontCart | null>(null);
   const [loading, setLoading] = useState(enabled);
   const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const cartGeneration = useRef(0);
+
+  const resetCart = useCallback(() => {
+    // Ignore responses still in flight for the cart that was just checked out.
+    cartGeneration.current += 1;
+    clearSession();
+    setCart(null);
+    setDrawerOpen(false);
+    setLoading(false);
+  }, []);
 
   const refresh = useCallback(async () => {
+    const generation = cartGeneration.current;
     if (!enabled) {
       setCart(null);
       setLoading(false);
@@ -68,12 +81,12 @@ export function CartProvider({
     try {
       const sessionId = getSessionId();
       const data = await getCart(sessionId);
-      setCart(withStableItemOrder(data));
+      if (generation === cartGeneration.current) setCart(withStableItemOrder(data));
     } catch (err) {
       // Don't crash the UI if the cart can't load, but don't fail silently either.
       console.error("Failed to load cart:", err);
     } finally {
-      setLoading(false);
+      if (generation === cartGeneration.current) setLoading(false);
     }
   }, [enabled]);
 
@@ -83,26 +96,32 @@ export function CartProvider({
   }, [refresh]);
 
   const addItem = useCallback(async (productId: string, quantity = 1) => {
+    const generation = cartGeneration.current;
     const sessionId = getSessionId();
     const updated = await addToCartAction(sessionId, productId, quantity);
+    if (generation !== cartGeneration.current) return;
     setCart(withStableItemOrder(updated));
     setDrawerOpen(true);
   }, []);
 
   const updateItem = useCallback(async (itemId: string, quantity: number) => {
+    const generation = cartGeneration.current;
     const sessionId = getSessionId();
     const updated = await updateCartItemAction(sessionId, itemId, quantity);
+    if (generation !== cartGeneration.current) return;
     setCart(withStableItemOrder(updated));
   }, []);
 
   const removeItem = useCallback(async (itemId: string) => {
+    const generation = cartGeneration.current;
     const sessionId = getSessionId();
     const updated = await removeCartItemAction(sessionId, itemId);
+    if (generation !== cartGeneration.current) return;
     setCart(withStableItemOrder(updated));
   }, []);
 
   return (
-    <CartContext value={{ cart, loading, isDrawerOpen, setDrawerOpen, addItem, updateItem, removeItem, refresh }}>
+    <CartContext value={{ cart, loading, isDrawerOpen, setDrawerOpen, addItem, updateItem, removeItem, refresh, resetCart }}>
       {children}
     </CartContext>
   );

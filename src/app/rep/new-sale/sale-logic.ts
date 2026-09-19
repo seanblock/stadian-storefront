@@ -14,6 +14,19 @@ export const SALE_STEPS: SaleStep[] = ["build", "checkout"];
 
 export type SaleAddressErrors = Record<string, string | undefined>;
 
+/** Historical orders can use either admin or storefront address field names. */
+export function saleAddressFromShipTo(raw?: Record<string, unknown> | null): Address {
+  const value = (key: string) => typeof raw?.[key] === "string" ? raw[key] as string : "";
+  return {
+    line1: value("line1") || value("street"),
+    line2: value("line2"),
+    city: value("city"),
+    state: value("state"),
+    zip: value("zip"),
+    country: value("country") || "US",
+  };
+}
+
 export function validateSaleAddress(address: Address): SaleAddressErrors {
   const errors: SaleAddressErrors = {};
   if (!address.line1.trim()) errors.line1 = "Street address is required";

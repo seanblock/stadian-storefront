@@ -38,6 +38,7 @@ import { PayLinkResult } from "@/components/rep/pay-link-result";
 import { fmtCurrency } from "@/components/rep/format";
 import {
   availableModes,
+  saleAddressFromShipTo,
   buildShipTo,
   paymentModeAvailability,
   soleAvailableMode,
@@ -91,11 +92,13 @@ export default function NewSalePage() {
   const [shippingMethodId, setShippingMethodId] = useState<string | undefined>();
   const [mode, setMode] = useState<PaymentMode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [catalogAttempt, setCatalogAttempt] = useState(0);
   const [addressErrors, setAddressErrors] = useState<Record<string, string | undefined>>({});
   const [showErrors, setShowErrors] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmInvoice, setConfirmInvoice] = useState(false);
-  const [disclaimersConfirmed, setDisclaimersConfirmed] = useState(true);
+  const [disclaimersConfirmed, setDisclaimersConfirmed] = useState(false);
   const [result, setResult] = useState<RepCheckoutResponse | null>(null);
   const [discountEntry, setDiscountEntry] = useState("");
 
@@ -134,12 +137,14 @@ export default function NewSalePage() {
   useEffect(() => {
     let cancelled = false;
     getRepProducts(customer?.id).then((r) => {
-      if (!cancelled) setProducts(r.ok ? r.data : []);
+      if (cancelled) return;
+      setCatalogError(r.ok ? null : r.message);
+      setProducts(r.ok ? r.data : []);
     });
     return () => {
       cancelled = true;
     };
-  }, [customer?.id]);
+  }, [customer?.id, catalogAttempt]);
 
   // Shipping options depend on the cart's contents.
   useEffect(() => {
@@ -180,18 +185,10 @@ export default function NewSalePage() {
         // Fetch the detail (includes last ship-to for prefill).
         const detail = await getRepCustomer(next.id);
         await selectCustomer(detail.ok ? detail.data : next);
+        setDisclaimersConfirmed(false);
         setCustomerPickerOpen(false);
-        const shipTo = detail.ok ? detail.data.last_ship_to : null;
-        if (shipTo) {
-          // AddressFields is uncontrolled; prefill imperatively after render.
-          requestAnimationFrame(() => {
-            for (const key of ["line1", "line2", "city", "state", "zip", "country"]) {
-              const el = document.getElementById(`rep-ship-${key}`) as HTMLInputElement | null;
-              const value = shipTo[key];
-              if (el && typeof value === "string" && !el.value) el.value = value;
-            }
-          });
-        }
+        setAddressErrors({});
+        setShowErrors(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not select customer");
       }
@@ -214,6 +211,10 @@ export default function NewSalePage() {
   const placeOrder = useCallback(
     async (chosenMode: PaymentMode) => {
       if (!saleSessionId || !customer) return;
+      if (!disclaimersConfirmed) {
+        setError("Confirm the customer's required disclaimers before placing the order.");
+        return;
+      }
       setError(null);
       setSubmitting(true);
       try {
@@ -269,7 +270,7 @@ export default function NewSalePage() {
         setConfirmInvoice(false);
       }
     },
-    [saleSessionId, customer, readShippingAddress, shippingMethodId, clearSale]
+    [saleSessionId, customer, readShippingAddress, shippingMethodId, clearSale, disclaimersConfirmed]
   );
 
   // Shipping and payment share one screen, so the address is validated at the
@@ -298,6 +299,7 @@ export default function NewSalePage() {
   }
 
   function resetForNewSale() {
+    setDisclaimersConfirmed(false);
     setResult(null);
     setMode(null);
     setShippingMethodId(undefined);
@@ -426,7 +428,12 @@ export default function NewSalePage() {
           className={step === "build" ? "flex min-h-0 flex-1 flex-col" : "hidden"}
         >
           <div className="min-h-0 flex-1">
-            {products === null ? (
+            {catalogError ? (
+              <div role="alert" className="rounded-lg border p-4">
+                <p>{catalogError}</p>
+                <Button type="button" variant="outline" className="mt-3" onClick={() => { setCatalogError(null); setProducts(null); setCatalogAttempt((n) => n + 1); }}>Retry catalog</Button>
+              </div>
+            ) : products === null ? (
               <div className="grid h-full auto-rows-max grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <Skeleton key={i} className="h-56" />
@@ -437,7 +444,7 @@ export default function NewSalePage() {
               products={products}
               cart={cart}
               cartBusy={cartBusy}
-              onAdd={(productId) => runCartAction(() => addItem(productId, 1))}
+              onAdd={(productId) => runCartAction(() => addItem(productId, products?.find((p) => p.id === productId)?.min_order_quantity ?? 1))}
               onSetQuantity={(itemId, q) =>
                 runCartAction(() =>
                   q <= 0 ? removeItem(itemId) : updateItem(itemId, q)
@@ -475,6 +482,8 @@ export default function NewSalePage() {
           <div className="rounded-xl border border-border bg-white p-4 sm:p-5">
             <h2 className="mb-3 font-serif text-xl text-[#0a1a2e]">Ship to</h2>
             <AddressFields
+              key={`${saleSessionId}:${customer?.id ?? "none"}`}
+              defaultValues={saleAddressFromShipTo(customer?.last_ship_to)}
               idPrefix="rep-ship-"
               section="shipping"
               errors={addressErrors}
@@ -585,7 +594,7 @@ export default function NewSalePage() {
               type="button"
               className="h-14 flex-1 text-base"
               style={{ background: GOLD, color: NAVY }}
-              disabled={!mode || submitting || (mode === "card" && !modes.card)}
+              disabled={!mode || submitting || !disclaimersConfirmed || (mode === "card" && !modes.card)}
               onClick={submitSale}
             >
               {submitting

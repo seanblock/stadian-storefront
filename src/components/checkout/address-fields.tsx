@@ -13,6 +13,8 @@ import {
 import { COUNTRIES, US_STATES } from "@/lib/address-data";
 
 interface AddressFieldsProps {
+  /** Initial values; remount with a new key when the selected customer changes. */
+  defaultValues?: Partial<Record<"line1" | "line2" | "city" | "state" | "zip" | "country", string>>;
   /** Prefix for field `name` attributes, e.g. "" for shipping or "billing_". */
   prefix?: string;
   /** Prefix for element ids so multiple forms can coexist on one page. */
@@ -32,6 +34,7 @@ interface AddressFieldsProps {
 const fieldId = (idPrefix: string, name: string) => `${idPrefix}${name}`;
 
 export function AddressFields({
+  defaultValues = {},
   prefix = "",
   idPrefix = "",
   section,
@@ -40,12 +43,12 @@ export function AddressFields({
   onValidityRecheck,
   showErrors = false,
 }: AddressFieldsProps) {
-  const [country, setCountry] = useState("US");
-  const [showLine2, setShowLine2] = useState(false);
-  const [showCountry, setShowCountry] = useState(false);
+  const [country, setCountry] = useState(defaultValues.country || "US");
+  const [showLine2, setShowLine2] = useState(!!defaultValues.line2);
+  const [showCountry, setShowCountry] = useState(!!defaultValues.country && defaultValues.country !== "US");
   // City + state are controlled so a ZIP lookup can auto-fill them.
-  const [city, setCity] = useState("");
-  const [stateValue, setStateValue] = useState("");
+  const [city, setCity] = useState(defaultValues.city || "");
+  const [stateValue, setStateValue] = useState(defaultValues.state || "");
 
   const ac = (token: string) => (section ? `${section} ${token}` : token);
   const countryLabel =
@@ -83,6 +86,7 @@ export function AddressFields({
         <Input
           id={fieldId(idPrefix, "line1")}
           name={`${prefix}line1`}
+          defaultValue={defaultValues.line1}
           type="text"
           placeholder="123 Main St"
           required
@@ -105,6 +109,7 @@ export function AddressFields({
           <Input
             id={fieldId(idPrefix, "line2")}
             name={`${prefix}line2`}
+            defaultValue={defaultValues.line2}
             type="text"
             placeholder="Apt, suite, unit, etc."
             autoComplete={ac("address-line2")}
@@ -207,6 +212,7 @@ export function AddressFields({
           <Input
             id={fieldId(idPrefix, "zip")}
             name={`${prefix}zip`}
+            defaultValue={defaultValues.zip}
             type="text"
             inputMode="numeric"
             required
@@ -252,7 +258,7 @@ export function AddressFields({
             </>
           ) : (
             <p className="pb-2 text-sm text-muted-foreground">
-              Shipping to <span className="text-foreground">{countryLabel}</span>
+              {section === "billing" ? "Billing country:" : "Shipping to"} <span className="text-foreground">{countryLabel}</span>
               <button
                 type="button"
                 onClick={() => setShowCountry(true)}

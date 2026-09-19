@@ -73,7 +73,7 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
         </aside>
 
         {/* Main content */}
-        <main className="min-w-0 flex-1">{children}</main>
+        <div className="min-w-0 flex-1">{children}</div>
       </div>
     </div>
   );

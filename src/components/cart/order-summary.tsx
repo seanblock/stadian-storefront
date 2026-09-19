@@ -20,9 +20,10 @@ import { CartLineItem } from "./cart-line-item";
 interface OrderSummaryProps {
   cart: StorefrontCart;
   shippingCost?: number;
+  showItems?: boolean;
 }
 
-export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
+export function OrderSummary({ cart, shippingCost, showItems = true }: OrderSummaryProps) {
   const { refresh } = useCart();
   const [promoCode, setPromoCode] = useState("");
   const [promoError, setPromoError] = useState<string | null>(null);
@@ -58,7 +59,7 @@ export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {/* Editable cart line items — kept in sync with the drawer via useCart */}
-        {cart.items.length > 0 && (
+        {showItems && cart.items.length > 0 && (
           <>
             <div className="-my-1 flex flex-col divide-y">
               {cart.items.map((item) => (
@@ -90,12 +91,10 @@ export function OrderSummary({ cart, shippingCost }: OrderSummaryProps) {
           </div>
         )}
 
-        {cart.tax_amount > 0 && (
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Tax</span>
-            <span className="tabular-nums">{formatCurrency(cart.tax_amount)}</span>
-          </div>
-        )}
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">Tax</span>
+          <span className="tabular-nums">{formatCurrency(cart.tax_amount)}</span>
+        </div>
 
         {shippingCost !== undefined && (
           <div className="flex justify-between text-sm">

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { ImageOff, Minus, Plus, Trash2 } from "lucide-react";
 import type { StorefrontCartItem } from "@stadian/storefront-sdk";
 import { Button } from "@/components/ui/button";
-import { useCart } from "@/providers/cart-provider";
+import { useCartItemActions } from "./use-cart-item-actions";
 import { formatCurrency } from "@/lib/utils";
 
 interface CartLineItemProps {
@@ -20,15 +20,7 @@ interface CartLineItemProps {
  * cart drawer and the checkout order summary so both stay in sync.
  */
 export function CartLineItem({ item, onNavigate }: CartLineItemProps) {
-  const { updateItem, removeItem } = useCart();
-
-  function handleDecrement() {
-    if (item.quantity <= 1) {
-      removeItem(item.id);
-    } else {
-      updateItem(item.id, item.quantity - 1);
-    }
-  }
+  const actions = useCartItemActions(item);
 
   return (
     <div className="flex items-start gap-3 py-3">
@@ -65,6 +57,8 @@ export function CartLineItem({ item, onNavigate }: CartLineItemProps) {
         <p className="mt-0.5 text-xs text-muted-foreground">
           {formatCurrency(item.unit_price)} each
         </p>
+        {actions.limitMessage && <p className="mt-1 text-xs text-muted-foreground">{actions.limitMessage}</p>}
+        {actions.error && <p role="alert" className="mt-1 text-xs text-destructive">{actions.error}</p>}
       </div>
 
       {/* Quantity controls */}
@@ -72,7 +66,8 @@ export function CartLineItem({ item, onNavigate }: CartLineItemProps) {
         <Button
           variant="outline"
           size="icon-sm"
-          onClick={handleDecrement}
+          disabled={actions.busy}
+          onClick={actions.decrease}
           aria-label="Decrease quantity"
         >
           <Minus className="h-3 w-3" />
@@ -83,7 +78,8 @@ export function CartLineItem({ item, onNavigate }: CartLineItemProps) {
         <Button
           variant="outline"
           size="icon-sm"
-          onClick={() => updateItem(item.id, item.quantity + 1)}
+          disabled={actions.busy || actions.atMax}
+          onClick={actions.increase}
           aria-label="Increase quantity"
         >
           <Plus className="h-3 w-3" />
@@ -98,7 +94,8 @@ export function CartLineItem({ item, onNavigate }: CartLineItemProps) {
         <Button
           variant="ghost"
           size="icon-sm"
-          onClick={() => removeItem(item.id)}
+          disabled={actions.busy}
+          onClick={actions.remove}
           aria-label={`Remove ${item.product_name} from cart`}
           className="h-6 w-6 text-muted-foreground hover:text-destructive"
         >

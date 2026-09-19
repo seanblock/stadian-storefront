@@ -5,11 +5,13 @@ import Link from "next/link";
 import type { RepOrderSummary } from "@stadian/storefront-sdk";
 import { getRepOrder } from "@/app/actions/rep";
 import { PayLinkResult } from "@/components/rep/pay-link-result";
-import { fmtCurrency, fmtDate } from "@/components/rep/format";
+import { fmtDate } from "@/components/rep/format";
 import { resendPaymentLink } from "@/app/actions/rep";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { OrderReceipt } from "@/components/checkout/order-receipt";
+import { OrderTracking } from "@/components/checkout/order-tracking";
+import { ProductCoaButton } from "@/components/rep/product-coa-button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
 
@@ -82,48 +84,22 @@ export default function RepOrderDetailPage({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="divide-y divide-border">
-                {order.items.map((item, i) => (
-                  <li key={i} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                    <span>
-                      {item.product_name || "Product"}
-                      <span className="text-muted-foreground"> × {item.quantity}</span>
-                    </span>
-                    <span className="tabular-nums">{fmtCurrency(item.line_total)}</span>
-                  </li>
-                ))}
-              </ul>
-              <Separator className="my-3" />
-              <div className="flex flex-col gap-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span className="tabular-nums">{fmtCurrency(order.subtotal)}</span>
-                </div>
-                {order.discount_amount > 0 && (
-                  <div className="flex justify-between text-emerald-700">
-                    <span>Savings</span>
-                    <span className="tabular-nums">−{fmtCurrency(order.discount_amount)}</span>
-                  </div>
-                )}
-                {order.tax_amount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tax</span>
-                    <span className="tabular-nums">{fmtCurrency(order.tax_amount)}</span>
-                  </div>
-                )}
-                {order.shipping_amount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Shipping</span>
-                    <span className="tabular-nums">{fmtCurrency(order.shipping_amount)}</span>
-                  </div>
-                )}
-                <div className="mt-1 flex justify-between border-t border-border pt-2 text-base font-medium text-[#0a1a2e]">
-                  <span>Total</span>
-                  <span className="font-serif text-xl tabular-nums">{fmtCurrency(order.total)}</span>
-                </div>
-              </div>
+              <OrderReceipt order={{ ...order, items: order.items.map((item, index) => ({
+                ...item, id: `${item.product_id}-${index}`, product_name: item.product_name || "Unavailable product",
+              })) }} totalLabel={order.status === "pending_payment" ? "Total due" : "Total"} />
+              {order.items.filter((item) => item.has_coa && item.product_slug).map((item) => (
+                <ProductCoaButton key={item.product_id} slug={item.product_slug!} name={item.product_name || "Product"} />
+              ))}
             </CardContent>
           </Card>
+          <OrderTracking order={order} />
+          <section aria-label="Customer follow-up" className="rounded-lg border p-4 text-sm">
+            <h2 className="font-medium">Customer follow-up</h2>
+            {order.customer_email && <a className="mt-2 block break-all underline" href={`mailto:${order.customer_email}`}>{order.customer_email}</a>}
+            {order.status === "pending_payment" && !order.payment_link_url && <p className="mt-2">This order is awaiting offline payment. Ask your store administrator for payment instructions before following up with the customer.</p>}
+            <p className="mt-2 text-muted-foreground">For an invoice copy, an order change or cancellation, missing tracking, or a batch-specific COA, contact your store administrator and include order #{order.order_number || order.id}.</p>
+            <Link href="/faq" className="mt-2 inline-flex min-h-11 items-center underline">Store help and policies</Link>
+          </section>
         </>
       )}
     </div>

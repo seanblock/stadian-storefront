@@ -78,8 +78,8 @@ export default function AccountOverviewPage() {
             <CardDescription>View your order history.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm">
-              <Link href="/account/orders">View orders</Link>
+            <Button variant="outline" size="sm" render={<Link href="/account/orders" />}>
+              View orders
             </Button>
           </CardContent>
         </Card>
@@ -90,8 +90,8 @@ export default function AccountOverviewPage() {
             <CardDescription>Manage your profile details.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" size="sm">
-              <Link href="/account/settings">View settings</Link>
+            <Button variant="outline" size="sm" render={<Link href="/account/settings" />}>
+              View settings
             </Button>
           </CardContent>
         </Card>

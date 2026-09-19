@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   availableModes,
+  saleAddressFromShipTo,
   buildShipTo,
   isAddressComplete,
   paymentModeAvailability,
@@ -16,6 +17,17 @@ const fullAddress = {
   zip: "78701",
   country: "US",
 };
+
+describe("saved ship-to address", () => {
+  test("prefills storefront and historical admin addresses, including suite and country", () => {
+    expect(saleAddressFromShipTo({ ...fullAddress, line2: "Suite QA" })).toEqual({ ...fullAddress, line2: "Suite QA" });
+    expect(saleAddressFromShipTo({ street: "123 Test Lane", city: "Toronto", state: "ON", zip: "M5V 1A1", country: "CA" }))
+      .toEqual({ line1: "123 Test Lane", line2: "", city: "Toronto", state: "ON", zip: "M5V 1A1", country: "CA" });
+  });
+  test("clears the previous customer's address when the next has no saved address", () => {
+    expect(saleAddressFromShipTo(null)).toEqual({ line1: "", line2: "", city: "", state: "", zip: "", country: "US" });
+  });
+});
 
 describe("validateSaleAddress", () => {
   test("complete address has no errors", () => {

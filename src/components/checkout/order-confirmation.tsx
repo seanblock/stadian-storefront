@@ -5,23 +5,21 @@ import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { ManualPaymentMethod } from "@/app/actions/payments";
 import { hasMaskedDetail, manualFieldLabel } from "./manual-payment";
+import { orderPaymentState } from "@/lib/order-payment-state";
+import type { StorefrontOrder } from "@stadian/storefront-sdk";
+import { OrderReceipt } from "./order-receipt";
 
-export interface ConfirmedOrder {
-  id: string;
-  order_number?: string | null;
-  status: string;
-  total: number;
-  payment_status?: string | null;
-  payment_method?: string | null;
-}
+export type ConfirmedOrder = StorefrontOrder;
 
 export function OrderConfirmation({
   order,
   email,
+  signedIn = false,
   manualMethod,
 }: {
   order: ConfirmedOrder;
   email: string;
+  signedIn?: boolean;
   /** The offline method the buyer chose, when they paid by Zelle/ACH/etc.
    *  Their money has not moved yet, so this page has to tell them how to send
    *  it — the instruction email is a reminder, not the only copy. */
@@ -30,11 +28,8 @@ export function OrderConfirmation({
   const orderRef = order.order_number
     ? `#${order.order_number}`
     : `#${order.id.slice(0, 8)}`;
-  const paid =
-    order.status === "paid" ||
-    order.payment_status === "paid" ||
-    order.payment_status === "success";
-  const awaitingPayment = !paid && manualMethod != null;
+  const { paid, awaitingPayment, totalLabel } = orderPaymentState(order);
+  const isBankTransfer = manualMethod?.key.startsWith("bank_transfer_");
 
   return (
     <div className="container mx-auto max-w-xl px-4 py-16 sm:py-20">
@@ -58,8 +53,14 @@ export function OrderConfirmation({
         </h1>
         <p className="mt-2 text-muted-foreground">
           {awaitingPayment
-            ? "We\u2019ve reserved your items. Send your payment below to complete it."
-            : "It\u2019s confirmed and we\u2019re getting it ready."}
+            ? isBankTransfer
+              ? signedIn
+                ? "Your order is awaiting payment. Open your order to view your bank transfer instructions."
+                : "Your order is awaiting payment. Sign in to view your bank transfer instructions."
+              : manualMethod
+                ? "We\u2019ve reserved your items. Use the instructions below to complete your payment."
+                : "Your order has been received. Payment has not yet been confirmed."
+            : paid ? "It\u2019s confirmed and we\u2019re getting it ready." : "Your order has been received."}
         </p>
       </div>
 
@@ -80,13 +81,8 @@ export function OrderConfirmation({
             </span>
           )}
         </div>
-        <div className="flex items-center justify-between px-6 py-4">
-          <span className="text-muted-foreground">
-            {awaitingPayment ? "Total due" : "Total paid"}
-          </span>
-          <span className="text-lg font-semibold tabular-nums">
-            {formatCurrency(order.total)}
-          </span>
+        <div className="px-6 py-4">
+          <OrderReceipt order={order} totalLabel={totalLabel} />
         </div>
       </div>
 
@@ -143,21 +139,34 @@ export function OrderConfirmation({
         <p className="text-muted-foreground">
           {awaitingPayment ? (
             <>
-              {manualMethod?.key.startsWith("bank_transfer_")
-                ? "Your bank instructions are available on your account order page. Order updates go to "
-                : "We've emailed these payment details to "}
-              <span className="font-medium text-foreground">{email}</span> so you
-              have them to hand. We&rsquo;ll confirm as soon as your payment lands.
+              Order updates go to <span className="font-medium text-foreground">{email}</span>.
+              {isBankTransfer
+                ? " View bank instructions on your account order page."
+                : " We’ll confirm when your payment is received."}
             </>
           ) : (
             <>
-              A receipt is on its way to{" "}
+              Order updates go to{" "}
               <span className="font-medium text-foreground">{email}</span>.
               We&rsquo;ll email you again with tracking as soon as it ships.
             </>
           )}
         </p>
       </div>
+
+      <section className="mt-6 rounded-xl border border-border p-5 text-sm" aria-labelledby="order-access-heading">
+        <h2 id="order-access-heading" className="font-medium">Keep track of your order</h2>
+        <p className="mt-2 text-muted-foreground">
+          {signedIn ? <>This order is saved to your account under <span className="font-medium">{email}</span>.</> : <>
+            Sign in with <span className="font-medium">{email}</span> to view this order later.
+            Checked out as a guest? Use the secure email link to set a password and access your orders.
+          </>}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-4">
+          <Link className="font-medium underline" href={`/account/orders/${encodeURIComponent(order.id)}`}>View order</Link>
+          {!signedIn && <Link className="font-medium underline" href="/order-access">Get account access</Link>}
+        </div>
+      </section>
 
       {/* Actions */}
       <div className="mt-8 flex justify-center">

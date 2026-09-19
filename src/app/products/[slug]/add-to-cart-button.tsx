@@ -25,7 +25,7 @@ export function AddToCartButton({
   minOrderQuantity = 1,
   maxOrderQuantity = null,
 }: AddToCartButtonProps) {
-  const { addItem } = useCart();
+  const { addItem, cart } = useCart();
   const min = Math.max(1, minOrderQuantity);
   const [quantity, setQuantity] = useState(min);
   const [adding, setAdding] = useState(false);
@@ -36,15 +36,20 @@ export function AddToCartButton({
   const caps = [availableQuantity, maxOrderQuantity].filter(
     (n): n is number => typeof n === "number"
   );
-  const max = caps.length > 0 ? Math.min(...caps) : null;
+  const totalMax = caps.length > 0 ? Math.min(...caps) : null;
+  const inCart = cart?.items.find((item) => item.product_id === productId)?.quantity ?? 0;
+  const max = totalMax !== null ? Math.max(0, totalMax - inCart) : null;
+  const limitReached = max !== null && max < min;
+  const selectedQuantity = max !== null ? Math.min(quantity, max) : quantity;
   const soldOut = !inStock || (availableQuantity != null && availableQuantity < min);
-  const atMax = max != null && quantity >= max;
+  const atMax = max != null && selectedQuantity >= max;
 
   const handleAdd = async () => {
     setAdding(true);
     setError(null);
     try {
-      await addItem(productId, quantity);
+      if (limitReached) return;
+      await addItem(productId, selectedQuantity);
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch (err) {
@@ -87,19 +92,19 @@ export function AddToCartButton({
           <button
             type="button"
             aria-label="Decrease quantity"
-            onClick={() => setQuantity((q) => Math.max(min, q - 1))}
-            disabled={quantity <= min}
+            onClick={() => setQuantity(Math.max(min, selectedQuantity - 1))}
+            disabled={limitReached || selectedQuantity <= min}
             className="flex h-full w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7h8" /></svg>
           </button>
           <span className="flex h-full min-w-[2.5rem] items-center justify-center text-sm font-semibold tabular-nums">
-            {quantity}
+            {selectedQuantity}
           </span>
           <button
             type="button"
             aria-label="Increase quantity"
-            onClick={() => setQuantity((q) => (max != null ? Math.min(max, q + 1) : q + 1))}
+            onClick={() => setQuantity(max != null ? Math.min(max, selectedQuantity + 1) : selectedQuantity + 1)}
             disabled={atMax}
             className="flex h-full w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
           >
@@ -125,15 +130,17 @@ export function AddToCartButton({
         className="h-14 w-full rounded-full text-sm font-bold uppercase tracking-[0.22em] transition-transform duration-300 hover:-translate-y-0.5"
         size="lg"
         onClick={handleAdd}
-        disabled={adding}
+        disabled={adding || limitReached}
         style={{
           background: "#d4a951",
           color: "#0a1a2e",
           boxShadow: "0 20px 50px -20px #d4a95188",
         }}
       >
-        {adding ? "Adding..." : added ? "Added to Cart" : "Add to Cart"}
+        {adding ? "Adding..." : limitReached ? "Cart limit reached" : added ? "Added to Cart" : "Add to Cart"}
       </Button>
+
+      {limitReached && <p className="text-sm text-muted-foreground">Your cart already contains the maximum available quantity for this order.</p>}
 
       {error && (
         <p role="alert" className="text-sm font-medium text-red-600 dark:text-red-400">

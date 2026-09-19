@@ -7,11 +7,15 @@ export function QtyStepper({
   quantity,
   onChange,
   disabled,
+  min = 1,
+  max = null,
   size = "md",
 }: {
   quantity: number;
   onChange: (next: number) => void;
   disabled?: boolean;
+  min?: number;
+  max?: number | null;
   size?: "sm" | "md";
 }) {
   const btn =
@@ -26,7 +30,7 @@ export function QtyStepper({
         type="button"
         className={cls}
         disabled={disabled || quantity <= 0}
-        onClick={() => onChange(quantity - 1)}
+        onClick={() => onChange(quantity <= min ? 0 : Math.max(min, Math.min(quantity - 1, max ?? Infinity)))}
         aria-label="Decrease quantity"
       >
         <Minus className="size-4" />
@@ -40,7 +44,7 @@ export function QtyStepper({
       <button
         type="button"
         className={cls}
-        disabled={disabled}
+        disabled={disabled || (max !== null && quantity >= max)}
         onClick={() => onChange(quantity + 1)}
         aria-label="Increase quantity"
       >

@@ -45,7 +45,7 @@ interface RepSaleContextValue {
   /** Begin a fresh sale (new cart session, no customer). */
   startSale: () => string;
   /** Attach the customer — binds the cart server-side so prices use THEIR tier. */
-  selectCustomer: (customer: RepCustomer) => Promise<void>;
+  selectCustomer: (customer: RepCustomer, options?: { newSale?: boolean }) => Promise<void>;
   addItem: (productId: string, quantity: number) => Promise<void>;
   updateItem: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
@@ -128,20 +128,19 @@ export function RepSaleProvider({ children }: { children: ReactNode }) {
   }, [persist]);
 
   const selectCustomer = useCallback(
-    async (next: RepCustomer) => {
-      const id = saleSessionId ?? startSale();
+    async (next: RepCustomer, options?: { newSale?: boolean }) => {
+      const id = options?.newSale ? crypto.randomUUID() : saleSessionId ?? crypto.randomUUID();
       const result = await bindRepCart({ sessionToken: id, customerId: next.id });
       if (!result.ok) throw new Error(result.message);
+      // Publish one complete sale only after the customer and cart agree.
+      // Starting from Customers must not bind a previous render's session.
+      const boundCart = await getCart(id);
+      setSaleSessionId(id);
       setCustomerState(next);
+      setCart(boundCart);
       persist({ saleSessionId: id, customer: next });
-      // Rebound cart may reprice existing lines at the customer's tier.
-      try {
-        setCart(await getCart(id));
-      } catch {
-        /* cart may not exist yet */
-      }
     },
-    [saleSessionId, startSale, persist]
+    [saleSessionId, persist]
   );
 
   const requireSession = useCallback((): string => {

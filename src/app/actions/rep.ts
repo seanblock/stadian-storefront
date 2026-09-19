@@ -1,5 +1,7 @@
 "use server";
 
+import { getProductCoas, type ProductCoa } from "@/lib/product-coas";
+
 import { getStadianClient } from "@/lib/stadian";
 import { getValidCustomerToken } from "@/lib/customer-token";
 import {
@@ -10,6 +12,8 @@ import {
   type RepDashboard,
   type RepOrderSummary,
   type RepOrdersResponse,
+  type StorefrontCommission,
+  type StorefrontPayout,
 } from "@stadian/storefront-sdk";
 import type { Address } from "@/app/checkout/checkout-logic";
 
@@ -22,6 +26,14 @@ export type RepResult<T> =
   | { ok: true; data: T }
   | { ok: false; code: string; message: string; status: number; details?: Record<string, unknown> };
 
+export async function getRepCommissions(): Promise<RepResult<{ items: StorefrontCommission[] }>> {
+  return withRepAuth((customerToken) => getStadianClient().customers.commissions({ customerToken, limit: 50 }));
+}
+
+export async function getRepPayouts(): Promise<RepResult<{ items: StorefrontPayout[] }>> {
+  return withRepAuth((customerToken) => getStadianClient().customers.payouts({ customerToken, limit: 50 }));
+}
+
 async function withRepAuth<T>(
   fn: (customerToken: string) => Promise<T>
 ): Promise<RepResult<T>> {
@@ -33,12 +45,15 @@ async function withRepAuth<T>(
     return { ok: true, data: await fn(customerToken) };
   } catch (err) {
     if (err instanceof StadianError) {
-      return { ok: false, code: err.code, message: err.message, status: err.status, details: err.details };
+      const message = err.status === 0 || err.status >= 500
+        ? "The store is temporarily unavailable. Please try again shortly."
+        : err.message;
+      return { ok: false, code: err.code, message, status: err.status, details: err.details };
     }
     return {
       ok: false,
       code: "UNKNOWN",
-      message: err instanceof Error ? err.message : "Something went wrong.",
+      message: "The store is temporarily unavailable. Please try again shortly.",
       status: 0,
     };
   }
@@ -99,7 +114,7 @@ export async function createRepOrder(params: {
   sendPaymentLinkEmail?: boolean;
   acceptDisclaimers?: boolean;
 }): Promise<RepResult<RepCheckoutResponse>> {
-  return withRepAuth((customerToken) =>
+  const result = await withRepAuth((customerToken) =>
     getStadianClient().rep.checkout({
       customerToken,
       sessionToken: params.sessionToken,
@@ -116,6 +131,13 @@ export async function createRepOrder(params: {
       acceptDisclaimers: params.acceptDisclaimers ?? false,
     })
   );
+  if (!result.ok && (result.status === 0 || result.status >= 500)) {
+    return {
+      ...result,
+      message: "We couldn't confirm the order result. Your sale is still open. When the store reconnects, check Orders before retrying to avoid placing the order twice.",
+    };
+  }
+  return result;
 }
 
 export async function getRepOrders(params?: {
@@ -168,5 +190,12 @@ export async function getRepProducts(
       limit: 100,
     });
     return page.items;
+  });
+}
+
+export async function getRepProductCoas(slug: string): Promise<RepResult<ProductCoa[]>> {
+  return withRepAuth(async (customerToken) => {
+    const product = await getStadianClient().catalog.get(slug, { customerToken });
+    return getProductCoas(product);
   });
 }

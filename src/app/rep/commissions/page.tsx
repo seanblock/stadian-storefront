@@ -7,8 +7,8 @@ import type {
   StorefrontCommission,
   StorefrontPayout,
 } from "@stadian/storefront-sdk";
-import { getCommissions, getPayouts } from "@/app/actions/affiliate";
-import { getRepDashboard } from "@/app/actions/rep";
+import { getRepCommissions, getRepPayouts, getRepDashboard } from "@/app/actions/rep";
+import { Button } from "@/components/ui/button";
 import { fmtCurrency, fmtDate } from "@/components/rep/format";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -77,19 +77,43 @@ export default function RepCommissionsPage() {
   const [dashboard, setDashboard] = useState<RepDashboard | null>(null);
   const [commissions, setCommissions] = useState<StorefrontCommission[] | null>(null);
   const [payouts, setPayouts] = useState<StorefrontPayout[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    getRepDashboard().then((r) => setDashboard(r.ok ? r.data : null));
-    getCommissions({ limit: 50 }).then((r) => setCommissions(r.items));
-    getPayouts({ limit: 50 }).then((r) => setPayouts(r.items));
-  }, []);
+    let cancelled = false;
+    Promise.all([getRepDashboard(), getRepCommissions(), getRepPayouts()]).then(([d, c, p]) => {
+      if (cancelled) return;
+      if (!d.ok || !c.ok || !p.ok) {
+        setError(!d.ok ? d.message : !c.ok ? c.message : !p.ok ? p.message : "Unable to load earnings.");
+        return;
+      }
+      setError(null);
+      setDashboard(d.data);
+      setCommissions(c.data.items);
+      setPayouts(p.data.items);
+    }).catch(() => {
+      if (!cancelled) setError("Unable to load earnings. Please try again shortly.");
+    });
+    return () => { cancelled = true; };
+  }, [attempt]);
+
+  if (error) {
+    return <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
+      <h1 className="font-serif text-3xl text-[#0a1a2e]">Commissions</h1>
+      <div role="alert" className="mt-4 rounded-lg border p-4">
+        <p>{error}</p>
+        <Button variant="outline" className="mt-3" onClick={() => { setError(null); setDashboard(null); setCommissions(null); setPayouts(null); setAttempt((n) => n + 1); }}>Retry earnings</Button>
+      </div>
+    </div>;
+  }
 
   const c = dashboard?.commissions;
   const unrealized = c?.unrealized ?? 0;
   const unrealizedOrders = c?.unrealized_order_count ?? 0;
   const rate =
     dashboard?.commission_rate != null
-      ? `${Math.round(dashboard.commission_rate * 100)}%`
+      ? `${Number((dashboard.commission_rate * 100).toFixed(2))}%`
       : "—";
 
   return (
@@ -97,8 +121,9 @@ export default function RepCommissionsPage() {
       <div>
         <h1 className="font-serif text-3xl text-[#0a1a2e]">Commissions</h1>
         <p className="text-sm text-muted-foreground">
-          You earn {rate} of the product value on every sale you place. Commission
-          is created when the order is paid — not when it is placed.
+          {!dashboard ? "Loading earnings…" : dashboard.commission_active === false
+            ? "New commission earnings are paused. You can still use the sales portal, and your previous earnings remain visible. Contact your store administrator to resume commissions."
+            : `Your commission rate is ${rate} of eligible product value. Commission is created when an eligible order is paid.`}
         </p>
       </div>
 
@@ -108,11 +133,13 @@ export default function RepCommissionsPage() {
             label="Awaiting payment"
             value={fmtCurrency(unrealized)}
             note={
-              unrealizedOrders > 0
+              dashboard.commission_active === false
+                ? "new commission earnings paused"
+                : unrealizedOrders > 0
                 ? `from ${unrealizedOrders} unpaid ${
                     unrealizedOrders === 1 ? "order" : "orders"
                   }`
-                : "no unpaid orders"
+                : "no unpaid commission-eligible orders"
             }
           />
           <Figure
@@ -171,8 +198,9 @@ export default function RepCommissionsPage() {
             </div>
           ) : commissions.length === 0 ? (
             <p className="px-4 py-12 text-center text-sm text-muted-foreground">
-              No commission yet. One is created the moment a sale you placed is
-              marked paid.
+              {dashboard?.commission_rate === 0
+                ? "Your current commission rate is 0%, so paid sales do not earn a commission. Contact your store administrator if this rate is unexpected."
+                : "No commission yet. Eligible sales earn commission when payment is confirmed."}
             </p>
           ) : (
             commissions.map((item) => (
@@ -185,7 +213,7 @@ export default function RepCommissionsPage() {
                     {fmtCurrency(item.amount)}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {fmtDate(item.created_at)} · {Math.round(item.rate * 100)}%{" "}
+                    {fmtDate(item.created_at)} · {Number((item.rate * 100).toFixed(2))}%{" "}
                     {item.type.replace(/_/g, " ")}
                   </p>
                 </div>

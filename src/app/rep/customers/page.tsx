@@ -27,7 +27,7 @@ const FILTERS: { key: Filter; label: string }[] = [
  */
 export default function RepCustomersPage() {
   const router = useRouter();
-  const { startSale, selectCustomer } = useRepSale();
+  const { selectCustomer } = useRepSale();
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -57,16 +57,14 @@ export default function RepCustomersPage() {
 
   const startSaleFor = useCallback(
     async (customer: RepCustomer) => {
-      startSale();
       try {
-        await selectCustomer(customer);
-      } catch {
-        // Binding failed (e.g. unusable account) — still land on new-sale,
-        // where the error surfaces on selection.
+        await selectCustomer(customer, { newSale: true });
+        router.push("/rep/new-sale");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not start a sale. Please try again.");
       }
-      router.push("/rep/new-sale");
     },
-    [router, selectCustomer, startSale]
+    [router, selectCustomer]
   );
 
   const visible = (customers ?? []).filter((c) =>

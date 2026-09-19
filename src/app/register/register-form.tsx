@@ -28,16 +28,16 @@ const SUBMIT =
 
 const WHOLESALE_POINTS = [
   "Wholesale pricing unlocks the moment your account is approved",
-  "Batch numbers and lab documentation with every order",
-  "Sealed in-house, cold-chain where it counts",
-  "Reorder in a click from your account history",
+  "View product details and available documentation",
+  "Review your items and charges before placing an order",
+  "Find your order history and payment status in your account",
 ] as const;
 
 const RETAIL_POINTS = [
-  "Third-party tested, batch-numbered inventory",
-  "Sealed in-house before it leaves our door",
-  "Free shipping on orders over $299.99",
-  "Track orders and reorder from your account",
+  "Browse product details and available documentation",
+  "Review your items and charges before placing an order",
+  "See available shipping options at checkout",
+  "View order status and available shipment tracking",
 ] as const;
 
 export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProps) {

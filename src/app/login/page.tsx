@@ -20,9 +20,9 @@ const SUBMIT =
 
 const POINTS = [
   "Your pricing, applied the moment you sign in",
-  "Every order, invoice and batch number in one place",
-  "Reorder in a click from your account history",
-  "Saved addresses — checkout in under a minute",
+  "View your order history and itemized receipts",
+  "Check payment and fulfillment status",
+  "Find shipment tracking when your order ships",
 ] as const;
 
 function LoginForm() {

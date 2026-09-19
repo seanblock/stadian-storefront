@@ -12,7 +12,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { OrderTracking } from "@/components/checkout/order-tracking";
+import { OrderReceipt } from "@/components/checkout/order-receipt";
+import { orderPaymentState } from "@/lib/order-payment-state";
 import { BankTransferInstructions, type BankTransferDetails } from "@/components/checkout/bank-transfer-instructions";
 import { getManualPaymentMethods } from "@/app/actions/payments";
 import {
@@ -68,7 +70,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
   const headerColor = isCancelled
     ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
     : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
-  const headerTitle = isCancelled ? "Order Cancelled" : "Order Placed!";
+  const headerTitle = isCancelled ? "Order Cancelled" : "Order Details";
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
@@ -107,30 +109,8 @@ export default async function OrderDetailPage({ params }: PageProps) {
           <CardHeader>
             <CardTitle>Order Summary</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span>{formatCurrency(order.subtotal)}</span>
-            </div>
-            {order.discount_amount > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Discount</span>
-                <span className="text-green-600 dark:text-green-400">
-                  -{formatCurrency(order.discount_amount)}
-                </span>
-              </div>
-            )}
-            {order.tax_amount > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tax</span>
-                <span>{formatCurrency(order.tax_amount)}</span>
-              </div>
-            )}
-            <Separator className="my-1" />
-            <div className="flex justify-between text-sm font-semibold">
-              <span>Total</span>
-              <span>{formatCurrency(order.total)}</span>
-            </div>
+          <CardContent>
+            <OrderReceipt order={order} totalLabel={orderPaymentState(order).totalLabel} />
           </CardContent>
         </Card>
 
@@ -163,7 +143,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 <>
                   <p className="mb-3">
                     We&rsquo;ve reserved your items. Send your payment by{" "}
-                    <strong>{manualMethod.label}</strong> using the details below
+                    <strong>{manualMethod.label}</strong>{" "}using the details below
                     and we&rsquo;ll start preparing your order as soon as it
                     arrives.
                   </p>
@@ -209,33 +189,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
           </Card>
         )}
 
-        {/* Tracking Info */}
-        {order.tracking_number && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Tracking</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Tracking number:{" "}
-                {order.tracking_url ? (
-                  <a
-                    href={order.tracking_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-primary underline-offset-4 hover:underline"
-                  >
-                    {order.tracking_number}
-                  </a>
-                ) : (
-                  <span className="font-medium text-foreground">
-                    {order.tracking_number}
-                  </span>
-                )}
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        <OrderTracking order={order} />
 
         {/* Continue Shopping */}
         <div className="mt-2 text-center">

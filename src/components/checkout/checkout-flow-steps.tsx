@@ -5,6 +5,7 @@ import type { CheckoutFlowResponse, CheckoutStep } from "@stadian/storefront-sdk
 
 interface CheckoutFlowStepsProps {
   flow: CheckoutFlowResponse | null;
+  disclaimerTargetId?: string;
 }
 
 function stepIcon(step: CheckoutStep) {
@@ -19,7 +20,7 @@ function stepClass(step: CheckoutStep) {
   return "text-muted-foreground";
 }
 
-export function CheckoutFlowSteps({ flow }: CheckoutFlowStepsProps) {
+export function CheckoutFlowSteps({ flow, disclaimerTargetId }: CheckoutFlowStepsProps) {
   if (!flow) return null;
 
   const displaySteps = flow.steps.filter((s) => s.step !== "payment");
@@ -49,9 +50,15 @@ export function CheckoutFlowSteps({ flow }: CheckoutFlowStepsProps) {
               </Link>
             )}
             {!step.completed && step.step === "disclaimer" && (
-              <Link href="/account" className="ml-1 underline text-primary">
-                Review disclaimer in your account
-              </Link>
+              disclaimerTargetId && step.type === "age_verification" ? (
+                <a href={`#${disclaimerTargetId}`} className="ml-1 underline text-primary">
+                  Review and confirm below
+                </a>
+              ) : (
+                <Link href="/account" className="ml-1 underline text-primary">
+                  Review disclaimer in your account
+                </Link>
+              )
             )}
           </div>
         </div>

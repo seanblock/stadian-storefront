@@ -5,6 +5,7 @@ import type { RepCustomer, StorefrontCart } from "@stadian/storefront-sdk";
 import { QtyStepper } from "@/components/rep/qty-stepper";
 import { fmtCurrency } from "@/components/rep/format";
 import { Badge } from "@/components/ui/badge";
+import { cartQuantityLimits } from "@/lib/cart-quantity";
 
 /**
  * The persistent running-order rail: selected customer, cart lines with
@@ -121,10 +122,13 @@ export function SaleCartRail({
                     size="sm"
                     quantity={item.quantity}
                     disabled={cartBusy}
+                    min={cartQuantityLimits(item).min}
+                    max={cartQuantityLimits(item).max}
                     onChange={(next) =>
                       next <= 0 ? handleRemove(item) : onSetQuantity(item.id, next)
                     }
                   />
+                  {cartQuantityLimits(item).atMax && <span className="text-xs text-muted-foreground">At limit</span>}
                   <button
                     type="button"
                     disabled={cartBusy}

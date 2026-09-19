@@ -4,9 +4,11 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import type { StorefrontCart, StorefrontProduct } from "@stadian/storefront-sdk";
 import { QtyStepper } from "@/components/rep/qty-stepper";
+import { ProductCoaButton } from "@/components/rep/product-coa-button";
 import { fmtCurrency } from "@/components/rep/format";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { cartQuantityLimits } from "@/lib/cart-quantity";
 
 /**
  * Touch product grid: category chips, big cards, a permanent stepper on each
@@ -48,9 +50,9 @@ export function ProductPad({
   }, [products, category, query]);
 
   const cartLines = useMemo(() => {
-    const map = new Map<string, { itemId: string; quantity: number }>();
+    const map = new Map<string, StorefrontCart["items"][number]>();
     for (const item of cart?.items ?? []) {
-      map.set(item.product_id, { itemId: item.id, quantity: item.quantity });
+      map.set(item.product_id, item);
     }
     return map;
   }, [cart]);
@@ -103,6 +105,8 @@ export function ProductPad({
       <div className="grid min-h-0 flex-1 auto-rows-max grid-cols-1 gap-2 overflow-y-auto pb-1 sm:grid-cols-3 sm:gap-3 xl:grid-cols-4">
         {visible.map((p) => {
           const line = cartLines.get(p.id);
+          const limits = cartQuantityLimits(line ?? { ...p, quantity: 0 });
+          const cannotAdd = limits.atMax || (limits.max !== null && limits.max < limits.min);
           return (
             <div
               key={p.id}
@@ -110,8 +114,8 @@ export function ProductPad({
             >
               <button
                 type="button"
-                onClick={() => (line ? onSetQuantity(line.itemId, line.quantity + 1) : onAdd(p.id))}
-                disabled={cartBusy}
+                onClick={() => (line ? onSetQuantity(line.id, line.quantity + 1) : onAdd(p.id))}
+                disabled={cartBusy || cannotAdd}
                 className="flex min-w-0 flex-1 items-center gap-3 text-left transition-colors hover:bg-muted/40 active:bg-muted disabled:opacity-60 sm:flex-col sm:items-stretch sm:gap-0"
               >
                 <div className="relative size-14 shrink-0 overflow-hidden rounded-md bg-[#f4f4f2] sm:aspect-[4/3] sm:size-auto sm:w-full sm:rounded-none">
@@ -143,18 +147,22 @@ export function ProductPad({
                   <QtyStepper
                     quantity={line.quantity}
                     disabled={cartBusy}
-                    onChange={(next) => onSetQuantity(line.itemId, next)}
+                    min={limits.min}
+                    max={limits.max}
+                    onChange={(next) => onSetQuantity(line.id, next)}
                   />
                 ) : (
                   <button
                     type="button"
-                    disabled={cartBusy}
+                    disabled={cartBusy || cannotAdd}
                     onClick={() => onAdd(p.id)}
                     className="h-12 min-w-20 rounded-md border border-[#0a1a2e]/20 px-4 text-sm font-medium text-[#0a1a2e] transition-colors hover:bg-[#0a1a2e] hover:text-white disabled:opacity-40 sm:w-full sm:min-w-0 sm:px-0"
                   >
-                    Add
+                    {cannotAdd ? "Unavailable" : limits.min > 1 ? `Add ${limits.min}` : "Add"}
                   </button>
                 )}
+                {limits.max !== null && <p className="mt-1 text-center text-xs text-muted-foreground">Limit {limits.max}</p>}
+                {p.has_coa ? <ProductCoaButton slug={p.slug} name={p.name} /> : <p className="mt-2 text-center text-xs text-muted-foreground">No COA uploaded. Ask your store administrator.</p>}
               </div>
             </div>
           );

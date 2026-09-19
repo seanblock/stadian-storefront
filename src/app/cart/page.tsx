@@ -54,8 +54,8 @@ export default function CartPage() {
               Add some products to get started.
             </p>
           </div>
-          <Button>
-            <Link href="/products">Browse Products</Link>
+          <Button nativeButton={false} render={<Link href="/products" />}>
+            Browse Products
           </Button>
         </div>
       </div>
@@ -85,9 +85,9 @@ export default function CartPage() {
 
         {/* Sidebar */}
         <div className="flex flex-col gap-4">
-          <OrderSummary cart={cart} />
-          <Button className="w-full">
-            <Link href="/checkout">Proceed to Checkout</Link>
+          <OrderSummary cart={cart} showItems={false} />
+          <Button className="w-full" nativeButton={false} render={<Link href="/checkout" />}>
+            Proceed to Checkout
           </Button>
         </div>
       </div>

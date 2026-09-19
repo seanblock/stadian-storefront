@@ -19,7 +19,7 @@ import {
   PaymentSection,
   type PaymentSectionHandle,
 } from "@/components/checkout/payment-section";
-import { getSessionId, clearSession } from "@/lib/session";
+import { getSessionId } from "@/lib/session";
 import { getShippingOptions } from "@/app/actions/shipping";
 import { getCheckoutFlow } from "@/app/actions/checkout-flow";
 import type {
@@ -67,8 +67,13 @@ function StepBadge({ n, active, done }: { n: number; active: boolean; done: bool
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, loading } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { cart, loading, resetCart } = useCart();
+  const { isAuthenticated, customer, loading: authLoading } = useAuth();
+  const contactIdentity = customer?.id ?? "guest";
+  const [contact, setContact] = useState<{ identity: string; fullName?: string; email?: string }>({ identity: contactIdentity });
+  const currentContact = contact.identity === contactIdentity ? contact : { identity: contactIdentity };
+  const contactName = currentContact.fullName ?? [customer?.first_name, customer?.last_name].filter(Boolean).join(" ");
+  const contactEmail = currentContact.email ?? customer?.email ?? "";
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +92,8 @@ export default function CheckoutPage() {
   const [storedMethods, setStoredMethods] = useState<StoredPaymentMethod[]>([]);
   const [configLoading, setConfigLoading] = useState(true);
   const [checkoutFlow, setCheckoutFlow] = useState<CheckoutFlowResponse | null>(null);
+  const [flowLoading, setFlowLoading] = useState(true);
+  const flowRequest = useRef(0);
 
   // Validation state
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -146,35 +153,38 @@ export default function CheckoutPage() {
     }
   }, [getValues]);
 
+  const refreshCheckoutFlow = useCallback(async (state: string) => {
+    const request = ++flowRequest.current;
+    setFlowLoading(true);
+    const flow = await getCheckoutFlow(getSessionId(), state);
+    if (request !== flowRequest.current) return;
+    setCheckoutFlow(flow);
+    setFlowLoading(false);
+  }, []);
+
   function handleShippingStateChange(state: string) {
-    if (!state) return;
-    const sessionId = getSessionId();
-    getCheckoutFlow(sessionId, state).then((flow) => {
-      setCheckoutFlow(flow);
-    });
+    void refreshCheckoutFlow(state);
     recompute();
   }
 
   useEffect(() => {
-    if (!loading && (!cart || cart.items.length === 0)) {
+    if (!loading && !submitting && !confirmedOrder && (!cart || cart.items.length === 0)) {
       router.push("/cart");
     }
-  }, [loading, cart, router]);
+  }, [loading, cart, submitting, confirmedOrder, router]);
 
   // Learn the compliance requirements up front, not at submit. The age
   // disclaimer is the one that matters: the guard rejects the order without it,
   // so the buyer needs a way to confirm BEFORE they press Place Order.
   useEffect(() => {
-    let cancelled = false;
-    const sessionId = getSessionId();
-    if (!sessionId) return;
-    getCheckoutFlow(sessionId, "").then((flow) => {
-      if (!cancelled && flow) setCheckoutFlow(flow);
-    });
+    if (loading || !cart?.items.length) return;
+    // Recheck whenever cart contents or the authenticated buyer changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async server validation
+    void refreshCheckoutFlow(getValues()?.shipping.state ?? "");
     return () => {
-      cancelled = true;
+      flowRequest.current += 1;
     };
-  }, []);
+  }, [loading, cart, isAuthenticated, refreshCheckoutFlow, getValues]);
 
   useEffect(() => {
     let cancelled = false;
@@ -234,10 +244,12 @@ export default function CheckoutPage() {
     const errs = validateCheckout(values);
     if (errs.full_name || errs.email) {
       setFieldErrors(errs);
+      submitAttemptedRef.current = true;
       setSubmitAttempted(true);
       return;
     }
     setSummaries((s) => ({ ...s, contact: `${values.fullName} · ${values.email}` }));
+    submitAttemptedRef.current = false;
     setSubmitAttempted(false);
     setStep(2);
   }
@@ -248,6 +260,7 @@ export default function CheckoutPage() {
     const errs = validateCheckout(values);
     if (errs.line1 || errs.city || errs.state || errs.zip || errs.country) {
       setFieldErrors(errs);
+      submitAttemptedRef.current = true;
       setSubmitAttempted(true);
       return;
     }
@@ -261,6 +274,7 @@ export default function CheckoutPage() {
       shipping: `${s.line1}, ${s.city}, ${s.state} ${s.zip}`,
     }));
     setError(null);
+    submitAttemptedRef.current = false;
     setSubmitAttempted(false);
     setStep(3);
   }
@@ -269,6 +283,10 @@ export default function CheckoutPage() {
     e.preventDefault();
     // Only the final step places the order (guards Enter-key submits on earlier steps).
     if (step !== 3) return;
+    if (flowLoading || !checkoutFlow) {
+      setError("Please wait for checkout requirements to load, or retry the check below.");
+      return;
+    }
 
     const values = getValues();
     if (!values) return;
@@ -375,24 +393,19 @@ export default function CheckoutPage() {
         return;
       }
 
-      clearSession();
-
       if (result.kind === "redirect") {
+        resetCart();
         // assign() rather than href = : same navigation, but the lint rule
         // reads a bare href assignment as mutating a value it protects.
         window.location.assign(result.url);
         return;
       }
 
-      // result.kind === "success"
-      if (isAuthenticated) {
-        router.push(`/account/orders/${result.orderId}`);
-        return;
-      }
-
-      // Guest: show inline confirmation
+      // Keep a visible receipt once the order succeeds, even if a subsequent
+      // account-page navigation is delayed or interrupted.
       setLastEmail(email);
       setConfirmedOrder(order);
+      resetCart();
     } catch (err) {
       setTurnstileToken("");
       setTurnstileReset((n) => n + 1);
@@ -408,6 +421,7 @@ export default function CheckoutPage() {
       <OrderConfirmation
         order={confirmedOrder}
         email={lastEmail}
+        signedIn={isAuthenticated}
         manualMethod={manualMethods.find(
           (m) => m.key === confirmedOrder.payment_method,
         )}
@@ -415,7 +429,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (loading || !cart || cart.items.length === 0) {
+  if (loading || authLoading || !cart || cart.items.length === 0) {
     return (
       <div className="container mx-auto max-w-5xl px-4 py-12">
         <p className="text-muted-foreground">Loading...</p>
@@ -445,6 +459,8 @@ export default function CheckoutPage() {
   const placeOrderDisabled =
     submitting ||
     configLoading ||
+    flowLoading ||
+    !checkoutFlow ||
     !formFilled ||
     hasUnresolvableBlocker ||
     (needsAgeConfirmation && !ageConfirmed);
@@ -497,6 +513,8 @@ export default function CheckoutPage() {
                     placeholder="Jane Doe"
                     required
                     autoComplete="name"
+                    value={contactName}
+                    onChange={(event) => setContact({ ...currentContact, fullName: event.target.value })}
                     aria-invalid={submitAttempted && !!fieldErrors.full_name}
                   />
                   {submitAttempted && fieldErrors.full_name && (
@@ -512,6 +530,8 @@ export default function CheckoutPage() {
                     placeholder="you@example.com"
                     required
                     autoComplete="email"
+                    value={contactEmail}
+                    onChange={(event) => setContact({ ...currentContact, email: event.target.value })}
                     aria-invalid={submitAttempted && !!fieldErrors.email}
                   />
                   {submitAttempted && fieldErrors.email && (
@@ -584,7 +604,18 @@ export default function CheckoutPage() {
               <CardContent
                 className={`flex flex-col gap-6 ${step === 3 ? "" : "hidden"}`}
               >
-                <CheckoutFlowSteps flow={checkoutFlow} />
+                {flowLoading ? (
+                  <p role="status" className="text-sm text-muted-foreground">Checking checkout requirements…</p>
+                ) : !checkoutFlow ? (
+                  <div role="alert" className="text-sm">
+                    <p>We couldn’t check your checkout requirements. Please try again.</p>
+                    <Button type="button" variant="outline" className="mt-2" onClick={() => void refreshCheckoutFlow(getValues()?.shipping.state ?? "")}>Retry requirements check</Button>
+                  </div>
+                ) : null}
+                <CheckoutFlowSteps
+                  flow={checkoutFlow}
+                  disclaimerTargetId={needsAgeConfirmation ? "checkout-age-confirmation" : undefined}
+                />
                 {configLoading ? (
                   <p className="text-sm text-muted-foreground">Loading payment options...</p>
                 ) : (
@@ -616,13 +647,14 @@ export default function CheckoutPage() {
                   >
                     <label className="flex cursor-pointer items-start gap-3">
                       <input
+                        id="checkout-age-confirmation"
                         type="checkbox"
                         checked={ageConfirmed}
                         onChange={(e) => {
                           setAgeConfirmed(e.target.checked);
                           if (e.target.checked) setError(null);
                         }}
-                        className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                        className="mt-0.5 h-4 w-4 shrink-0 scroll-mt-32 accent-primary"
                       />
                       <span className="text-sm">
                         {ageStep?.description ??

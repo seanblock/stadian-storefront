@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { StorefrontCartItem } from "@stadian/storefront-sdk";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useCart } from "@/providers/cart-provider";
+import { useCartItemActions } from "./use-cart-item-actions";
 import { formatCurrency } from "@/lib/utils";
 
 interface CartItemRowProps {
@@ -12,23 +12,7 @@ interface CartItemRowProps {
 }
 
 export function CartItemRow({ item }: CartItemRowProps) {
-  const { updateItem, removeItem } = useCart();
-
-  function handleDecrement() {
-    if (item.quantity <= 1) {
-      removeItem(item.id);
-    } else {
-      updateItem(item.id, item.quantity - 1);
-    }
-  }
-
-  function handleIncrement() {
-    updateItem(item.id, item.quantity + 1);
-  }
-
-  function handleRemove() {
-    removeItem(item.id);
-  }
+  const actions = useCartItemActions(item);
 
   return (
     <div>
@@ -44,6 +28,8 @@ export function CartItemRow({ item }: CartItemRowProps) {
           <p className="mt-0.5 text-xs text-muted-foreground">
             {formatCurrency(item.unit_price)} each
           </p>
+        {actions.limitMessage && <p className="mt-1 text-xs text-muted-foreground">{actions.limitMessage}</p>}
+        {actions.error && <p role="alert" className="mt-1 text-xs text-destructive">{actions.error}</p>}
         </div>
 
         {/* Quantity controls */}
@@ -51,7 +37,8 @@ export function CartItemRow({ item }: CartItemRowProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleDecrement}
+            disabled={actions.busy}
+          onClick={actions.decrease}
             aria-label="Decrease quantity"
           >
             −
@@ -62,7 +49,8 @@ export function CartItemRow({ item }: CartItemRowProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleIncrement}
+            disabled={actions.busy || actions.atMax}
+            onClick={actions.increase}
             aria-label="Increase quantity"
           >
             +
@@ -78,7 +66,8 @@ export function CartItemRow({ item }: CartItemRowProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleRemove}
+          disabled={actions.busy}
+          onClick={actions.remove}
           aria-label={`Remove ${item.product_name} from cart`}
           className="text-muted-foreground hover:text-destructive"
         >

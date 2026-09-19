@@ -12,10 +12,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-export default async function OrderHistoryPage() {
+export default async function OrderHistoryPage({ searchParams }: {
+  searchParams: Promise<{ offset?: string }>;
+}) {
+  const { offset: rawOffset } = await searchParams;
+  const parsedOffset = Number(rawOffset ?? 0);
+  const offset = Number.isSafeInteger(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
+  const limit = 20;
   // Account-only surface: a missing or lapsed session goes to /login.
   const orders = await fetchWithRequiredAuth("/account/orders", (customerToken) =>
-    getStadianClient().orders.list({ customerToken, limit: 20, offset: 0 })
+    getStadianClient().orders.list({ customerToken, limit, offset })
   );
 
   return (
@@ -27,7 +33,7 @@ export default async function OrderHistoryPage() {
         </p>
       </div>
 
-      {orders.items.length === 0 ? (
+      {orders.total === 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>No orders yet</CardTitle>
@@ -57,7 +63,7 @@ export default async function OrderHistoryPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant="secondary" className="capitalize">
-                      {order.status}
+                      {order.status.replace(/_/g, " ")}
                     </Badge>
                     <span className="text-sm font-medium">
                       {formatCurrency(order.total)}
@@ -68,6 +74,17 @@ export default async function OrderHistoryPage() {
             </Link>
           ))}
         </div>
+      )}
+      {orders.total > 0 && (
+        <nav aria-label="Order history pages" className="flex items-center justify-between gap-4 text-sm">
+          {offset > 0 ? (
+            <Link className="underline" href={`/account/orders?offset=${Math.max(0, offset - limit)}`}>Previous</Link>
+          ) : <span />}
+          <span>{orders.total} {orders.total === 1 ? "order" : "orders"}</span>
+          {offset + limit < orders.total ? (
+            <Link className="underline" href={`/account/orders?offset=${offset + limit}`}>Next</Link>
+          ) : <span />}
+        </nav>
       )}
     </div>
   );

@@ -74,8 +74,10 @@ export default function RepDashboardPage() {
             value={fmtCurrency(dashboard.commissions.pending)}
             accent
             hint={
-              dashboard.commission_rate != null
-                ? `${Math.round(dashboard.commission_rate * 100)}% rate`
+              dashboard.commission_active === false
+                ? "New earnings paused"
+                : dashboard.commission_rate != null
+                ? `${Number((dashboard.commission_rate * 100).toFixed(2))}% rate`
                 : undefined
             }
           />
