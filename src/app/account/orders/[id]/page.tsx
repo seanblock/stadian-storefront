@@ -56,11 +56,20 @@ export default async function OrderDetailPage({ params }: PageProps) {
   // checkout, so it — not just the emailed copy — has to tell them how to pay.
   const isBankTransfer = order.payment_method?.startsWith("bank_transfer_");
   const bankTransfer = showPaymentWarning && isBankTransfer
-    ? await fetchWithRequiredAuth(`/account/orders/${id}`, (customerToken) =>
-        getHttpClient().request<BankTransferDetails | null>("GET", `/orders/${encodeURIComponent(id)}/bank-transfer`, {
-          headers: { Authorization: `Bearer ${customerToken}` },
-        })
-      )
+    ? await fetchWithRequiredAuth(`/account/orders/${id}`, async (customerToken) => {
+        // Same contract as the order fetch: auth errors redirect to login, anything
+        // else degrades to "no instructions" rather than replacing a loaded order.
+        try {
+          return await getHttpClient().request<BankTransferDetails | null>(
+            "GET",
+            `/orders/${encodeURIComponent(id)}/bank-transfer`,
+            { headers: { Authorization: `Bearer ${customerToken}` } }
+          );
+        } catch (err) {
+          if (err instanceof StadianAuthError) throw err;
+          return null;
+        }
+      })
     : null;
   const manualMethod = showPaymentWarning && !isBankTransfer && order.payment_method
     ? (await getManualPaymentMethods()).find((m) => m.key === order.payment_method)

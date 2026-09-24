@@ -141,7 +141,7 @@ export function OrderConfirmation({
             <>
               Order updates go to <span className="font-medium text-foreground">{email}</span>.
               {isBankTransfer
-                ? " View bank instructions on your account order page."
+                ? " We’ve emailed you the bank transfer instructions — they’re also on your account order page."
                 : " We’ll confirm when your payment is received."}
             </>
           ) : (

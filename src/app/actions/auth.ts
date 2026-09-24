@@ -222,9 +222,17 @@ export async function logoutCustomer(): Promise<void> {
   cookieStore.delete(REFRESH_TOKEN_COOKIE);
 }
 
-export async function forgotPassword(email: string): Promise<{ ok: boolean }> {
-  const client = await getVisitorClient();
-  return client.customers.forgotPassword({ email });
+// Returns failures instead of throwing: server-action throws are masked in production.
+export async function forgotPassword(email: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const client = await getVisitorClient();
+    return await client.customers.forgotPassword({ email });
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error && err.message ? err.message : "Something went wrong. Please try again.",
+    };
+  }
 }
 
 export async function resetPassword(

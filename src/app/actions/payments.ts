@@ -30,7 +30,8 @@ export interface StoredPaymentMethod {
  * A manual (offline) payment method the store accepts — Zelle, ACH, wire,
  * check. The buyer picks one at checkout, the order is placed as
  * `pending_payment`. Legacy methods email instructions; the Bank Transfer
- * plugin exposes instructions only on the authenticated order page.
+ * plugin emails them too, and shows them only on the authenticated order
+ * page (public checkout lists the method with empty `details`).
  *
  * `details` is keyed by the tenant config field name (`zelle_email`,
  * `ach_routing_number`, …) and is already masked by the API — an account

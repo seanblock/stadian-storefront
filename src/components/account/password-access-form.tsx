@@ -26,12 +26,11 @@ export function PasswordAccessForm({ forOrders = false }: { forOrders?: boolean 
     setSubmitting(true);
 
     try {
-      await forgotPassword(email);
-      setSubmitted(true);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Something went wrong. Please try again."
-      );
+      const result = await forgotPassword(email);
+      if (result.error) setError(result.error);
+      else setSubmitted(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }

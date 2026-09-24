@@ -134,7 +134,10 @@ export function RepSaleProvider({ children }: { children: ReactNode }) {
       if (!result.ok) throw new Error(result.message);
       // Publish one complete sale only after the customer and cart agree.
       // Starting from Customers must not bind a previous render's session.
-      const boundCart = await getCart(id);
+      // Server-action errors arrive masked in production; surface a usable message.
+      const boundCart = await getCart(id).catch(() => {
+        throw new Error("Couldn't load this customer's cart. Please try again.");
+      });
       setSaleSessionId(id);
       setCustomerState(next);
       setCart(boundCart);
