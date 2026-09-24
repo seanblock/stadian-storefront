@@ -23,7 +23,7 @@ const TRUST_CHIPS = [
   "Third-party tested",
   "Batch-numbered",
   "Cold-chain where it counts",
-  "Free shipping over $299.99",
+  "Free shipping on orders $400+",
 ] as const;
 
 export function Hero({ branding: _branding }: HeroProps) {
