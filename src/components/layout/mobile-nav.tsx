@@ -15,6 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { freeShippingLabel } from "@/lib/free-shipping";
 
 const NAVY = "#0a1a2e";
 const CREAM = "#f3ead5";
@@ -33,7 +34,6 @@ const TRUST_POINTS = [
   "Third-party tested",
   "Batch-numbered",
   "Sealed in-house",
-  "Free shipping on orders $400+",
 ] as const;
 
 interface MobileNavProps {
@@ -41,9 +41,13 @@ interface MobileNavProps {
   storeName: string;
   /** Hide the cart entirely when this visitor may not have one. */
   cartEnabled?: boolean;
+  /** `branding.free_shipping_threshold`; null hides the free-shipping point. */
+  freeShippingThreshold?: number | null;
 }
 
-export function MobileNav({ storeName, cartEnabled = true }: MobileNavProps) {
+export function MobileNav({ storeName, cartEnabled = true, freeShippingThreshold = null }: MobileNavProps) {
+  const freeShipping = freeShippingLabel(freeShippingThreshold);
+  const trustPoints = freeShipping ? [...TRUST_POINTS, freeShipping] : TRUST_POINTS;
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { customer, isAuthenticated, isSalesRep, logout, loading } = useAuth();
@@ -266,7 +270,7 @@ export function MobileNav({ storeName, cartEnabled = true }: MobileNavProps) {
             style={{ background: `${GOLD}66` }}
           />
           <ul className="grid gap-2.5 pt-5">
-            {TRUST_POINTS.map((point) => (
+            {trustPoints.map((point) => (
               <li key={point} className="flex items-center gap-2.5 text-xs">
                 <span
                   aria-hidden

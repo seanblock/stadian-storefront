@@ -369,6 +369,9 @@ export interface StorefrontBranding {
     /** How shoppers get an account on this store. */
     registration_mode?: StorefrontRegistrationMode;
     trust_signals?: StorefrontTrustSignal[];
+    /** Lowest subtotal that ships free on an active shipping method; null when
+     *  nothing ships free. Render "free shipping" copy from this, never hardcode it. */
+    free_shipping_threshold?: number | null;
 }
 /**
  * open — anyone can register and order immediately.

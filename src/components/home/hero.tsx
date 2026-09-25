@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { StorefrontBranding, StorefrontProduct } from "@stadian/storefront-sdk";
+import { freeShippingLabel } from "@/lib/free-shipping";
 
 interface HeroProps {
   branding: StorefrontBranding;
@@ -23,10 +24,11 @@ const TRUST_CHIPS = [
   "Third-party tested",
   "Batch-numbered",
   "Cold-chain where it counts",
-  "Free shipping on orders $400+",
 ] as const;
 
-export function Hero({ branding: _branding }: HeroProps) {
+export function Hero({ branding }: HeroProps) {
+  const freeShipping = freeShippingLabel(branding.free_shipping_threshold);
+  const chips = freeShipping ? [...TRUST_CHIPS, freeShipping] : TRUST_CHIPS;
   return (
     <section
       className="relative isolate -mt-20 overflow-hidden pt-20 sm:-mt-[5.5rem] sm:pt-[5.5rem]"
@@ -128,7 +130,7 @@ export function Hero({ branding: _branding }: HeroProps) {
               className="reveal-up mt-10 flex max-w-xl flex-wrap gap-x-6 gap-y-2.5"
               style={{ animationDelay: "320ms" }}
             >
-              {TRUST_CHIPS.map((chip) => (
+              {chips.map((chip) => (
                 <li
                   key={chip}
                   className="flex items-center gap-2 text-[13px] font-medium"
