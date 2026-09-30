@@ -21,6 +21,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { formatCurrency } from "@/lib/utils";
+import { formatDynamicFieldValue } from "@/lib/dynamic-field-value";
 import type {
   StorefrontProductDetail,
   StorefrontProductGroup,
@@ -559,54 +560,41 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
             {/* Dynamic sections from field_schema */}
             {product.field_schema
-              ?.filter((section) =>
-                section.fields.some(
-                  (f) =>
-                    product.dynamic_fields?.[f.slug] != null &&
-                    product.dynamic_fields[f.slug] !== ""
-                )
-              )
-              .map((section) => {
-                const fieldsWithValues = section.fields.filter(
-                  (f) =>
-                    product.dynamic_fields?.[f.slug] != null &&
-                    product.dynamic_fields[f.slug] !== ""
-                );
-
-                return (
-                  <AccordionItem key={section.slug}>
-                    <AccordionTrigger className="text-sm font-semibold uppercase tracking-widest text-muted-foreground hover:no-underline">
-                      <span className="inline-flex items-center gap-2">
-                        {section.icon && (
-                          <LucideIcon name={section.icon} size={14} />
-                        )}
-                        {section.name}
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <dl className="grid gap-2">
-                        {fieldsWithValues.map((field) => {
-                          const value = product.dynamic_fields![field.slug];
-                          return (
-                            <div key={field.slug} className="flex gap-2 text-sm">
-                              <dt className="shrink-0 font-medium text-foreground">
-                                {field.name}:
-                              </dt>
-                              <dd className="text-muted-foreground">
-                                {field.field_type === "boolean"
-                                  ? value
-                                    ? "Yes"
-                                    : "No"
-                                  : String(value)}
-                              </dd>
-                            </div>
-                          );
-                        })}
-                      </dl>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
+              ?.map((section) => ({
+                section,
+                rows: section.fields.flatMap((field) => {
+                  const text = formatDynamicFieldValue(
+                    field,
+                    product.dynamic_fields?.[field.slug],
+                  );
+                  return text ? [{ field, text }] : [];
+                }),
+              }))
+              .filter(({ rows }) => rows.length > 0)
+              .map(({ section, rows }) => (
+                <AccordionItem key={section.slug}>
+                  <AccordionTrigger className="text-sm font-semibold uppercase tracking-widest text-muted-foreground hover:no-underline">
+                    <span className="inline-flex items-center gap-2">
+                      {section.icon && (
+                        <LucideIcon name={section.icon} size={14} />
+                      )}
+                      {section.name}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <dl className="grid gap-2">
+                      {rows.map(({ field, text }) => (
+                        <div key={field.slug} className="flex gap-2 text-sm">
+                          <dt className="shrink-0 font-medium text-foreground">
+                            {field.name}:
+                          </dt>
+                          <dd className="text-muted-foreground">{text}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
           </Accordion>
 
           {/* Per-product disclaimer — sits with the description copy so the
