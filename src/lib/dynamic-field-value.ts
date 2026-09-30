@@ -51,10 +51,43 @@ export function formatDynamicFieldValue(
     return parts.length ? parts.join(", ") : null;
   }
 
+  if (field.field_type === "rich_text" && typeof value === "string") {
+    return richTextToPlain(value) || null;
+  }
+
   if (typeof value === "string") return value.trim() || null;
   if (typeof value === "number") return String(value);
   if (Array.isArray(value) && value.every((v) => typeof v === "string" || typeof v === "number")) {
     return value.length ? value.join(", ") : null;
   }
   return null;
+}
+
+const ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  "#39": "'",
+  apos: "'",
+  nbsp: " ",
+};
+
+/**
+ * Rich-text fields hold editor HTML. The PDP renders values as text (React
+ * escapes them), so reduce the markup to readable plain text: block ends and
+ * <br> become line breaks, list items get a bullet, every other tag is dropped.
+ * Render the result with `white-space: pre-line`.
+ */
+export function richTextToPlain(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "• ")
+    .replace(/<\/(p|div|li|h[1-6]|blockquote|ul|ol)>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&(amp|lt|gt|quot|#39|apos|nbsp);/g, (_, e: string) => ENTITIES[e])
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n+(?=• )/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }

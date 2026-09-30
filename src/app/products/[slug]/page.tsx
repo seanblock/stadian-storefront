@@ -24,6 +24,7 @@ import { formatCurrency } from "@/lib/utils";
 import { formatDynamicFieldValue } from "@/lib/dynamic-field-value";
 import type {
   StorefrontProductDetail,
+  StorefrontProductDocument,
   StorefrontProductGroup,
 } from "@stadian/storefront-sdk";
 
@@ -125,6 +126,21 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const discountTiers = product.volume_tiers.filter(
     (t) => t.discount_type && t.discount_value
   );
+
+  // Documents filed under a section render inside it; the rest (and any whose
+  // section no longer exists) stay in the general Documents strip.
+  const schemaSlugs = new Set(product.field_schema?.map((s) => s.slug) ?? []);
+  const sectionDocs = new Map<string, StorefrontProductDocument[]>();
+  const generalDocs: StorefrontProductDocument[] = [];
+  for (const doc of product.documents ?? []) {
+    if (!doc.url) continue;
+    const section = typeof doc.section === "string" ? doc.section : null;
+    if (section && schemaSlugs.has(section)) {
+      sectionDocs.set(section, [...(sectionDocs.get(section) ?? []), doc]);
+    } else {
+      generalDocs.push(doc);
+    }
+  }
 
   // Build image array for gallery
   const galleryImages: string[] = [];
@@ -558,7 +574,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
               </AccordionItem>
             )}
 
-            {/* Dynamic sections from field_schema */}
+            {/* Dynamic sections from field_schema (template groups, then the
+                product's own sections), each with the documents filed under it */}
             {product.field_schema
               ?.map((section) => ({
                 section,
@@ -569,9 +586,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   );
                   return text ? [{ field, text }] : [];
                 }),
+                docs: sectionDocs.get(section.slug) ?? [],
               }))
-              .filter(({ rows }) => rows.length > 0)
-              .map(({ section, rows }) => (
+              .filter(({ rows, docs }) => rows.length > 0 || docs.length > 0)
+              .map(({ section, rows, docs }) => (
                 <AccordionItem key={section.slug}>
                   <AccordionTrigger className="text-sm font-semibold uppercase tracking-widest text-muted-foreground hover:no-underline">
                     <span className="inline-flex items-center gap-2">
@@ -582,16 +600,37 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     </span>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <dl className="grid gap-2">
-                      {rows.map(({ field, text }) => (
-                        <div key={field.slug} className="flex gap-2 text-sm">
-                          <dt className="shrink-0 font-medium text-foreground">
-                            {field.name}:
-                          </dt>
-                          <dd className="text-muted-foreground">{text}</dd>
-                        </div>
-                      ))}
-                    </dl>
+                    {rows.length > 0 && (
+                      <dl className="grid gap-2">
+                        {rows.map(({ field, text }) => (
+                          <div key={field.slug} className="flex gap-2 text-sm">
+                            <dt className="shrink-0 font-medium text-foreground">
+                              {field.name}:
+                            </dt>
+                            <dd className="whitespace-pre-line text-muted-foreground">
+                              {text}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                    {docs.length > 0 && (
+                      <ul className={`grid gap-1.5 ${rows.length > 0 ? "mt-4" : ""}`}>
+                        {docs.map((doc) => (
+                          <li key={doc.url}>
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 text-sm text-foreground underline underline-offset-4 hover:text-muted-foreground"
+                            >
+                              <LucideIcon name="file-text" size={14} />
+                              {doc.name || "Document (PDF)"}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </AccordionContent>
                 </AccordionItem>
               ))}
@@ -631,8 +670,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
           {/* Public product documents (renders only when the platform
               provides them — nothing shows otherwise) */}
-          {(product.coa_document_url ||
-            (product.documents && product.documents.length > 0)) && (
+          {(product.coa_document_url || generalDocs.length > 0) && (
             <div className="mt-6 rounded-md border border-border bg-muted/30 px-4 py-3">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <svg
@@ -664,19 +702,17 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     Certificate of Analysis (PDF)
                   </a>
                 )}
-                {product.documents?.map((doc) =>
-                  doc.url ? (
-                    <a
-                      key={doc.url}
-                      href={doc.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                    >
-                      {doc.name || "Document (PDF)"}
-                    </a>
-                  ) : null
-                )}
+                {generalDocs.map((doc) => (
+                  <a
+                    key={doc.url}
+                    href={doc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                  >
+                    {doc.name || "Document (PDF)"}
+                  </a>
+                ))}
               </div>
             </div>
           )}

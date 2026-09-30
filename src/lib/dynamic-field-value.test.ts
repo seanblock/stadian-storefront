@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { StorefrontFieldDef } from "@stadian/storefront-sdk";
-import { formatDynamicFieldValue } from "./dynamic-field-value";
+import { formatDynamicFieldValue, richTextToPlain } from "./dynamic-field-value";
 
 const field = (
   field_type: string,
@@ -44,5 +44,22 @@ describe("formatDynamicFieldValue", () => {
     expect(formatDynamicFieldValue(field("multi_select"), [])).toBeNull();
     expect(formatDynamicFieldValue(field("json"), { a: 1 })).toBeNull();
     expect(formatDynamicFieldValue(field("table"), [{ a: 1 }])).toBeNull();
+  });
+});
+
+describe("rich text", () => {
+  it("renders editor HTML as plain text with line breaks", () => {
+    const html = "<p>Store <strong>cold</strong> &amp; dry.</p><ul><li><p>Keep sealed</p></li><li>Use within 30 days</li></ul>";
+    expect(formatDynamicFieldValue(field("rich_text"), html)).toBe(
+      "Store cold & dry.\n• Keep sealed\n• Use within 30 days",
+    );
+  });
+
+  it("treats empty editor output as no value", () => {
+    expect(formatDynamicFieldValue(field("rich_text"), "<p></p>")).toBeNull();
+  });
+
+  it("never passes markup through", () => {
+    expect(richTextToPlain('<img src=x onerror="alert(1)">Hi<script>x</script>')).toBe("Hix");
   });
 });
