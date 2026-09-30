@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/accordion";
 import { formatCurrency } from "@/lib/utils";
 import { formatDynamicFieldValue } from "@/lib/dynamic-field-value";
+import { getOtherDocuments, getProductCoas } from "@/lib/product-coas";
 import type {
   StorefrontProductDetail,
   StorefrontProductDocument,
@@ -123,17 +124,18 @@ export default async function ProductDetailPage({ params }: PageProps) {
   }
 
   const displayName = group ? group.name : product.name;
+  const certificates = getProductCoas(product);
   const discountTiers = product.volume_tiers.filter(
     (t) => t.discount_type && t.discount_value
   );
 
   // Documents filed under a section render inside it; the rest (and any whose
-  // section no longer exists) stay in the general Documents strip.
+  // section no longer exists) stay in the general Documents strip. COA files
+  // are left out: certificates render once, from the resolved list above.
   const schemaSlugs = new Set(product.field_schema?.map((s) => s.slug) ?? []);
   const sectionDocs = new Map<string, StorefrontProductDocument[]>();
   const generalDocs: StorefrontProductDocument[] = [];
-  for (const doc of product.documents ?? []) {
-    if (!doc.url) continue;
+  for (const doc of getOtherDocuments(product)) {
     const section = typeof doc.section === "string" ? doc.section : null;
     if (section && schemaSlugs.has(section)) {
       sectionDocs.set(section, [...(sectionDocs.get(section) ?? []), doc]);
@@ -668,9 +670,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Public product documents (renders only when the platform
-              provides them — nothing shows otherwise) */}
-          {(product.coa_document_url || generalDocs.length > 0) && (
+          {/* Certificates of analysis (the in-stock batches', else the
+              product-level one) and other public documents — renders only
+              when the platform provides them. */}
+          {(certificates.length > 0 || generalDocs.length > 0) && (
             <div className="mt-6 rounded-md border border-border bg-muted/30 px-4 py-3">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <svg
@@ -692,16 +695,17 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <span className="text-sm font-medium text-foreground">
                   Documents
                 </span>
-                {product.coa_document_url && (
+                {certificates.map((certificate) => (
                   <a
-                    href={product.coa_document_url}
+                    key={certificate.url}
+                    href={certificate.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm font-medium text-foreground underline underline-offset-4"
                   >
-                    Certificate of Analysis (PDF)
+                    {certificate.name}
                   </a>
-                )}
+                ))}
                 {generalDocs.map((doc) => (
                   <a
                     key={doc.url}

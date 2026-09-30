@@ -1,5 +1,6 @@
 import type { StorefrontOrder } from "@stadian/storefront-sdk";
 import { formatCurrency } from "@/lib/utils";
+import { toProductCoas } from "@/lib/product-coas";
 
 export function OrderReceipt({ order, totalLabel = "Total" }: {
   order: Pick<StorefrontOrder, "items" | "shipping_address" | "subtotal" | "discount_amount" | "shipping_amount" | "tax_amount" | "processing_fee" | "total" | "refund_amount" | "refund_status" | "refunded_at">;
@@ -15,6 +16,12 @@ export function OrderReceipt({ order, totalLabel = "Total" }: {
               <div className="min-w-0">
                 <p className="break-words font-medium">{item.product_name}</p>
                 <p className="mt-1 text-muted-foreground">Qty {item.quantity} × {formatCurrency(item.unit_price)}</p>
+                {toProductCoas(item.certificates).map((certificate) => (
+                  <a key={certificate.url} href={certificate.url} target="_blank" rel="noopener noreferrer"
+                    className="mt-1 block break-words text-muted-foreground underline underline-offset-4 hover:text-foreground">
+                    {certificate.name}<span className="sr-only"> for {item.product_name} (opens in a new tab)</span>
+                  </a>
+                ))}
               </div>
               <span className="shrink-0 tabular-nums">{formatCurrency(item.line_total)}</span>
             </li>

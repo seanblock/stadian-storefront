@@ -86,11 +86,26 @@ export interface StorefrontProductDetail extends StorefrontProduct {
     dynamic_fields: Record<string, unknown> | null;
     field_schema: StorefrontFieldGroup[];
     subscription: StorefrontSubscriptionConfig | null;
+    /**
+     * Certificates of analysis to show: the in-stock lots' batch certificates,
+     * else the product-level fallback. Prefer this over coa_document_url/documents.
+     */
+    certificates?: StorefrontCertificate[];
     /** Public URL of the product's certificate of analysis PDF, if published. */
     coa_document_url: string | null;
     /** Additional public product documents (datasheets etc.). */
     documents: StorefrontProductDocument[];
 }
+export interface StorefrontCertificate {
+    /** Opens in a new tab. */
+    url: string;
+    /** Display label, e.g. "Certificate of Analysis — Lot 24A". */
+    name: string;
+    /** "lot": one production batch's certificate. "product": the product-level fallback, not tied to a batch. */
+    source: "lot" | "product";
+    lot_number?: string | null;
+}
+
 export interface StorefrontProductDocument {
     url: string;
     name?: string;
@@ -166,6 +181,8 @@ export interface StorefrontOrderItem {
     quantity: number;
     unit_price: number;
     line_total: number;
+    /** Certificates for the batches this line shipped from, else the product-level certificate. */
+    certificates?: StorefrontCertificate[];
 }
 export interface StorefrontShippingAddress {
     first_name?: string;
@@ -277,6 +294,8 @@ export interface RepOrderItem {
     line_total: number;
   product_slug?: string | null;
   has_coa?: boolean;
+    /** Certificates for the batches this line shipped from, else the product-level certificate. */
+    certificates?: StorefrontCertificate[];
 }
 export interface RepOrderSummary {
   refunded_at?: string | null;
