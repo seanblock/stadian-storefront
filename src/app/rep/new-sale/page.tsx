@@ -29,7 +29,7 @@ import {
   type PaymentSectionHandle,
 } from "@/components/checkout/payment-section";
 import { AddressFields } from "@/components/checkout/address-fields";
-import { CustomerChip, CustomerPickerSheet } from "@/components/rep/customer-picker";
+import { CustomerChip, CustomerStep } from "@/components/rep/customer-picker";
 import { ProductPad } from "@/components/rep/product-pad";
 import { SaleCartRail } from "@/components/rep/sale-cart-rail";
 import { SaleOrderBar } from "@/components/rep/sale-order-bar";
@@ -40,6 +40,7 @@ import {
   availableModes,
   saleAddressFromShipTo,
   buildShipTo,
+  initialSaleStep,
   paymentModeAvailability,
   soleAvailableMode,
   validateSaleAddress,
@@ -63,6 +64,7 @@ const GOLD = "#d4a951";
 const NAVY = "#0a1a2e";
 
 const STEP_TITLES: Record<Exclude<SaleStep, "done">, string> = {
+  customer: "Customer",
   build: "Build order",
   checkout: "Checkout",
 };
@@ -84,8 +86,16 @@ export default function NewSalePage() {
     clearSale,
   } = sale;
 
-  const [step, setStep] = useState<SaleStep>("build");
-  const [customerPickerOpen, setCustomerPickerOpen] = useState(false);
+  // Arriving from Customers the provider already holds the customer; after a
+  // refresh it only knows once hydrated, so re-derive the step at that moment
+  // (render-time adjustment, like soleMode below).
+  const [step, setStep] = useState<SaleStep>(() => initialSaleStep(customer !== null));
+  const [prevHydrated, setPrevHydrated] = useState(hydrated);
+  if (hydrated !== prevHydrated) {
+    setPrevHydrated(hydrated);
+    if (hydrated && step === "customer") setStep(initialSaleStep(customer !== null));
+  }
+  const [selectingCustomer, setSelectingCustomer] = useState(false);
   const [products, setProducts] = useState<StorefrontProduct[] | null>(null);
   const [paymentConfig, setPaymentConfig] = useState<PaymentClientConfig | null>(null);
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
@@ -181,16 +191,19 @@ export default function NewSalePage() {
   const handleSelectCustomer = useCallback(
     async (next: RepCustomer) => {
       setError(null);
+      setSelectingCustomer(true);
       try {
         // Fetch the detail (includes last ship-to for prefill).
         const detail = await getRepCustomer(next.id);
         await selectCustomer(detail.ok ? detail.data : next);
         setDisclaimersConfirmed(false);
-        setCustomerPickerOpen(false);
         setAddressErrors({});
         setShowErrors(false);
+        setStep("build");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not select customer");
+      } finally {
+        setSelectingCustomer(false);
       }
     },
     [selectCustomer]
@@ -303,7 +316,7 @@ export default function NewSalePage() {
     setResult(null);
     setMode(null);
     setShippingMethodId(undefined);
-    setStep("build");
+    setStep("customer");
     setError(null);
     startSale();
   }
@@ -407,15 +420,14 @@ export default function NewSalePage() {
           </button>
         </div>
 
-        {/* Who the sale is for, present in every step rather than gating the
-            first one. On wide screens the rail repeats it; on narrow ones this
-            chip is the only place it appears above the order bar. */}
-        <div className="mb-4 flex shrink-0 lg:hidden">
-          <CustomerChip
-            customer={customer}
-            onOpen={() => setCustomerPickerOpen(true)}
-          />
-        </div>
+        {/* Who the sale is for, once chosen. On wide screens the rail header
+            carries it; on narrow ones this chip is the only place it appears
+            above the order bar. */}
+        {step !== "customer" && (
+          <div className="mb-4 flex shrink-0 lg:hidden">
+            <CustomerChip customer={customer} onOpen={() => setStep("customer")} />
+          </div>
+        )}
 
         {error && (
           <p className="mb-4 shrink-0 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -423,7 +435,18 @@ export default function NewSalePage() {
           </p>
         )}
 
-        {/* Step 1 — build the order (catalog + customer live together) */}
+        {/* Step 1 — who the sale is for. Everything after depends on it: the
+            catalog prices at their tier and checkout ships to them. */}
+        {step === "customer" && (
+          <CustomerStep
+            customer={customer}
+            selecting={selectingCustomer}
+            onSelect={handleSelectCustomer}
+            onKeep={() => setStep("build")}
+          />
+        )}
+
+        {/* Step 2 — build the order */}
         <section
           className={step === "build" ? "flex min-h-0 flex-1 flex-col" : "hidden"}
         >
@@ -454,9 +477,8 @@ export default function NewSalePage() {
             )}
           </div>
           <div className="mt-3 shrink-0 rounded-xl border border-border bg-white p-3">
-            {/* One customer control per screen — the rail header on wide
-                viewports, the chip on narrow ones. This stays purely the step
-                advance, gated on having both a customer and a line. */}
+            {/* Purely the step advance. The customer step guarantees a
+                customer; the guard stays for a sale restored without one. */}
             <Button
               className="h-14 w-full text-base"
               disabled={!customer || !cart || cart.items.length === 0}
@@ -468,7 +490,7 @@ export default function NewSalePage() {
           </div>
         </section>
 
-        {/* Step 2 — checkout: shipping AND payment on one screen. Kept mounted
+        {/* Step 3 — checkout: shipping AND payment on one screen. Kept mounted
             so FormData persists and Accept.js survives step changes. */}
         <form
           ref={formRef}
@@ -614,7 +636,7 @@ export default function NewSalePage() {
             total has failed its one job. This bar keeps line count, customer
             and total on the bottom edge — in the thumb zone — and expands to
             the full order on tap. */}
-        <div className="mt-3 shrink-0 lg:hidden">
+        <div className={step === "customer" ? "hidden" : "mt-3 shrink-0 lg:hidden"}>
           <SaleOrderBar
             customer={customer}
             cart={cart}
@@ -626,14 +648,19 @@ export default function NewSalePage() {
               )
             }
             onRemove={(itemId) => runCartAction(() => removeItem(itemId))}
-            onChangeCustomer={() => setCustomerPickerOpen(true)}
+            onChangeCustomer={() => setStep("customer")}
           />
         </div>
       </div>
 
       {/* Right rail — running order (wide screens only; below lg the pinned
-          SaleOrderBar carries the same information) */}
-      <aside className="hidden h-full w-[360px] shrink-0 lg:block">
+          SaleOrderBar carries the same information). Hidden while choosing the
+          customer so the picker is the only thing on screen. */}
+      <aside
+        className={
+          step === "customer" ? "hidden" : "hidden h-full w-[360px] shrink-0 lg:block"
+        }
+      >
         <SaleCartRail
           customer={customer}
           cart={cart}
@@ -646,15 +673,9 @@ export default function NewSalePage() {
           onRestore={(productId, quantity) =>
             runCartAction(() => addItem(productId, quantity))
           }
-          onChangeCustomer={() => setCustomerPickerOpen(true)}
+          onChangeCustomer={() => setStep("customer")}
         />
       </aside>
-
-      <CustomerPickerSheet
-        open={customerPickerOpen}
-        onOpenChange={setCustomerPickerOpen}
-        onSelect={handleSelectCustomer}
-      />
 
       {/* Invoice confirmation */}
       <Dialog open={confirmInvoice} onOpenChange={setConfirmInvoice}>

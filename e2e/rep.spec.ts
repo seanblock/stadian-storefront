@@ -47,27 +47,23 @@ test("rep signs in, lands on POS dashboard, and walks the new-sale flow", async 
   ).toBeVisible();
   await expect(page.getByText(/rep portal/i).first()).toBeVisible();
 
-  // ── Step 1: build the order ───────────────────────────────────────────
-  // The catalog is live immediately — attaching a customer is a drawer, not a
-  // gate, so a rep can start ringing items before the account is chosen.
+  // ── Step 1: choose the customer ────────────────────────────────────────
+  // The sale opens on the customer picker — the catalog prices at the
+  // customer's tier and checkout needs them, so they come first.
   await page.getByRole("link", { name: /^new sale$/i }).last().click();
   await page.waitForURL(/\/rep\/new-sale/);
-
-  const addButton = page.getByRole("button", { name: /^add$/i }).first();
-  await addButton.waitFor({ timeout: 20_000 });
-  await addButton.click();
-
-  // ── Attach the customer from the drawer ───────────────────────────────
-  // Wide viewports use the rail header; narrow ones the "Walk-in" chip.
-  const railCustomer = page.getByRole("button", { name: /selling to/i }).first();
-  const chipCustomer = page.getByRole("button", { name: /walk-in/i }).first();
-  await ((await railCustomer.count()) > 0 ? railCustomer : chipCustomer).click();
+  await expect(page.getByText(/who is this sale for/i)).toBeVisible();
 
   const firstCustomer = page
     .locator("button", { hasText: "@" }) // customer rows show the email
     .first();
   await firstCustomer.waitFor({ timeout: 15_000 });
   await firstCustomer.click();
+
+  // ── Step 2: build the order ───────────────────────────────────────────
+  const addButton = page.getByRole("button", { name: /^add$/i }).first();
+  await addButton.waitFor({ timeout: 20_000 });
+  await addButton.click();
 
   // The rail (or mobile summary) reflects the line; continue is enabled.
   const continueCheckout = page.getByRole("button", {
@@ -76,7 +72,7 @@ test("rep signs in, lands on POS dashboard, and walks the new-sale flow", async 
   await expect(continueCheckout).toBeEnabled({ timeout: 15_000 });
   await continueCheckout.click();
 
-  // ── Step 2: checkout — shipping AND payment on one screen ─────────────
+  // ── Step 3: checkout — shipping AND payment on one screen ─────────────
   await page.locator('[id="rep-ship-line1"]').fill("100 Test Ave");
   await page.locator('[id="rep-ship-city"]').fill("Austin");
   await page.locator('[id="rep-ship-zip"]').fill("78701");

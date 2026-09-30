@@ -3,6 +3,7 @@ import {
   availableModes,
   saleAddressFromShipTo,
   buildShipTo,
+  initialSaleStep,
   isAddressComplete,
   paymentModeAvailability,
   soleAvailableMode,
@@ -143,5 +144,12 @@ describe("paymentModeAvailability", () => {
         reason: null,
       });
     }
+  });
+});
+
+describe("sale entry step", () => {
+  test("opens on the customer picker until a customer is bound", () => {
+    expect(initialSaleStep(false)).toBe("customer");
+    expect(initialSaleStep(true)).toBe("build");
   });
 });

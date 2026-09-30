@@ -2,15 +2,23 @@ import type { Address } from "@/app/checkout/checkout-logic";
 import type { PaymentClientConfig } from "@/app/actions/payments";
 
 /**
- * Two steps, not four. Customer selection is not a step — a POS lets the
- * operator start ringing items immediately and bind the account whenever it
- * comes up. Shipping and payment are not separate steps either: they are one
- * decision made at the counter, and splitting them cost a round trip whenever
- * an address needed a fix after the card was chosen.
+ * Three steps: customer, build, checkout. The customer comes first because
+ * reps kept building a cart and then hunting for where to attach the account
+ * that "Continue to checkout" was silently waiting on. Picking the customer up
+ * front also means the catalog shows that customer's tier price from the first
+ * tap. Shipping and payment stay one step: they are one decision made at the
+ * counter, and splitting them cost a round trip whenever an address needed a
+ * fix after the card was chosen.
  */
-export type SaleStep = "build" | "checkout" | "done";
+export type SaleStep = "customer" | "build" | "checkout" | "done";
 
-export const SALE_STEPS: SaleStep[] = ["build", "checkout"];
+export const SALE_STEPS: SaleStep[] = ["customer", "build", "checkout"];
+
+/** Where a sale opens: straight to products when a customer is already bound
+ *  (started from Customers, or a mid-sale refresh), otherwise the picker. */
+export function initialSaleStep(hasCustomer: boolean): SaleStep {
+  return hasCustomer ? "build" : "customer";
+}
 
 export type SaleAddressErrors = Record<string, string | undefined>;
 
