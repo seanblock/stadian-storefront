@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const baseNavItems = [
   { href: "/account", label: "Overview" },
   { href: "/account/orders", label: "Orders" },
+  { href: "/account/invoices", label: "Invoices" },
   { href: "/account/settings", label: "Settings" },
 ];
 
