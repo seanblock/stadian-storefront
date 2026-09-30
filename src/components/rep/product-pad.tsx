@@ -137,9 +137,35 @@ export function ProductPad({
                   <span className="line-clamp-2 text-sm font-medium leading-snug text-[#0a1a2e]">
                     {p.name}
                   </span>
-                  <span className="text-sm tabular-nums text-muted-foreground">
-                    {p.price != null ? fmtCurrency(p.price) : "Priced at cart"}
-                  </span>
+                  {(() => {
+                    // Once it's in the cart, price the card the way the cart
+                    // does: effective per-unit after discounts, with the tier
+                    // that earned it (qty breaks are why reps bump quantity).
+                    const effective =
+                      line && line.net_line_total != null && line.quantity > 0
+                        ? line.net_line_total / line.quantity
+                        : null;
+                    const listed = line?.line_subtotal != null && line.quantity > 0
+                      ? line.line_subtotal / line.quantity
+                      : p.price;
+                    const tier = line?.discounts?.find((d) => d.kind === "volume");
+                    if (effective == null || listed == null || effective >= listed - 0.005) {
+                      return (
+                        <span className="text-sm tabular-nums text-muted-foreground">
+                          {p.price != null ? fmtCurrency(p.price) : "Priced at cart"}
+                        </span>
+                      );
+                    }
+                    return (
+                      <>
+                        <span className="flex flex-wrap items-baseline gap-x-1.5 text-sm tabular-nums">
+                          <span className="font-medium text-emerald-700">{fmtCurrency(effective)} ea</span>
+                          <s className="text-muted-foreground">{fmtCurrency(listed)}</s>
+                        </span>
+                        {tier && <span className="text-xs text-emerald-700">{tier.label}</span>}
+                      </>
+                    );
+                  })()}
                 </div>
               </button>
               <div className="shrink-0 sm:border-t sm:border-border sm:p-2">

@@ -107,16 +107,33 @@ export function SaleCartRail({
           </p>
         ) : (
           <ul className="divide-y divide-border">
-            {items.map((item) => (
+            {items.map((item) => {
+              const charged = item.net_line_total ?? item.line_total;
+              const listed = item.line_subtotal ?? charged;
+              const lineDiscounts = item.discounts ?? [];
+              return (
               <li key={item.id} className="flex flex-col gap-2 p-3">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-sm font-medium leading-snug text-[#0a1a2e]">
                     {item.product_name}
                   </span>
-                  <span className="shrink-0 text-sm tabular-nums">
-                    {fmtCurrency(item.line_total)}
+                  <span className="flex shrink-0 flex-col items-end text-sm tabular-nums">
+                    {fmtCurrency(charged)}
+                    {listed > charged && (
+                      <s className="text-xs text-muted-foreground">{fmtCurrency(listed)}</s>
+                    )}
                   </span>
                 </div>
+                {lineDiscounts.length > 0 && (
+                  <ul className="-mt-1 flex flex-col gap-0.5 text-xs text-emerald-700">
+                    {lineDiscounts.map((d) => (
+                      <li key={d.kind} className="flex justify-between gap-2">
+                        <span>{d.label}</span>
+                        <span className="shrink-0 tabular-nums">−{fmtCurrency(d.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div className="flex items-center justify-between">
                   <QtyStepper
                     size="sm"
@@ -139,7 +156,8 @@ export function SaleCartRail({
                   </button>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>
@@ -167,15 +185,22 @@ export function SaleCartRail({
             <span className="text-muted-foreground">Subtotal</span>
             <span className="tabular-nums">{fmtCurrency(cart.subtotal)}</span>
           </div>
-          {cart.discount_amount > 0 && (
+          {cart.discounts?.length ? (
+            cart.discounts.map((d) => (
+              <div key={d.kind} className="flex justify-between gap-2 py-0.5 text-emerald-700">
+                <span>{d.label}</span>
+                <span className="shrink-0 tabular-nums">−{fmtCurrency(d.amount)}</span>
+              </div>
+            ))
+          ) : cart.discount_amount > 0 ? (
             <div className="flex justify-between py-0.5 text-emerald-700">
               <span className="flex items-center gap-1.5">
-                Savings
+                Discount
                 {cart.discount_code && <Badge variant="secondary">{cart.discount_code}</Badge>}
               </span>
               <span className="tabular-nums">−{fmtCurrency(cart.discount_amount)}</span>
             </div>
-          )}
+          ) : null}
           {cart.tax_amount > 0 && (
             <div className="flex justify-between py-0.5">
               <span className="text-muted-foreground">Tax</span>

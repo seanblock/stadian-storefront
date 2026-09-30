@@ -120,6 +120,12 @@ export interface StorefrontReviewSummary {
     average_rating: number;
     total_count: number;
 }
+export interface StorefrontLineDiscount {
+    kind: "volume" | "promotion" | "code" | "affiliate";
+    /** e.g. "Qty 50+ · 20% off", a promotion's name, "Code SAVE10". */
+    label: string;
+    amount: number;
+}
 export interface StorefrontCartItem {
     id: string;
     product_id: string;
@@ -129,6 +135,12 @@ export interface StorefrontCartItem {
     quantity: number;
     unit_price: number;
     line_total: number;
+    /** Before any discount (list price × qty). */
+    line_subtotal?: number | null;
+    /** After every discount — what the order charges for this line. */
+    net_line_total?: number | null;
+    /** What each discount on this line is for, and how much it took off. */
+    discounts?: StorefrontLineDiscount[];
   available_quantity?: number | null;
   min_order_quantity?: number;
   max_order_quantity?: number | null;
@@ -138,6 +150,8 @@ export interface StorefrontCart {
     items: StorefrontCartItem[];
     subtotal: number;
     discount_amount: number;
+    /** discount_amount broken out by source (quantity tiers, promotion, code). */
+    discounts?: StorefrontLineDiscount[];
     tax_amount: number;
     total: number;
     promotion_code: string | null;
