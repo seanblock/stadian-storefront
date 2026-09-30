@@ -1,5 +1,5 @@
 import type { HttpClient } from "../client";
-import type { PaginatedList, RepCheckoutResponse, RepCustomer, RepCustomersResponse, RepDashboard, RepOrderSummary, RepOrdersResponse, StorefrontProduct } from "../types";
+import type { CheckoutQuote, PaginatedList, RepCheckoutResponse, RepCustomer, RepCustomersResponse, RepDashboard, RepOrderSummary, RepOrdersResponse, StorefrontProduct } from "../types";
 export interface RepListProductsParams {
     customerToken: string;
     /** Price the grid at this customer's tier. Omit for the rep's own tier. */
@@ -30,6 +30,13 @@ export interface RepBindCartParams {
     customerToken: string;
     sessionToken: string;
     customerId: string;
+}
+export interface RepCheckoutQuoteParams {
+    customerToken: string;
+    sessionToken: string;
+    customerId: string;
+    shippingAddress?: Record<string, unknown>;
+    shippingMethodId?: string;
 }
 export interface RepCheckoutParams {
     customerToken: string;
@@ -86,6 +93,9 @@ export declare class RepResource {
         ok: boolean;
         customer_id: string;
     }>;
+    /** Totals incl. destination sales tax for an on-behalf sale (honors the
+     *  target customer's verified resale certificate). */
+    quote(params: RepCheckoutQuoteParams): Promise<CheckoutQuote>;
     /** Place an order on behalf of a customer (card / pay-by-link / invoice). */
     checkout(params: RepCheckoutParams): Promise<RepCheckoutResponse>;
     /** Orders this rep placed. */

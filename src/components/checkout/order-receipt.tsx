@@ -1,9 +1,10 @@
 import type { StorefrontOrder } from "@stadian/storefront-sdk";
 import { formatCurrency } from "@/lib/utils";
 import { toProductCoas } from "@/lib/product-coas";
+import { orderTaxLabel } from "@/lib/tax-display";
 
 export function OrderReceipt({ order, totalLabel = "Total" }: {
-  order: Pick<StorefrontOrder, "items" | "shipping_address" | "subtotal" | "discount_amount" | "shipping_amount" | "tax_amount" | "processing_fee" | "total" | "refund_amount" | "refund_status" | "refunded_at">;
+  order: Pick<StorefrontOrder, "items" | "shipping_address" | "subtotal" | "discount_amount" | "shipping_amount" | "tax_amount" | "tax_status" | "tax_label" | "processing_fee" | "total" | "refund_amount" | "refund_status" | "refunded_at">;
   totalLabel?: string;
 }) {
   const address = order.shipping_address;
@@ -44,7 +45,7 @@ export function OrderReceipt({ order, totalLabel = "Total" }: {
         <div className="flex justify-between gap-4"><dt>Subtotal</dt><dd className="tabular-nums">{formatCurrency(order.subtotal)}</dd></div>
         {order.discount_amount > 0 && <div className="flex justify-between gap-4"><dt>Discount</dt><dd className="tabular-nums">−{formatCurrency(order.discount_amount)}</dd></div>}
         <div className="flex justify-between gap-4"><dt>Shipping</dt><dd className="tabular-nums">{order.shipping_amount === undefined ? "Included in total" : order.shipping_amount === 0 ? "Free ($0.00)" : formatCurrency(order.shipping_amount)}</dd></div>
-        <div className="flex justify-between gap-4"><dt>Tax</dt><dd className="tabular-nums">{formatCurrency(order.tax_amount)}</dd></div>
+        <div className="flex justify-between gap-4"><dt>{orderTaxLabel(order)}</dt><dd className="tabular-nums">{formatCurrency(order.tax_amount)}</dd></div>
         {!!order.processing_fee && <div className="flex justify-between gap-4"><dt>Processing fee</dt><dd className="tabular-nums">{formatCurrency(order.processing_fee)}</dd></div>}
         <div className="mt-1 flex justify-between gap-4 border-t border-border pt-3 font-semibold"><dt>{totalLabel}</dt><dd className="tabular-nums">{formatCurrency(order.total)}</dd></div>
       </dl>

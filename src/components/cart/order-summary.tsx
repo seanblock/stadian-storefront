@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { StorefrontCart } from "@stadian/storefront-sdk";
+import type { CheckoutQuote, StorefrontCart } from "@stadian/storefront-sdk";
 import {
   Card,
   CardContent,
@@ -15,15 +15,19 @@ import { formatCurrency } from "@/lib/utils";
 import { getSessionId } from "@/lib/session";
 import { applyDiscountCode } from "@/app/actions/cart";
 import { useCart } from "@/providers/cart-provider";
+import { cartTaxDisplay, summaryTotal } from "@/lib/tax-display";
 import { CartLineItem } from "./cart-line-item";
 
 interface OrderSummaryProps {
   cart: StorefrontCart;
   shippingCost?: number;
   showItems?: boolean;
+  /** Checkout quote for the entered address (stores that tax by destination). */
+  quote?: CheckoutQuote | null;
 }
 
-export function OrderSummary({ cart, shippingCost, showItems = true }: OrderSummaryProps) {
+export function OrderSummary({ cart, shippingCost, showItems = true, quote }: OrderSummaryProps) {
+  const tax = cartTaxDisplay(cart, quote);
   const { refresh } = useCart();
   const [promoCode, setPromoCode] = useState("");
   const [promoError, setPromoError] = useState<string | null>(null);
@@ -91,9 +95,15 @@ export function OrderSummary({ cart, shippingCost, showItems = true }: OrderSumm
           </div>
         )}
 
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Tax</span>
-          <span className="tabular-nums">{formatCurrency(cart.tax_amount)}</span>
+        <div className="flex justify-between gap-3 text-sm" data-testid="summary-tax">
+          <span className="text-muted-foreground">{tax.label}</span>
+          <span className="shrink-0 tabular-nums">
+            {tax.amount === null ? (
+              <span className="text-muted-foreground">Calculated at checkout</span>
+            ) : (
+              formatCurrency(tax.amount)
+            )}
+          </span>
         </div>
 
         {shippingCost !== undefined && (
@@ -123,10 +133,7 @@ export function OrderSummary({ cart, shippingCost, showItems = true }: OrderSumm
         <div className="flex justify-between text-sm font-semibold">
           <span>Total</span>
           <span className="tabular-nums">
-            {formatCurrency(
-              cart.total +
-                (cart.free_shipping ? 0 : shippingCost ?? 0),
-            )}
+            {formatCurrency(summaryTotal(cart, shippingCost, quote))}
           </span>
         </div>
 

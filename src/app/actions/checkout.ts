@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { getVisitorClient } from "@/lib/stadian";
 import { getCustomerToken } from "@/app/actions/auth";
-import { StadianError, type StorefrontOrder } from "@stadian/storefront-sdk";
+import { StadianError, type CheckoutQuote, type StorefrontOrder } from "@stadian/storefront-sdk";
 import type { Address } from "@/app/checkout/checkout-logic";
 
 /**
@@ -108,5 +108,29 @@ export async function createOrder(
       message: err instanceof Error ? err.message : "Failed to place order.",
       status: 0,
     };
+  }
+}
+
+/**
+ * Checkout totals — including sales tax for stores that tax by ship-to
+ * address — for the address and shipping method entered so far. Nothing is
+ * created. Returns null when the quote can't be had (the summary then keeps
+ * saying "Calculated at checkout" and the order itself still carries the tax).
+ */
+export async function quoteCheckout(
+  sessionId: string,
+  data: { shippingAddress?: Partial<Address>; shippingMethodId?: string },
+): Promise<CheckoutQuote | null> {
+  const customerToken = (await getCustomerToken()) ?? undefined;
+  const client = await getVisitorClient();
+  try {
+    return await client.checkout.quote({
+      sessionToken: sessionId,
+      shippingAddress: data.shippingAddress ? { ...data.shippingAddress } : undefined,
+      shippingMethodId: data.shippingMethodId,
+      customerToken,
+    });
+  } catch {
+    return null;
   }
 }

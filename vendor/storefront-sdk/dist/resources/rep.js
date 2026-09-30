@@ -65,6 +65,19 @@ export class RepResource {
             body: { session_token: params.sessionToken, customer_id: params.customerId },
         });
     }
+    /** Totals incl. destination sales tax for an on-behalf sale (honors the
+     *  target customer's verified resale certificate). */
+    quote(params) {
+        return this.http.request("POST", "/rep/checkout/quote", {
+            headers: this.auth(params.customerToken),
+            body: {
+                session_token: params.sessionToken,
+                customer_id: params.customerId,
+                shipping_address: params.shippingAddress,
+                shipping_method_id: params.shippingMethodId,
+            },
+        });
+    }
     /** Place an order on behalf of a customer (card / pay-by-link / invoice). */
     checkout(params) {
         return this.http.request("POST", "/rep/checkout", {

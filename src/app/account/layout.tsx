@@ -13,6 +13,7 @@ const baseNavItems = [
   { href: "/account/orders", label: "Orders" },
   { href: "/account/invoices", label: "Invoices" },
   { href: "/account/settings", label: "Settings" },
+  { href: "/account/tax-exemption", label: "Tax exemption" },
 ];
 
 const affiliateNavItems = [

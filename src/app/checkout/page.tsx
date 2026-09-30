@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/providers/cart-provider";
 import { useAuth } from "@/providers/auth-provider";
 import { OrderSummary } from "@/components/cart/order-summary";
-import { createOrder } from "@/app/actions/checkout";
+import { createOrder, quoteCheckout } from "@/app/actions/checkout";
+import { shouldQuote } from "@/lib/tax-display";
 import { Turnstile } from "@/components/turnstile";
 import {
   getManualPaymentMethods,
@@ -22,6 +23,7 @@ import {
 import { getSessionId } from "@/lib/session";
 import { getShippingOptions } from "@/app/actions/shipping";
 import { getCheckoutFlow } from "@/app/actions/checkout-flow";
+import type { CheckoutQuote } from "@stadian/storefront-sdk";
 import type {
   CheckoutFlowResponse,
   ShippingOption,
@@ -110,6 +112,16 @@ export default function CheckoutPage() {
   // Ref so recompute doesn't capture stale submitAttempted in closure
   const submitAttemptedRef = useRef(false);
 
+  // Destination-tax stores: the cart carries no tax (tax_pending); quote the
+  // address + shipping method as the buyer fills them in. Debounced, and the
+  // form is read inside the timer so a just-picked state (Base UI commits its
+  // hidden input after onValueChange) is never read stale.
+  const [quote, setQuote] = useState<CheckoutQuote | null>(null);
+  const quoteSeq = useRef(0);
+  const quoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quoteMethod = useRef<string | undefined>(undefined);
+  const quoteCart = useRef(cart);
+
   const getValues = useCallback(() => {
     if (!formRef.current) return null;
     const data = new FormData(formRef.current);
@@ -141,9 +153,36 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  const scheduleQuote = useCallback(() => {
+    if (quoteTimer.current) clearTimeout(quoteTimer.current);
+    quoteTimer.current = setTimeout(async () => {
+      const shipping = getValues()?.shipping;
+      if (!shouldQuote(quoteCart.current, shipping?.state)) {
+        setQuote(null);
+        return;
+      }
+      const seq = ++quoteSeq.current;
+      const next = await quoteCheckout(getSessionId(), {
+        shippingAddress: shipping,
+        shippingMethodId: quoteMethod.current,
+      });
+      if (seq === quoteSeq.current) setQuote(next);
+    }, 400);
+  }, [getValues]);
+
+  useEffect(() => {
+    quoteCart.current = cart;
+    if (cart?.tax_pending) scheduleQuote();
+  }, [cart, scheduleQuote]);
+
+  useEffect(() => () => {
+    if (quoteTimer.current) clearTimeout(quoteTimer.current);
+  }, []);
+
   const recompute = useCallback(() => {
     const values = getValues();
     if (!values) return;
+    if (quoteCart.current?.tax_pending) scheduleQuote();
 
     setFormFilled(isCheckoutFilled(values));
 
@@ -151,7 +190,7 @@ export default function CheckoutPage() {
     if (submitAttemptedRef.current) {
       setFieldErrors(validateCheckout(values));
     }
-  }, [getValues]);
+  }, [getValues, scheduleQuote]);
 
   const refreshCheckoutFlow = useCallback(async (state: string) => {
     const request = ++flowRequest.current;
@@ -582,7 +621,11 @@ export default function CheckoutPage() {
                     <ShippingMethods
                       options={shippingOptions}
                       value={selectedShippingMethodId}
-                      onChange={setSelectedShippingMethodId}
+                      onChange={(id) => {
+                        setSelectedShippingMethodId(id);
+                        quoteMethod.current = id;
+                        scheduleQuote();
+                      }}
                     />
                   </div>
                 )}
@@ -683,6 +726,7 @@ export default function CheckoutPage() {
           <div className="flex flex-col gap-4">
             <OrderSummary
               cart={cart}
+              quote={quote}
               shippingCost={
                 shippingOptions.find(
                   (o) => o.method_id === selectedShippingMethodId,

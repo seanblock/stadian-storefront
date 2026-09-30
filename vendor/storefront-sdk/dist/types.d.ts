@@ -105,7 +105,6 @@ export interface StorefrontCertificate {
     source: "lot" | "product";
     lot_number?: string | null;
 }
-
 export interface StorefrontProductDocument {
     url: string;
     name?: string;
@@ -156,9 +155,9 @@ export interface StorefrontCartItem {
     net_line_total?: number | null;
     /** What each discount on this line is for, and how much it took off. */
     discounts?: StorefrontLineDiscount[];
-  available_quantity?: number | null;
-  min_order_quantity?: number;
-  max_order_quantity?: number | null;
+    available_quantity?: number | null;
+    min_order_quantity?: number;
+    max_order_quantity?: number | null;
 }
 export interface StorefrontCart {
     id: string;
@@ -168,6 +167,9 @@ export interface StorefrontCart {
     /** discount_amount broken out by source (quantity tiers, promotion, code). */
     discounts?: StorefrontLineDiscount[];
     tax_amount: number;
+    /** The store taxes by ship-to address: tax is 0 here and is added at
+     *  checkout — show "Calculated at checkout" (see checkout.quote). */
+    tax_pending?: boolean;
     total: number;
     promotion_code: string | null;
     /** The affiliate/discount code the shopper entered (when the discount came from a DiscountCode). */
@@ -195,9 +197,9 @@ export interface StorefrontShippingAddress {
     country?: string;
 }
 export interface StorefrontOrder {
-  refunded_at?: string | null;
-  refund_amount?: number;
-  refund_status?: string;
+    refunded_at?: string | null;
+    refund_amount?: number;
+    refund_status?: string;
     id: string;
     order_number: string | null;
     status: string;
@@ -207,6 +209,11 @@ export interface StorefrontOrder {
     subtotal: number;
     discount_amount: number;
     tax_amount: number;
+    /** taxed | exempt | not_registered | no_taxable_items | flat | ambiguous */
+    tax_status?: StorefrontTaxStatus | null;
+    /** Ready-to-show tax line: "NY sales tax — New York City 8.875%",
+     *  "Tax exempt (resale certificate on file)", … */
+    tax_label?: string | null;
     total: number;
     tracking_number: string | null;
     tracking_url: string | null;
@@ -218,7 +225,10 @@ export interface StorefrontOrder {
     processing_fee?: number;
     items?: StorefrontOrderItem[];
     shipping_address?: StorefrontShippingAddress | null;
-  tracking_numbers?: Array<{ tracking_number: string; carrier?: string | null }>;
+    tracking_numbers?: Array<{
+        tracking_number: string;
+        carrier?: string | null;
+    }>;
 }
 export interface StorefrontIntakeForm {
     id: string;
@@ -292,15 +302,15 @@ export interface RepOrderItem {
     quantity: number;
     unit_price: number;
     line_total: number;
-  product_slug?: string | null;
-  has_coa?: boolean;
+    product_slug?: string | null;
+    has_coa?: boolean;
     /** Certificates for the batches this line shipped from, else the product-level certificate. */
     certificates?: StorefrontCertificate[];
 }
 export interface RepOrderSummary {
-  refunded_at?: string | null;
-  refund_amount?: number;
-  refund_status?: string;
+    refunded_at?: string | null;
+    refund_amount?: number;
+    refund_status?: string;
     id: string;
     order_number: string | null;
     status: string;
@@ -310,6 +320,8 @@ export interface RepOrderSummary {
     subtotal: number;
     discount_amount: number;
     tax_amount: number;
+    tax_status?: StorefrontTaxStatus | null;
+    tax_label?: string | null;
     shipping_amount: number;
     total: number;
     payment_method: string | null;
@@ -317,9 +329,12 @@ export interface RepOrderSummary {
     payment_link_status: string | null;
     created_at: string;
     items: RepOrderItem[];
-  shipping_address?: StorefrontShippingAddress | null;
-  processing_fee?: number;
-  tracking_numbers?: Array<{ tracking_number: string; carrier?: string | null }>;
+    shipping_address?: StorefrontShippingAddress | null;
+    processing_fee?: number;
+    tracking_numbers?: Array<{
+        tracking_number: string;
+        carrier?: string | null;
+    }>;
 }
 export interface RepOrdersResponse {
     items: RepOrderSummary[];
@@ -549,4 +564,42 @@ export interface ShippingOption {
 }
 export interface ShippingEstimateResponse {
     options: ShippingOption[];
+}
+export type StorefrontTaxStatus = "taxed" | "exempt" | "not_registered" | "no_taxable_items" | "flat" | "ambiguous";
+/** Checkout totals for an address + shipping method (POST /checkout/quote). */
+export interface CheckoutQuote {
+    subtotal: number;
+    discount_amount: number;
+    shipping_amount: number;
+    shipping_discount: number;
+    tax_amount: number;
+    total: number;
+    /** No ship-to state yet: show "Calculated at checkout" instead of a figure. */
+    tax_pending: boolean;
+    tax_status: StorefrontTaxStatus | null;
+    tax_label: string | null;
+    tax_rate: number | null;
+    tax_jurisdiction: string | null;
+}
+/** One of the signed-in customer's resale / exemption certificates. */
+export interface StorefrontTaxExemption {
+    id: string;
+    exemption_type: "resale" | "government" | "nonprofit" | "other";
+    states: string[];
+    certificate_last4: string | null;
+    has_document: boolean;
+    issued_at: string | null;
+    expires_at: string | null;
+    status: "pending_review" | "verified" | "rejected" | "revoked";
+    /** Verified, in date, and the store has the account marked exempt. */
+    is_effective: boolean;
+}
+export interface TaxExemptionInput {
+    exemptionType?: StorefrontTaxExemption["exemption_type"];
+    /** Two-letter states, or "ALL" for a multistate certificate. */
+    states: string[];
+    certificateNumber?: string;
+    issuedAt?: string;
+    expiresAt?: string;
+    notes?: string;
 }

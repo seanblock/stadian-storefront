@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { RepCustomer, StorefrontCart } from "@stadian/storefront-sdk";
+import type { CheckoutQuote, RepCustomer, StorefrontCart } from "@stadian/storefront-sdk";
 import { QtyStepper } from "@/components/rep/qty-stepper";
 import { fmtCurrency } from "@/components/rep/format";
 import { Badge } from "@/components/ui/badge";
 import { cartQuantityLimits } from "@/lib/cart-quantity";
+import { cartTaxDisplay, cartTotalWithTax } from "@/lib/tax-display";
 
 /**
  * The persistent running-order rail: selected customer, cart lines with
@@ -17,6 +18,7 @@ export function SaleCartRail({
   cart,
   cartBusy,
   shippingLabel,
+  taxQuote,
   onSetQuantity,
   onRemove,
   onRestore,
@@ -26,6 +28,8 @@ export function SaleCartRail({
   cart: StorefrontCart | null;
   cartBusy: boolean;
   shippingLabel?: string | null;
+  /** Destination-tax quote for the ship-to entered at checkout. */
+  taxQuote?: CheckoutQuote | null;
   onSetQuantity: (itemId: string, quantity: number) => void;
   onRemove: (itemId: string) => void;
   /** Put a removed line back — enables the undo affordance. */
@@ -201,12 +205,21 @@ export function SaleCartRail({
               <span className="tabular-nums">−{fmtCurrency(cart.discount_amount)}</span>
             </div>
           ) : null}
-          {cart.tax_amount > 0 && (
-            <div className="flex justify-between py-0.5">
-              <span className="text-muted-foreground">Tax</span>
-              <span className="tabular-nums">{fmtCurrency(cart.tax_amount)}</span>
-            </div>
-          )}
+          {(cart.tax_pending || cart.tax_amount > 0) && (() => {
+            const tax = cartTaxDisplay(cart, taxQuote);
+            return (
+              <div className="flex justify-between gap-2 py-0.5" data-testid="rail-tax">
+                <span className="text-muted-foreground">{tax.label}</span>
+                <span className="shrink-0 tabular-nums">
+                  {tax.amount === null ? (
+                    <span className="text-muted-foreground">At checkout</span>
+                  ) : (
+                    fmtCurrency(tax.amount)
+                  )}
+                </span>
+              </div>
+            );
+          })()}
           {shippingLabel && (
             <div className="flex justify-between py-0.5">
               <span className="text-muted-foreground">Shipping</span>
@@ -216,7 +229,7 @@ export function SaleCartRail({
           <div className="mt-2 flex justify-between border-t border-border pt-2 text-base font-medium text-[#0a1a2e]">
             <span>Total</span>
             <span className="font-serif text-xl tabular-nums">
-              {fmtCurrency(cart.total)}
+              {fmtCurrency(cartTotalWithTax(cart, taxQuote))}
             </span>
           </div>
         </div>

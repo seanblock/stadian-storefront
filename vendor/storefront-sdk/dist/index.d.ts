@@ -1,14 +1,14 @@
 import { HttpClient } from "./client";
 import { PaymentsResource } from "./resources/payments";
 import { RepResource } from "./resources/rep";
-import type { CheckoutFlowResponse, PaginatedList, StoreConfig, StorefrontBranding, StorefrontCart, StorefrontCommission, StorefrontCustomerProfile, StorefrontFaqResponse, StorefrontIntakeForm, StorefrontIntakeSubmission, StorefrontLoginResponse, StorefrontOrder, StorefrontPageResponse, StorefrontPayout, StorefrontProduct, StorefrontProductDetail, StorefrontProductGroup, StorefrontRefreshResponse, StorefrontWebhookSubscription, ShippingEstimateResponse } from "./types";
+import type { CheckoutFlowResponse, PaginatedList, StoreConfig, StorefrontBranding, StorefrontCart, StorefrontCommission, StorefrontCustomerProfile, StorefrontFaqResponse, StorefrontIntakeForm, StorefrontIntakeSubmission, StorefrontLoginResponse, StorefrontOrder, StorefrontPageResponse, StorefrontPayout, StorefrontProduct, StorefrontProductDetail, StorefrontProductGroup, StorefrontRefreshResponse, StorefrontWebhookSubscription, ShippingEstimateResponse, CheckoutQuote, StorefrontTaxExemption, TaxExemptionInput } from "./types";
 export * from "./types";
 export * from "./errors";
 export { HttpClient } from "./client";
 export type { HttpClientConfig, RequestOptions } from "./client";
 export { PaymentsResource } from "./resources/payments";
 export { RepResource } from "./resources/rep";
-export type { RepBindCartParams, RepCheckoutParams, RepCreateCustomerParams, RepListOrdersParams, RepSearchCustomersParams, } from "./resources/rep";
+export type { RepBindCartParams, RepCheckoutParams, RepCheckoutQuoteParams, RepCreateCustomerParams, RepListOrdersParams, RepSearchCustomersParams, } from "./resources/rep";
 export { PaymentForm } from "./payment-form";
 export type { PaymentFormContainerIds, TokenizeResult } from "./payment-form";
 export interface CatalogListParams {
@@ -107,11 +107,21 @@ export interface CustomerRegisterParams {
      *  the Turnstile plugin configured; the API verifies it against that
      *  tenant's own secret key. */
     turnstileToken?: string;
-    /** Disclaimer versions the registrant assented to (terms and privacy).
-     *  Recorded by the API on the register call itself, so it works for
+    /** Legal assent ticked on the registration form. Recorded server-side as
+     *  part of registration (active version + content hash), so it works for
      *  approval-mode stores too, where a pending account holds no token and
      *  could not call `disclaimers.accept` afterwards. */
     acceptedDisclaimers?: Array<"terms_of_service" | "privacy_policy">;
+    /** Wholesale applicants' resale certificate details (metadata only; the
+     *  document is uploaded from the account once approved). Always reviewed
+     *  by staff before it affects tax. */
+    taxExemption?: TaxExemptionInput;
+}
+export interface CheckoutQuoteParams {
+    sessionToken: string;
+    shippingAddress?: Record<string, unknown>;
+    shippingMethodId?: string;
+    customerToken?: string;
 }
 export interface CustomerLoginParams {
     email: string;
@@ -161,6 +171,9 @@ declare class CheckoutResource {
     constructor(http: HttpClient);
     /** Create an order from the current cart session. */
     create(params: CheckoutCreateParams): Promise<StorefrontOrder>;
+    /** Checkout totals — including destination sales tax — for the current
+     *  address and shipping method. Creates nothing; call it as those change. */
+    quote(params: CheckoutQuoteParams): Promise<CheckoutQuote>;
     /** Get the checkout flow steps required for the current cart. */
     getFlow(sessionToken: string, shippingState: string): Promise<CheckoutFlowResponse>;
     /** Estimate shipping options for the current cart session. */
@@ -237,6 +250,29 @@ declare class CustomersResource {
         token: string;
     }): Promise<{
         ok: boolean;
+    }>;
+    /** The signed-in customer's resale / exemption certificates. */
+    taxExemptions(params: {
+        customerToken: string;
+    }): Promise<StorefrontTaxExemption[]>;
+    /** Submit a certificate for staff review (no effect on tax until verified). */
+    submitTaxExemption(params: {
+        customerToken: string;
+    } & TaxExemptionInput): Promise<StorefrontTaxExemption>;
+    /** Attach the certificate document (PDF/PNG/JPEG/WebP, ≤ 10 MB) while under review. */
+    uploadTaxExemptionDocument(params: {
+        customerToken: string;
+        exemptionId: string;
+        filename: string;
+        contentType: "application/pdf" | "image/png" | "image/jpeg" | "image/webp";
+        dataBase64: string;
+    }): Promise<StorefrontTaxExemption>;
+    /** Short-lived link to the customer's own certificate document. */
+    taxExemptionDocument(params: {
+        customerToken: string;
+        exemptionId: string;
+    }): Promise<{
+        download_url: string;
     }>;
     /** List commissions earned by the authenticated affiliate customer. */
     commissions(params: {

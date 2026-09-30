@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import type { CheckoutQuote } from "@stadian/storefront-sdk";
 import type {
   RepCheckoutResponse,
   RepCustomer,
@@ -18,6 +19,7 @@ import { useRepSale } from "@/providers/rep-sale-provider";
 import {
   createRepOrder,
   getRepCustomer,
+  quoteRepSale,
   getRepProducts,
   resendPaymentLink,
 } from "@/app/actions/rep";
@@ -32,6 +34,7 @@ import { AddressFields } from "@/components/checkout/address-fields";
 import { CustomerChip, CustomerStep } from "@/components/rep/customer-picker";
 import { ProductPad } from "@/components/rep/product-pad";
 import { SaleCartRail } from "@/components/rep/sale-cart-rail";
+import { shouldQuote } from "@/lib/tax-display";
 import { SaleOrderBar } from "@/components/rep/sale-order-bar";
 import { PaymentModeCards, type PaymentMode } from "@/components/rep/payment-mode-cards";
 import { PayLinkResult } from "@/components/rep/pay-link-result";
@@ -219,6 +222,41 @@ export default function NewSalePage() {
       zip: String(data?.get("zip") ?? ""),
       country: String(data?.get("country") ?? "") || "US",
     };
+  }, []);
+
+  // Destination-tax stores: quote the ship-to + method so the rail shows the
+  // real tax (and the customer's resale-certificate exemption) before the rep
+  // takes payment. Debounced; the form is read inside the timer so a
+  // just-picked state is never read stale.
+  const [taxQuote, setTaxQuote] = useState<CheckoutQuote | null>(null);
+  const quoteSeq = useRef(0);
+  const quoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleQuote = useCallback(() => {
+    if (quoteTimer.current) clearTimeout(quoteTimer.current);
+    quoteTimer.current = setTimeout(async () => {
+      const shipping = readShippingAddress();
+      if (!saleSessionId || !customer || !shouldQuote(cart, shipping.state)) {
+        setTaxQuote(null);
+        return;
+      }
+      const seq = ++quoteSeq.current;
+      const res = await quoteRepSale({
+        sessionToken: saleSessionId,
+        customerId: customer.id,
+        shippingAddress: shipping,
+        shippingMethodId,
+      });
+      if (seq === quoteSeq.current) setTaxQuote(res.ok ? res.data : null);
+    }, 400);
+  }, [readShippingAddress, saleSessionId, customer, cart, shippingMethodId]);
+
+  useEffect(() => {
+    if (step === "checkout" && cart?.tax_pending) scheduleQuote();
+  }, [step, cart, scheduleQuote]);
+
+  useEffect(() => () => {
+    if (quoteTimer.current) clearTimeout(quoteTimer.current);
   }, []);
 
   const placeOrder = useCallback(
@@ -495,6 +533,9 @@ export default function NewSalePage() {
         <form
           ref={formRef}
           className={step === "checkout" ? "flex min-h-0 flex-1 flex-col" : "hidden"}
+          onInput={() => {
+            if (cart?.tax_pending) scheduleQuote();
+          }}
           onSubmit={(e) => {
             e.preventDefault();
             submitSale();
@@ -510,6 +551,9 @@ export default function NewSalePage() {
               section="shipping"
               errors={addressErrors}
               showErrors={showErrors}
+              onStateChange={() => {
+                if (cart?.tax_pending) scheduleQuote();
+              }}
               onValidityRecheck={() => {
                 if (showErrors) setAddressErrors(validateSaleAddress(readShippingAddress()));
               }}
@@ -642,6 +686,7 @@ export default function NewSalePage() {
             cart={cart}
             cartBusy={cartBusy}
             shippingLabel={shippingLabel}
+            taxQuote={taxQuote}
             onSetQuantity={(itemId, q) =>
               runCartAction(() =>
                 q <= 0 ? removeItem(itemId) : updateItem(itemId, q)
@@ -666,6 +711,7 @@ export default function NewSalePage() {
           cart={cart}
           cartBusy={cartBusy}
           shippingLabel={shippingLabel}
+          taxQuote={taxQuote}
           onSetQuantity={(itemId, q) =>
             runCartAction(() => (q <= 0 ? removeItem(itemId) : updateItem(itemId, q)))
           }

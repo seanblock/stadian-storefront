@@ -7,6 +7,7 @@ import {
   StadianError,
   type StorefrontCustomerProfile,
   type StorefrontLoginResponse,
+  type TaxExemptionInput,
 } from "@stadian/storefront-sdk";
 
 import { getValidCustomerToken } from "@/lib/customer-token";
@@ -99,6 +100,8 @@ export async function registerCustomer(data: {
   turnstileToken?: string;
   /** Registration form's "I agree to the Terms of Service and Privacy Policy". */
   acceptedTerms?: boolean;
+  /** Wholesale applicant's resale certificate details (reviewed by staff). */
+  taxExemption?: TaxExemptionInput;
 }): Promise<RegisterResult> {
   if (!data.acceptedTerms) {
     return {
@@ -124,6 +127,7 @@ export async function registerCustomer(data: {
       // Recorded by the API on this call, so approval-mode signups (which get
       // no token) have their assent on file too.
       acceptedDisclaimers: ["terms_of_service", "privacy_policy"],
+      taxExemption: data.taxExemption,
     });
 
     // Registration issues the session itself, so we never call login here: that

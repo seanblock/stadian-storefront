@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { RepCustomer, StorefrontCart } from "@stadian/storefront-sdk";
+import type { CheckoutQuote, RepCustomer, StorefrontCart } from "@stadian/storefront-sdk";
+import { cartTotalWithTax } from "@/lib/tax-display";
 import { SaleCartRail } from "@/components/rep/sale-cart-rail";
 import { fmtCurrency } from "@/components/rep/format";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -24,6 +25,7 @@ export function SaleOrderBar({
   onRemove,
   onChangeCustomer,
   shippingLabel,
+  taxQuote,
 }: {
   customer: RepCustomer | null;
   cart: StorefrontCart | null;
@@ -32,8 +34,10 @@ export function SaleOrderBar({
   onRemove: (itemId: string) => void;
   onChangeCustomer?: () => void;
   shippingLabel?: string | null;
+  taxQuote?: CheckoutQuote | null;
 }) {
   const [open, setOpen] = useState(false);
+  const total = cart ? cartTotalWithTax(cart, taxQuote) : 0;
   const items = cart?.items ?? [];
   const count = items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -46,7 +50,7 @@ export function SaleOrderBar({
         aria-label={
           count === 0
             ? "No items in the order yet"
-            : `Review order — ${count} ${count === 1 ? "item" : "items"}, ${fmtCurrency(cart?.total ?? 0)}`
+            : `Review order — ${count} ${count === 1 ? "item" : "items"}, ${fmtCurrency(total)}`
         }
         className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl px-4 text-white transition-opacity disabled:opacity-45"
         style={{ background: NAVY }}
@@ -61,7 +65,7 @@ export function SaleOrderBar({
         </span>
         <span className="flex shrink-0 items-center gap-2">
           <span className="font-serif text-xl tabular-nums">
-            {fmtCurrency(cart?.total ?? 0)}
+            {fmtCurrency(total)}
           </span>
           <ChevronUp className="size-4 opacity-70" aria-hidden />
         </span>
@@ -76,6 +80,7 @@ export function SaleOrderBar({
               cart={cart}
               cartBusy={cartBusy}
               shippingLabel={shippingLabel}
+              taxQuote={taxQuote}
               onSetQuantity={onSetQuantity}
               onRemove={onRemove}
               onChangeCustomer={

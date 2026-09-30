@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthShell, FieldGroupHeading } from "@/components/layout/auth-shell";
 import { Turnstile } from "@/components/turnstile";
+import { resaleExemption } from "@/lib/tax-certificate";
 
 interface RegisterFormProps {
   /** Store vets applicants: the account is created but can't sign in yet. */
@@ -49,6 +50,10 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
   const [companyName, setCompanyName] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
   const [companyTaxId, setCompanyTaxId] = useState("");
+  // Resale certificate (optional): states + number only — the document is
+  // added from the account once approved (a pending applicant has no session).
+  const [resaleStates, setResaleStates] = useState("");
+  const [resaleNumber, setResaleNumber] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -100,6 +105,7 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
               companyName,
               companyWebsite: companyWebsite || undefined,
               companyTaxId: companyTaxId || undefined,
+              taxExemption: resaleExemption(resaleStates, resaleNumber),
             }
           : {}),
       });
@@ -249,6 +255,32 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
                   className={FIELD}
                   value={companyTaxId}
                   onChange={(e) => setCompanyTaxId(e.target.value)}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="resaleStates" className={FIELD_LABEL}>
+                  Resale certificate — states <span className={OPTIONAL}>(optional, e.g. NY)</span>
+                </Label>
+                <Input
+                  id="resaleStates"
+                  type="text"
+                  className={FIELD}
+                  value={resaleStates}
+                  onChange={(e) => setResaleStates(e.target.value)}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="resaleNumber" className={FIELD_LABEL}>
+                  Resale certificate number <span className={OPTIONAL}>(optional)</span>
+                </Label>
+                <Input
+                  id="resaleNumber"
+                  type="text"
+                  className={FIELD}
+                  value={resaleNumber}
+                  onChange={(e) => setResaleNumber(e.target.value)}
                 />
               </div>
             </div>

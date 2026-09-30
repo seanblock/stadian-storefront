@@ -12,6 +12,16 @@ export { PaymentForm } from "./payment-form";
 // Resource classes
 // ---------------------------------------------------------------------------
 /** Bearer header for a signed-in buyer, or nothing when anonymous. */
+function taxExemptionBody(input) {
+    return {
+        exemption_type: input.exemptionType ?? "resale",
+        states: input.states,
+        certificate_number: input.certificateNumber,
+        issued_at: input.issuedAt,
+        expires_at: input.expiresAt,
+        notes: input.notes,
+    };
+}
 function customerHeaders(customerToken) {
     return customerToken ? { Authorization: `Bearer ${customerToken}` } : {};
 }
@@ -120,6 +130,18 @@ class CheckoutResource {
         }
         return this.http.request("POST", "/checkout", options);
     }
+    /** Checkout totals — including destination sales tax — for the current
+     *  address and shipping method. Creates nothing; call it as those change. */
+    quote(params) {
+        return this.http.request("POST", "/checkout/quote", {
+            headers: customerHeaders(params.customerToken),
+            body: {
+                session_token: params.sessionToken,
+                shipping_address: params.shippingAddress,
+                shipping_method_id: params.shippingMethodId,
+            },
+        });
+    }
     /** Get the checkout flow steps required for the current cart. */
     getFlow(sessionToken, shippingState) {
         return this.http.request("POST", "/checkout/flow", {
@@ -201,6 +223,7 @@ class CustomersResource {
                 company_website: params.companyWebsite,
                 turnstile_token: params.turnstileToken,
                 accepted_disclaimers: params.acceptedDisclaimers,
+                tax_exemption: params.taxExemption ? taxExemptionBody(params.taxExemption) : undefined,
             },
         });
     }
@@ -256,6 +279,30 @@ class CustomersResource {
     /** Verify a customer's email address using the emailed token. */
     verifyEmail(params) {
         return this.http.request("POST", "/customers/verify-email", { body: params });
+    }
+    /** The signed-in customer's resale / exemption certificates. */
+    taxExemptions(params) {
+        return this.http.request("GET", "/account/tax-exemptions", {
+            headers: customerHeaders(params.customerToken),
+        });
+    }
+    /** Submit a certificate for staff review (no effect on tax until verified). */
+    submitTaxExemption(params) {
+        return this.http.request("POST", "/account/tax-exemptions", {
+            headers: customerHeaders(params.customerToken),
+            body: taxExemptionBody(params),
+        });
+    }
+    /** Attach the certificate document (PDF/PNG/JPEG/WebP, ≤ 10 MB) while under review. */
+    uploadTaxExemptionDocument(params) {
+        return this.http.request("POST", `/account/tax-exemptions/${encodeURIComponent(params.exemptionId)}/document`, {
+            headers: customerHeaders(params.customerToken),
+            body: { filename: params.filename, content_type: params.contentType, data_base64: params.dataBase64 },
+        });
+    }
+    /** Short-lived link to the customer's own certificate document. */
+    taxExemptionDocument(params) {
+        return this.http.request("GET", `/account/tax-exemptions/${encodeURIComponent(params.exemptionId)}/document`, { headers: customerHeaders(params.customerToken) });
     }
     /** List commissions earned by the authenticated affiliate customer. */
     commissions(params) {

@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import type { StorefrontCustomerProfile } from "@stadian/storefront-sdk";
+import type { StorefrontCustomerProfile, TaxExemptionInput } from "@stadian/storefront-sdk";
 import {
   loginCustomer as loginAction,
   registerCustomer as registerAction,
@@ -69,6 +69,8 @@ export interface RegisterData {
   /** The visitor ticked "I agree to the Terms of Service and Privacy Policy".
    *  Recorded against the tenant's active versions once the account exists. */
   acceptedTerms?: boolean;
+  /** Wholesale applicant's resale certificate details (reviewed by staff). */
+  taxExemption?: TaxExemptionInput;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);

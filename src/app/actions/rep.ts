@@ -6,6 +6,7 @@ import { getStadianClient } from "@/lib/stadian";
 import { getValidCustomerToken } from "@/lib/customer-token";
 import {
   StadianError,
+  type CheckoutQuote,
   type RepCheckoutResponse,
   type RepCustomer,
   type RepCustomersResponse,
@@ -97,6 +98,25 @@ export async function bindRepCart(params: {
 }): Promise<RepResult<{ ok: boolean; customer_id: string }>> {
   return withRepAuth((customerToken) =>
     getStadianClient().rep.bindCart({ customerToken, ...params })
+  );
+}
+
+/** Totals incl. destination sales tax for the sale being built (honors the
+ *  customer's verified resale certificate). */
+export async function quoteRepSale(params: {
+  sessionToken: string;
+  customerId: string;
+  shippingAddress?: Partial<Address>;
+  shippingMethodId?: string;
+}): Promise<RepResult<CheckoutQuote>> {
+  return withRepAuth((customerToken) =>
+    getStadianClient().rep.quote({
+      customerToken,
+      sessionToken: params.sessionToken,
+      customerId: params.customerId,
+      shippingAddress: params.shippingAddress ? { ...params.shippingAddress } : undefined,
+      shippingMethodId: params.shippingMethodId,
+    })
   );
 }
 
