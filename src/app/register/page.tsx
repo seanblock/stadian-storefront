@@ -56,6 +56,10 @@ export default async function RegisterPage() {
   }
 
   return (
-    <RegisterForm requiresApproval={requiresApproval} isWholesale={isWholesale} />
+    <RegisterForm
+      requiresApproval={requiresApproval}
+      isWholesale={isWholesale}
+      taxExemptionsEnabled={branding.tax_exemptions_enabled === true}
+    />
   );
 }

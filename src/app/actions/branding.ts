@@ -22,3 +22,10 @@ export async function getTrustSignals(): Promise<StorefrontTrustSignal[]> {
   const branding = await getBranding();
   return branding.trust_signals ?? [];
 }
+
+/** Whether this store taxes by ship-to address, so resale certificates
+ *  matter (Account → Tax exemption, registration certificate fields). */
+export async function getTaxExemptionsEnabled(): Promise<boolean> {
+  const branding = await getBranding();
+  return branding.tax_exemptions_enabled === true;
+}

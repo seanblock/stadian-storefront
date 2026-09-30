@@ -416,6 +416,9 @@ export interface StorefrontBranding {
     hide_prices_until_login?: boolean;
     /** How shoppers get an account on this store. */
     registration_mode?: StorefrontRegistrationMode;
+    /** The store taxes by ship-to address, so resale certificates matter: show
+     *  the account "Tax exemption" page and registration certificate fields. */
+    tax_exemptions_enabled?: boolean;
     trust_signals?: StorefrontTrustSignal[];
     /** Lowest subtotal that ships free on an active shipping method; null when
      *  nothing ships free. Render "free shipping" copy from this, never hardcode it. */

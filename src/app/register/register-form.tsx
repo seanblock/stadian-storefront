@@ -16,6 +16,8 @@ interface RegisterFormProps {
   requiresApproval: boolean;
   /** Store sells to businesses: collect the company details. */
   isWholesale: boolean;
+  /** Store taxes by destination: offer the resale-certificate fields. */
+  taxExemptionsEnabled?: boolean;
 }
 
 // Inputs ship at h-8 for dense admin-style forms. A page asking a stranger for
@@ -41,7 +43,7 @@ const RETAIL_POINTS = [
   "View order status and available shipment tracking",
 ] as const;
 
-export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProps) {
+export function RegisterForm({ requiresApproval, isWholesale, taxExemptionsEnabled = false }: RegisterFormProps) {
   const router = useRouter();
   const { register } = useAuth();
 
@@ -105,7 +107,7 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
               companyName,
               companyWebsite: companyWebsite || undefined,
               companyTaxId: companyTaxId || undefined,
-              taxExemption: resaleExemption(resaleStates, resaleNumber),
+              taxExemption: taxExemptionsEnabled ? resaleExemption(resaleStates, resaleNumber) : undefined,
             }
           : {}),
       });
@@ -258,6 +260,8 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
                 />
               </div>
 
+              {taxExemptionsEnabled && (
+                <>
               <div className="grid gap-2">
                 <Label htmlFor="resaleStates" className={FIELD_LABEL}>
                   Resale certificate — states <span className={OPTIONAL}>(optional, e.g. NY)</span>
@@ -283,6 +287,8 @@ export function RegisterForm({ requiresApproval, isWholesale }: RegisterFormProp
                   onChange={(e) => setResaleNumber(e.target.value)}
                 />
               </div>
+                </>
+              )}
             </div>
           </>
         )}
