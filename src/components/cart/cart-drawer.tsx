@@ -15,9 +15,10 @@ import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/providers/cart-provider";
 import { formatCurrency } from "@/lib/utils";
 import { CartLineItem } from "./cart-line-item";
+import { MinimumOrderNotice } from "./minimum-order-notice";
 
 export function CartDrawer() {
-  const { cart, isDrawerOpen, setDrawerOpen } = useCart();
+  const { cart, isDrawerOpen, setDrawerOpen, minimumOrderNotice } = useCart();
 
   const items = cart?.items ?? [];
   const isEmpty = items.length === 0;
@@ -102,14 +103,22 @@ export function CartDrawer() {
                   </span>
                 </div>
 
-                <Button
-                  className="w-full mt-2"
-                  nativeButton={false}
-                  render={<Link href="/checkout" />}
-                  onClick={() => setDrawerOpen(false)}
-                >
-                  Checkout
-                </Button>
+                <MinimumOrderNotice message={minimumOrderNotice} />
+
+                {minimumOrderNotice ? (
+                  <Button className="w-full mt-2" disabled>
+                    Checkout
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full mt-2"
+                    nativeButton={false}
+                    render={<Link href="/checkout" />}
+                    onClick={() => setDrawerOpen(false)}
+                  >
+                    Checkout
+                  </Button>
+                )}
 
                 <Button
                   variant="outline"

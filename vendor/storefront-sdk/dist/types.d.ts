@@ -423,6 +423,10 @@ export interface StorefrontBranding {
     /** Lowest subtotal that ships free on an active shipping method; null when
      *  nothing ships free. Render "free shipping" copy from this, never hardcode it. */
     free_shipping_threshold?: number | null;
+    /** Smallest cart subtotal (before shipping and tax) the store accepts at
+     *  checkout; null = no minimum. The API refuses checkout below it with
+     *  error code BELOW_MINIMUM_ORDER. */
+    minimum_order_amount?: number | null;
 }
 /**
  * open — anyone can register and order immediately.
@@ -583,6 +587,9 @@ export interface CheckoutQuote {
     tax_label: string | null;
     tax_rate: number | null;
     tax_jurisdiction: string | null;
+    /** The store's minimum order (null = none) and whether this cart is under it. */
+    minimum_order_amount?: number | null;
+    below_minimum?: boolean;
 }
 /** One of the signed-in customer's resale / exemption certificates. */
 export interface StorefrontTaxExemption {

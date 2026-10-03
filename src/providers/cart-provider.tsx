@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { StorefrontCart } from "@stadian/storefront-sdk";
 import { getSessionId, clearSession } from "@/lib/session";
+import { minimumOrderMessage } from "@/lib/minimum-order";
 import {
   getCart,
   addToCart as addToCartAction,
@@ -28,6 +29,8 @@ interface CartContextValue {
   removeItem: (itemId: string) => Promise<void>;
   refresh: () => Promise<void>;
   resetCart: () => void;
+  /** Why this cart can't check out yet (under the store's minimum order), or null. */
+  minimumOrderNotice: string | null;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -49,8 +52,11 @@ function withStableItemOrder(cart: StorefrontCart | null): StorefrontCart | null
 export function CartProvider({
   children,
   enabled = true,
+  minimumOrderAmount = null,
 }: {
   children: ReactNode;
+  /** `branding.minimum_order_amount`: the smallest subtotal checkout accepts. */
+  minimumOrderAmount?: number | null;
   /**
    * False on a wholesale store when the visitor is signed out — the cart API is
    * closed to them, so fetching it would only produce 401s.
@@ -121,7 +127,20 @@ export function CartProvider({
   }, []);
 
   return (
-    <CartContext value={{ cart, loading, isDrawerOpen, setDrawerOpen, addItem, updateItem, removeItem, refresh, resetCart }}>
+    <CartContext
+      value={{
+        cart,
+        loading,
+        isDrawerOpen,
+        setDrawerOpen,
+        addItem,
+        updateItem,
+        removeItem,
+        refresh,
+        resetCart,
+        minimumOrderNotice: cart?.items.length ? minimumOrderMessage(cart.subtotal, minimumOrderAmount) : null,
+      }}
+    >
       {children}
     </CartContext>
   );

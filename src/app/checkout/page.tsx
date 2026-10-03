@@ -31,6 +31,7 @@ import type {
 } from "@stadian/storefront-sdk";
 import { getTrustSignals } from "@/app/actions/branding";
 import { CheckoutTrustRow } from "@/components/checkout/checkout-trust-row";
+import { MinimumOrderNotice } from "@/components/cart/minimum-order-notice";
 import { ShippingMethods } from "@/components/checkout/shipping-methods";
 import { CheckoutFlowSteps } from "@/components/checkout/checkout-flow-steps";
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,7 @@ function StepBadge({ n, active, done }: { n: number; active: boolean; done: bool
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, loading, resetCart } = useCart();
+  const { cart, loading, resetCart, minimumOrderNotice } = useCart();
   const { isAuthenticated, customer, loading: authLoading } = useAuth();
   const contactIdentity = customer?.id ?? "guest";
   const [contact, setContact] = useState<{ identity: string; fullName?: string; email?: string }>({ identity: contactIdentity });
@@ -502,6 +503,7 @@ export default function CheckoutPage() {
     !checkoutFlow ||
     !formFilled ||
     hasUnresolvableBlocker ||
+    !!minimumOrderNotice ||
     (needsAgeConfirmation && !ageConfirmed);
 
   return (
@@ -733,6 +735,8 @@ export default function CheckoutPage() {
                 )?.price
               }
             />
+
+            <MinimumOrderNotice message={minimumOrderNotice} />
 
             {error && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">

@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useCart } from "@/providers/cart-provider";
 import { CartItemRow } from "@/components/cart/cart-item-row";
 import { OrderSummary } from "@/components/cart/order-summary";
+import { MinimumOrderNotice } from "@/components/cart/minimum-order-notice";
 import { Button } from "@/components/ui/button";
 
 export default function CartPage() {
-  const { cart, loading } = useCart();
+  const { cart, loading, minimumOrderNotice } = useCart();
 
   if (loading) {
     return (
@@ -86,9 +87,16 @@ export default function CartPage() {
         {/* Sidebar */}
         <div className="flex flex-col gap-4">
           <OrderSummary cart={cart} showItems={false} />
-          <Button className="w-full" nativeButton={false} render={<Link href="/checkout" />}>
-            Proceed to Checkout
-          </Button>
+          <MinimumOrderNotice message={minimumOrderNotice} />
+          {minimumOrderNotice ? (
+            <Button className="w-full" disabled>
+              Proceed to Checkout
+            </Button>
+          ) : (
+            <Button className="w-full" nativeButton={false} render={<Link href="/checkout" />}>
+              Proceed to Checkout
+            </Button>
+          )}
         </div>
       </div>
     </div>

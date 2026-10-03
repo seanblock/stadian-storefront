@@ -138,7 +138,7 @@ export default async function RootLayout({
             />
             <ThemeProvider>
               <AuthProvider>
-                <CartProvider enabled={cartEnabled}>
+                <CartProvider enabled={cartEnabled} minimumOrderAmount={branding.minimum_order_amount ?? null}>
                   <ChromeGate>
                     <Header branding={branding} cartEnabled={cartEnabled} />
                   </ChromeGate>
