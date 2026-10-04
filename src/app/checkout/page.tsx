@@ -510,6 +510,9 @@ export default function CheckoutPage() {
     <div className="container mx-auto max-w-5xl px-4 py-12">
       <h1 className="mb-8 text-2xl font-semibold">Checkout</h1>
       <CheckoutTrustRow signals={trustSignals} />
+      {/* On phones the summary column sits below the form, so say up front
+          why Place Order will stay disabled. Desktop shows it in the summary. */}
+      <MinimumOrderNotice message={minimumOrderNotice} className="mb-6 lg:hidden" />
       <form
         ref={formRef}
         noValidate
@@ -736,7 +739,7 @@ export default function CheckoutPage() {
               }
             />
 
-            <MinimumOrderNotice message={minimumOrderNotice} />
+            <MinimumOrderNotice message={minimumOrderNotice} className="hidden lg:block" />
 
             {error && (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
