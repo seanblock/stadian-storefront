@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { StadianAuthError } from "@stadian/storefront-sdk";
@@ -38,7 +37,31 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
     }
   });
 
-  if (!invoice) notFound();
+  // Almost always a wrong-account sign-in: invoices only show for the email address they were sent to.
+  // A bare 404 left people thinking the invoice was gone, so say what to try.
+  if (!invoice) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>We can&apos;t show this invoice on this account</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 text-sm">
+          <p>
+            Invoices only appear for the email address they were sent to. If you have more than one account with us,
+            sign out and sign back in with the address the invoice was emailed to.
+          </p>
+          <p className="text-muted-foreground">
+            It can also be that the invoice isn&apos;t ready yet. If that doesn&apos;t help, reply to the invoice email and we&apos;ll sort it out.
+          </p>
+          <div>
+            <Link href="/account/invoices" className="font-medium underline underline-offset-4">
+              See all invoices on this account
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const date = (value: string) => new Date(value).toLocaleDateString();
   const paid = invoice.balance_due <= 0;
