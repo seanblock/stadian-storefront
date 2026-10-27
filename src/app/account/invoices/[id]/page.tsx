@@ -26,8 +26,9 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
   const { id } = await params;
 
   // Invoice emails land here. A missing or lapsed session goes to /login and
-  // comes back; anything else (someone else's invoice, a draft, an unknown id)
-  // is a 404. Auth errors are rethrown so the login redirect wins.
+  // comes back; anything else (someone else's invoice, a draft, an unknown id, a
+  // failed load) shows the explanation below. Auth errors are rethrown so the
+  // login redirect wins.
   const invoice = await fetchWithRequiredAuth(`/account/invoices/${id}`, async (customerToken) => {
     try {
       return await getInvoice(customerToken, id);
@@ -37,21 +38,18 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
     }
   });
 
-  // Almost always a wrong-account sign-in: invoices only show for the email address they were sent to.
-  // A bare 404 left people thinking the invoice was gone, so say what to try.
+  // Most often a sign-in with a different account than the one the invoice was emailed to,
+  // so say that and what to try, rather than a bare 404.
   if (!invoice) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>We can&apos;t show this invoice on this account</CardTitle>
+          <CardTitle>We couldn&apos;t show this invoice</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 text-sm">
           <p>
-            Invoices only appear for the email address they were sent to. If you have more than one account with us,
-            sign out and sign back in with the address the invoice was emailed to.
-          </p>
-          <p className="text-muted-foreground">
-            It can also be that the invoice isn&apos;t ready yet. If that doesn&apos;t help, reply to the invoice email and we&apos;ll sort it out.
+            Invoices only appear for the email address they were sent to. If you have more than one account,
+            sign out and sign back in with that address, or try again in a moment.
           </p>
           <div>
             <Link href="/account/invoices" className="font-medium underline underline-offset-4">
