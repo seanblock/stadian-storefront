@@ -47,6 +47,19 @@ export interface InvoiceDetail extends InvoiceSummary {
   discount: number;
   orders: { id: string; order_number: string | null }[];
   payments: { amount: number; payment_method: string; paid_at: string }[];
+  /** The store's bank-transfer details, one per enabled rail, while a balance is due. */
+  payment_instructions: InvoiceBankTransfer[];
+}
+
+/** How to pay by one bank-transfer rail; ``reference`` is the invoice number. */
+export interface InvoiceBankTransfer {
+  key: string;
+  label: string;
+  demo_mode: boolean;
+  details: { bank_name: string; account_name: string; account_number: string; routing_number: string };
+  amount: string;
+  currency: string;
+  reference: string;
 }
 
 function auth(customerToken: string) {

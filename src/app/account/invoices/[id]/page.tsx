@@ -6,6 +6,7 @@ import { INVOICE_STATE_LABELS, getInvoice, paymentTermsLabel } from "@/lib/invoi
 import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { InvoicePaymentInstructions } from "@/components/account/invoice-payment-instructions";
 
 export const metadata: Metadata = { title: "Invoice" };
 
@@ -119,6 +120,17 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
           </dl>
         </CardContent>
       </Card>
+
+      {(invoice.payment_instructions ?? []).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>How to pay</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InvoicePaymentInstructions rails={invoice.payment_instructions ?? []} />
+          </CardContent>
+        </Card>
+      )}
 
       {invoice.orders.length > 0 && (
         <Card>
