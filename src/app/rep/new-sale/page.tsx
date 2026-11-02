@@ -383,7 +383,11 @@ export default function NewSalePage() {
               ? "Paid — receipt emailed to the customer."
               : result.payment_link_url
                 ? "Awaiting payment via link."
-                : "Unpaid — will be settled offline."}
+                : result.payment_method !== "invoice"
+                  ? "Unpaid — will be settled offline."
+                  : result.invoice_email_sent
+                    ? "Unpaid — invoice emailed to the customer."
+                    : "Unpaid — invoice not emailed. Ask your store administrator to send it."}
           </p>
         </div>
 
@@ -730,7 +734,7 @@ export default function NewSalePage() {
             <DialogTitle>Place unpaid order?</DialogTitle>
             <DialogDescription>
               {customer && cart
-                ? `${fmtCurrency(cart.total)} order for ${customer.name || customer.email} will be placed as pending payment and settled offline.`
+                ? `${fmtCurrency(cart.total)} order for ${customer.name || customer.email} will be placed as pending payment, and the customer will be emailed their invoice.`
                 : "This order will be placed as pending payment."}
             </DialogDescription>
           </DialogHeader>

@@ -295,6 +295,8 @@ export interface RepCheckoutResponse extends StorefrontOrder {
     /** Durable pay-by-link URL (link-capable gateways only). */
     payment_link_url?: string | null;
     payment_link_email_sent?: boolean;
+    /** Invoice orders: whether the store emailed the customer their invoice. */
+    invoice_email_sent?: boolean;
 }
 export interface RepOrderItem {
     product_id: string;

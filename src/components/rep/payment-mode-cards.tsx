@@ -26,7 +26,7 @@ const MODES: Array<{
   {
     mode: "invoice",
     title: "Invoice — pay later",
-    description: "Place the order unpaid; settled offline (terms, wire, etc.).",
+    description: "Place the order unpaid and email the customer their invoice (terms, wire, etc.).",
     icon: FileText,
   },
 ];
