@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { verifyEmail } from "@/app/actions/auth";
+import { useAgeGated } from "@/providers/age-gate-provider";
 import {
   Card,
   CardContent,
@@ -17,12 +18,15 @@ type State = "loading" | "success" | "error" | "no-token";
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  // The token is single-use: spending it behind the gate would make the visit
+  // after confirming report an invalid link.
+  const gated = useAgeGated();
 
   const [state, setState] = useState<State>(token ? "loading" : "no-token");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || gated) return;
 
     let cancelled = false;
 
@@ -44,7 +48,7 @@ function VerifyEmailContent() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, gated]);
 
   const content: Record<State, { title: string; description: string; body: React.ReactNode }> = {
     loading: {

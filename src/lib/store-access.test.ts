@@ -6,31 +6,35 @@ const confirmed = { ageConfirmed: true, hasPreviewAccess: false };
 
 describe("storeAccessFor", () => {
   it("shows the catalog on an open store with no gate", () => {
-    expect(storeAccessFor({ storefront_enabled: true }, newVisitor)).toEqual({
+    expect(storeAccessFor({ storefront_enabled: true }, newVisitor, false)).toEqual({
       isClosed: false,
       ageGateActive: false,
+      brandingUnavailable: false,
       canViewCatalog: true,
     });
   });
 
   it("withholds the catalog until the visitor confirms their age", () => {
     const gated = { storefront_enabled: true, age_gate_enabled: true };
-    expect(storeAccessFor(gated, newVisitor)).toEqual({
+    expect(storeAccessFor(gated, newVisitor, false)).toEqual({
       isClosed: false,
       ageGateActive: true,
+      brandingUnavailable: false,
       canViewCatalog: false,
     });
-    expect(storeAccessFor(gated, confirmed)).toEqual({
+    expect(storeAccessFor(gated, confirmed, false)).toEqual({
       isClosed: false,
       ageGateActive: false,
+      brandingUnavailable: false,
       canViewCatalog: true,
     });
   });
 
   it("withholds the catalog on a closed store, even from a confirmed visitor", () => {
-    expect(storeAccessFor({ storefront_enabled: false }, confirmed)).toEqual({
+    expect(storeAccessFor({ storefront_enabled: false }, confirmed, false)).toEqual({
       isClosed: true,
       ageGateActive: false,
+      brandingUnavailable: false,
       canViewCatalog: false,
     });
   });
@@ -38,17 +42,27 @@ describe("storeAccessFor", () => {
   it("lets a preview visitor into a closed store, still behind the age gate", () => {
     const closedGated = { storefront_enabled: false, age_gate_enabled: true };
     expect(
-      storeAccessFor(closedGated, { ageConfirmed: false, hasPreviewAccess: true })
-    ).toEqual({ isClosed: false, ageGateActive: true, canViewCatalog: false });
+      storeAccessFor(closedGated, { ageConfirmed: false, hasPreviewAccess: true }, false)
+    ).toEqual({
+      isClosed: false,
+      ageGateActive: true,
+      brandingUnavailable: false,
+      canViewCatalog: false,
+    });
     expect(
-      storeAccessFor(closedGated, { ageConfirmed: true, hasPreviewAccess: true }).canViewCatalog
+      storeAccessFor(closedGated, { ageConfirmed: true, hasPreviewAccess: true }, false).canViewCatalog
     ).toBe(true);
   });
 });
 
 describe("when branding couldn't be loaded", () => {
-  it("withholds the catalog, even from a confirmed visitor", () => {
-    expect(storeAccessFor({ storefront_enabled: true }, confirmed, true).canViewCatalog).toBe(false);
+  it("withholds the catalog, even from a confirmed visitor, and says why", () => {
+    expect(storeAccessFor({ storefront_enabled: true }, confirmed, true)).toEqual({
+      isClosed: false,
+      ageGateActive: false,
+      brandingUnavailable: true,
+      canViewCatalog: false,
+    });
   });
 
   it("doesn't treat the catalog as public", () => {
@@ -58,8 +72,8 @@ describe("when branding couldn't be loaded", () => {
 
 describe("isCatalogPublic", () => {
   it("is true only for an open store with no age gate", () => {
-    expect(isCatalogPublic({ storefront_enabled: true })).toBe(true);
-    expect(isCatalogPublic({ storefront_enabled: true, age_gate_enabled: true })).toBe(false);
-    expect(isCatalogPublic({ storefront_enabled: false })).toBe(false);
+    expect(isCatalogPublic({ storefront_enabled: true }, false)).toBe(true);
+    expect(isCatalogPublic({ storefront_enabled: true, age_gate_enabled: true }, false)).toBe(false);
+    expect(isCatalogPublic({ storefront_enabled: false }, false)).toBe(false);
   });
 });

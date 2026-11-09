@@ -4,6 +4,7 @@ import { getProductCoas, type ProductCoa } from "@/lib/product-coas";
 
 import { getStadianClient } from "@/lib/stadian";
 import { getValidCustomerToken } from "@/lib/customer-token";
+import { getStoreAccess } from "@/lib/store-access";
 import {
   StadianError,
   type CheckoutQuote,
@@ -26,6 +27,20 @@ import type { Address } from "@/app/checkout/checkout-logic";
 export type RepResult<T> =
   | { ok: true; data: T }
   | { ok: false; code: string; message: string; status: number; details?: Record<string, unknown> };
+
+/**
+ * For the actions that return catalog data. The API doesn't know a store is
+ * closed and still takes sign-ups (subject to the store's registration mode), so
+ * a session proves little: getRepProductCoas checks only that the caller is
+ * signed in, not that they're a rep. Preview access clears isClosed, so reps with
+ * the password keep the POS.
+ */
+const STORE_CLOSED = {
+  ok: false,
+  code: "STORE_CLOSED",
+  message: "This store is currently closed.",
+  status: 403,
+} as const;
 
 export async function getRepCommissions(): Promise<RepResult<{ items: StorefrontCommission[] }>> {
   return withRepAuth((customerToken) => getStadianClient().customers.commissions({ customerToken, limit: 50 }));
@@ -203,6 +218,7 @@ export async function getRepDashboard(): Promise<RepResult<RepDashboard>> {
 export async function getRepProducts(
   customerId?: string
 ): Promise<RepResult<import("@stadian/storefront-sdk").StorefrontProduct[]>> {
+  if ((await getStoreAccess()).isClosed) return STORE_CLOSED;
   return withRepAuth(async (customerToken) => {
     const page = await getStadianClient().rep.listProducts({
       customerToken,
@@ -214,6 +230,7 @@ export async function getRepProducts(
 }
 
 export async function getRepProductCoas(slug: string): Promise<RepResult<ProductCoa[]>> {
+  if ((await getStoreAccess()).isClosed) return STORE_CLOSED;
   return withRepAuth(async (customerToken) => {
     const product = await getStadianClient().catalog.get(slug, { customerToken });
     return getProductCoas(product);

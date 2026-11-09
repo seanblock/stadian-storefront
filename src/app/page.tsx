@@ -27,9 +27,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
+  const { isClosed, canViewCatalog } = await getStoreAccess();
+  // The layout shows only the closed sign, but whatever this returns would still
+  // reach the page's hidden payload.
+  if (isClosed) return null;
+
   const branding = await getBranding();
   const pricesHidden = await arePricesHidden();
-  const { canViewCatalog } = await getStoreAccess();
 
   let featuredProducts: StorefrontProduct[] = [];
   if (canViewCatalog) {

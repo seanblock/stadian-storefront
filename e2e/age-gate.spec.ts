@@ -45,7 +45,7 @@ test.describe("age gate", () => {
   });
 
   test("scanners get each page's real content in the HTML", async ({ request }) => {
-    const titles = new Map<string, string>();
+    const mainContentByPath = new Map<string, string>();
     for (const path of ["/", "/about", "/terms", "/privacy", "/products"]) {
       const res = await request.get(path);
       expect(res.status()).toBe(200);
@@ -57,10 +57,10 @@ test.describe("age gate", () => {
       const body = html
         .slice(html.indexOf("<main"), html.indexOf("</main>"))
         .replace(/<script[\s\S]*?<\/script>/g, "");
-      titles.set(path, body);
+      mainContentByPath.set(path, body);
     }
     // Every URL used to return one identical interstitial.
-    expect(new Set(titles.values()).size).toBe(titles.size);
+    expect(new Set(mainContentByPath.values()).size).toBe(mainContentByPath.size);
   });
 
   test("products stay out of the page source until the visitor confirms", async ({
@@ -95,5 +95,27 @@ test.describe("age gate", () => {
     const lockedDetail = await (await request.get(`/products/${slug}`)).text();
     expect(lockedDetail).toContain("Confirm your age to view the catalog.");
     expect(lockedDetail).toMatch(/<meta name="robots" content="noindex/);
+  });
+
+  test("nothing behind the gate spends a verification link or creates a cart", async ({ page }) => {
+    // Server action calls with their arguments. The signed-in profile read takes
+    // none and only reads; verifying an email or loading a cart takes arguments.
+    const actionArgs: string[] = [];
+    page.on("request", (req) => {
+      if (req.method() === "POST" && req.headers()["next-action"]) {
+        actionArgs.push(req.postData() ?? "");
+      }
+    });
+
+    await page.goto("/verify-email?token=not-a-real-token");
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByText("Verifying your email...")).toBeVisible();
+    await page.waitForTimeout(1500);
+    expect(actionArgs.filter((args) => args !== "[]"), "actions with arguments behind the gate").toEqual([]);
+
+    // The same page once confirmed does verify, which proves the check is live.
+    await page.getByRole("button", { name: /or older$/ }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+    await expect.poll(() => actionArgs.some((args) => args.includes("not-a-real-token"))).toBe(true);
   });
 });

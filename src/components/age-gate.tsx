@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import type { StorefrontBranding } from "@stadian/storefront-sdk"
+import { AGE_CONFIRMED_COOKIE } from "@/lib/age-gate-cookie"
 
 export interface AgeGateProps {
   minAge: number
@@ -24,7 +25,7 @@ export function AgeGate({ minAge, declineUrl, branding, onConfirm }: AgeGateProp
   }
 
   function handleConfirm() {
-    document.cookie = `age_confirmed=1; path=/; max-age=31536000; SameSite=Lax`
+    document.cookie = `${AGE_CONFIRMED_COOKIE}=1; path=/; max-age=31536000; SameSite=Lax`
     if (onConfirm) {
       onConfirm()
     } else {

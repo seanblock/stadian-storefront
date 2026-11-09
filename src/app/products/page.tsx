@@ -35,8 +35,8 @@ interface ProductsPageProps {
 export default async function ProductsPage({
   searchParams,
 }: ProductsPageProps) {
-  const { canViewCatalog } = await getStoreAccess();
-  if (!canViewCatalog) return <CatalogLocked />;
+  const { canViewCatalog, brandingUnavailable } = await getStoreAccess();
+  if (!canViewCatalog) return <CatalogLocked unavailable={brandingUnavailable} />;
 
   const params = await searchParams;
   const search = params.search ?? "";

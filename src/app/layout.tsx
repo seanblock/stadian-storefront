@@ -8,6 +8,7 @@ import { Footer } from "@/components/layout/footer";
 import { AuthProvider } from "@/providers/auth-provider";
 import { CartProvider } from "@/providers/cart-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { AgeGateProvider } from "@/providers/age-gate-provider";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { ChromeGate } from "@/components/layout/chrome-gate";
 import { StoreClosed } from "@/components/store-closed";
@@ -132,8 +133,10 @@ export default async function RootLayout({
               {/* `contents` keeps <main> and the footer as direct flex items of
                   <body>; `inert` keeps keyboard focus out while the gate is up. */}
               <div className="contents" inert={ageGateActive}>
+                <AgeGateProvider gated={ageGateActive}>
                 <AuthProvider>
-                  <CartProvider enabled={cartEnabled} minimumOrderAmount={branding.minimum_order_amount ?? null}>
+                  {/* Loading a cart creates one, so don't for visitors or scanners behind the gate. */}
+                  <CartProvider enabled={cartEnabled && !ageGateActive} minimumOrderAmount={branding.minimum_order_amount ?? null}>
                     <ChromeGate>
                       <Header branding={branding} cartEnabled={cartEnabled} />
                     </ChromeGate>
@@ -151,6 +154,7 @@ export default async function RootLayout({
                     )}
                   </CartProvider>
                 </AuthProvider>
+                </AgeGateProvider>
               </div>
               {ageGateActive && (
                 <AgeGate

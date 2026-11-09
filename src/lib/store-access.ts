@@ -1,9 +1,8 @@
 import { cookies } from "next/headers";
 import type { StorefrontBranding } from "@stadian/storefront-sdk";
 import { getBrandingState } from "./branding";
+import { AGE_CONFIRMED_COOKIE } from "./age-gate-cookie";
 import { PREVIEW_COOKIE, verifyPreviewToken } from "./preview-access";
-
-const AGE_CONFIRMED_COOKIE = "age_confirmed";
 
 type AccessBranding = Pick<StorefrontBranding, "storefront_enabled" | "age_gate_enabled">;
 
@@ -12,6 +11,8 @@ export interface StoreAccess {
   isClosed: boolean;
   /** The age gate sits over the page until the visitor confirms. */
   ageGateActive: boolean;
+  /** Branding couldn't be loaded, so nothing is known about gates or closure. */
+  brandingUnavailable: boolean;
   /** Product data may be fetched and rendered for this visitor. */
   canViewCatalog: boolean;
 }
@@ -20,7 +21,7 @@ export interface StoreAccess {
 export function storeAccessFor(
   branding: AccessBranding,
   visitor: { ageConfirmed: boolean; hasPreviewAccess: boolean },
-  brandingIsFallback = false
+  brandingIsFallback: boolean
 ): StoreAccess {
   const isClosed = branding.storefront_enabled === false && !visitor.hasPreviewAccess;
   const ageGateActive =
@@ -28,6 +29,7 @@ export function storeAccessFor(
   return {
     isClosed,
     ageGateActive,
+    brandingUnavailable: brandingIsFallback,
     // Fails closed: fallback branding can't say whether a gate or closure applies.
     canViewCatalog: !brandingIsFallback && !isClosed && !ageGateActive,
   };
@@ -37,12 +39,12 @@ export function storeAccessFor(
  * Pure rule for surfaces with no visitor, such as the sitemap: may the catalog
  * be listed for anyone who asks?
  */
-export function isCatalogPublic(branding: AccessBranding, brandingIsFallback = false): boolean {
-  return (
-    !brandingIsFallback &&
-    branding.storefront_enabled !== false &&
-    branding.age_gate_enabled !== true
-  );
+export function isCatalogPublic(branding: AccessBranding, brandingIsFallback: boolean): boolean {
+  return storeAccessFor(
+    branding,
+    { ageConfirmed: false, hasPreviewAccess: false },
+    brandingIsFallback
+  ).canViewCatalog;
 }
 
 /**

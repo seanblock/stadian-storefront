@@ -54,9 +54,10 @@ interface PageProps {
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { canViewCatalog } = await getStoreAccess();
+  const { canViewCatalog, isClosed } = await getStoreAccess();
   if (!canViewCatalog) {
-    return { title: "Products", robots: { index: false, follow: true } };
+    // A page's robots replaces the layout's, so leave a closed store's in place.
+    return { title: "Products", ...(!isClosed && { robots: { index: false, follow: true } }) };
   }
 
   const { slug } = await params;
@@ -84,8 +85,8 @@ export async function generateMetadata({
 }
 
 export default async function ProductDetailPage({ params }: PageProps) {
-  const { canViewCatalog } = await getStoreAccess();
-  if (!canViewCatalog) return <CatalogLocked />;
+  const { canViewCatalog, brandingUnavailable } = await getStoreAccess();
+  if (!canViewCatalog) return <CatalogLocked unavailable={brandingUnavailable} />;
 
   const { slug } = await params;
   const client = getStadianClient();

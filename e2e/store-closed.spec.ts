@@ -25,3 +25,27 @@ test("a closed store renders only the closed sign, not the page behind it", asyn
   // Not just unrendered: product data must not reach the page's hidden payload.
   expect(html).not.toContain('\\"slug\\"');
 });
+
+// The age cookie is self-set, so it must not open anything on a closed store.
+for (const cookie of [undefined, "age_confirmed=1"]) {
+  test(`no route's hidden payload carries store content (${cookie ?? "no cookie"})`, async ({ request }) => {
+    const headers = cookie ? { cookie } : undefined;
+    // Product display names, not slugs: a slug in the URL is echoed back as a route param.
+    const productNames = /Retatrutide|Ipamorelin|BPC-157|MOTS-c|Tirzepatide|CJC-1295|GHK-Cu|Tesamorelin/;
+    const routes = [
+      "/", "/products", "/products/retatrutide-20mg", "/cart", "/checkout", "/order/x", "/order-access",
+      "/account", "/rep", "/faq", "/about", "/terms", "/privacy", "/returns", "/contact", "/login", "/register",
+    ];
+    for (const route of routes) {
+      const html = await (await request.get(route, { headers })).text();
+      expect(html, route).toContain("Coming soon.");
+      expect(html, route).not.toMatch(productNames);
+      expect(html, route).not.toContain("FAQPage"); // FAQ JSON-LD
+      expect(html, route).not.toContain('\\"type\\":\\"doc\\"'); // CMS page body
+      expect(html, route).not.toContain("Our standard"); // home page sections
+    }
+
+    const sitemap = await (await request.get("/sitemap.xml", { headers })).text();
+    expect(sitemap).not.toContain("/products/");
+  });
+}

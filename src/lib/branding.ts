@@ -22,20 +22,25 @@ const FALLBACK_BRANDING: StorefrontBranding = {
 
 // Cache the RAW backend branding for a short window so admin changes (age gate,
 // closed state, name, colors) propagate to a running/warm server within ~30s,
-// instead of being pinned for the whole process lifetime. Returns null on error
-// so the caller can fall back. Env-based overrides are applied OUTSIDE this cache
-// (see getBranding) so they never get pinned by the static cache key.
-const fetchRawBranding = unstable_cache(
-  async (): Promise<StorefrontBranding | null> => {
-    try {
-      return await getStadianClient().branding.get();
-    } catch {
-      return null;
-    }
-  },
+// instead of being pinned for the whole process lifetime. Env-based overrides
+// are applied OUTSIDE this cache (see getBranding) so they never get pinned by
+// the static cache key.
+const fetchCachedBranding = unstable_cache(
+  // Throws on failure so the failure isn't cached: the next request retries
+  // rather than serving the fallback for the whole window.
+  async (): Promise<StorefrontBranding> => getStadianClient().branding.get(),
   ["storefront-branding"],
   { revalidate: 30, tags: ["branding"] }
 );
+
+/** The tenant's branding, or null when the API couldn't be reached. */
+async function fetchRawBranding(): Promise<StorefrontBranding | null> {
+  try {
+    return await fetchCachedBranding();
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Branding plus whether it's the fallback. The fallback knows nothing about the
