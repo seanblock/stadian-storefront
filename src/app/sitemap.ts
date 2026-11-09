@@ -1,5 +1,7 @@
 import { MetadataRoute } from "next";
 import { getStadianClient } from "@/lib/stadian";
+import { getBranding } from "@/lib/branding";
+import { getContactDetails } from "@/lib/contact-details";
 import { getSiteUrl } from "@/lib/site-url";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -11,7 +13,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/products`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
     { url: `${baseUrl}/about`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${baseUrl}/faq`, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${baseUrl}/terms`, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}/privacy`, changeFrequency: "yearly", priority: 0.3 },
   ];
+  // /contact is a 404 until the store publishes contact details. getBranding's
+  // 30s cache also makes this route refresh, so no redeploy is needed.
+  if (getContactDetails(await getBranding())) {
+    staticPages.push({ url: `${baseUrl}/contact`, changeFrequency: "yearly", priority: 0.4 });
+  }
 
   // Product pages
   try {

@@ -15,3 +15,11 @@ test("every route falls back to the closed sign while closed", async ({ page }) 
   await page.goto("/products");
   await expect(page.getByRole("heading", { name: "Coming soon." })).toBeVisible();
 });
+
+test("a closed store renders only the closed sign, not the page behind it", async ({ request }) => {
+  const html = await (await request.get("/products")).text();
+  expect(html).toContain("Coming soon.");
+  // Unlike the age gate, which overlays the real page, closed replaces it.
+  expect(html).not.toMatch(/<footer\b/);
+  expect(html).not.toContain('href="/products/');
+});

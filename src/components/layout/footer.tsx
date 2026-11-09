@@ -5,6 +5,7 @@ import {
   defaultFdaDisclaimer,
   renderDisclaimerText,
 } from "@/lib/disclaimer-text";
+import { getContactDetails } from "@/lib/contact-details";
 
 interface FooterProps {
   branding: StorefrontBranding;
@@ -64,6 +65,15 @@ export function Footer({ branding, fdaDisclaimer }: FooterProps) {
   const tagline = branding.tagline;
   const logoUrl = branding.logo_url || "/logo.png";
   const year = new Date().getFullYear();
+  const copyrightHolder = branding.legal_business_name?.trim() || storeName;
+  // Contact only links out once the store has published something to show there.
+  const linkColumns = getContactDetails(branding)
+    ? LINK_COLUMNS.map((col) =>
+        col.heading === "Support"
+          ? { ...col, links: [...col.links, { href: "/contact", label: "Contact" }] }
+          : col
+      )
+    : LINK_COLUMNS;
   // Tenant copy wins; the platform default only covers a store that has not
   // published its own version yet. The short "†" note in the bottom bar
   // restates the default's claim, so it only accompanies the default.
@@ -133,7 +143,7 @@ export function Footer({ branding, fdaDisclaimer }: FooterProps) {
           </div>
 
           {/* Link columns */}
-          {LINK_COLUMNS.map((col) => (
+          {linkColumns.map((col) => (
             <nav
               key={col.heading}
               aria-label={`${col.heading} links`}
@@ -188,7 +198,7 @@ export function Footer({ branding, fdaDisclaimer }: FooterProps) {
           <p className="text-xs" style={{ color: `${CREAM}99` }}>
             {footerText
               ? footerText
-              : `© ${year} ${storeName}. All rights reserved.`}
+              : `© ${year} ${copyrightHolder}. All rights reserved.`}
           </p>
           {usingDefaultDisclaimer && (
             <p

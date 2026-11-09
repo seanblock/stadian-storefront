@@ -13,6 +13,7 @@ import { CartDrawer } from "@/components/cart/cart-drawer";
 import { ChromeGate } from "@/components/layout/chrome-gate";
 import { StoreClosed } from "@/components/store-closed";
 import { AgeGate } from "@/components/age-gate";
+import { getContactDetails } from "@/lib/contact-details";
 import { PREVIEW_COOKIE, verifyPreviewToken } from "@/lib/preview-access";
 import { arePricesHidden } from "@/lib/pricing-access";
 import "./globals.css";
@@ -79,6 +80,8 @@ export default async function RootLayout({
   const socials = branding.social_links
     ? Object.values(branding.social_links).filter(Boolean)
     : [];
+  const contact = getContactDetails(branding);
+  const legalName = branding.legal_business_name?.trim();
   const orgLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -86,6 +89,10 @@ export default async function RootLayout({
     url: getSiteUrl(),
     ...(branding.logo_url && { logo: branding.logo_url }),
     ...(socials.length > 0 && { sameAs: socials }),
+    ...(legalName && { legalName }),
+    ...(contact?.email && { email: contact.email }),
+    ...(contact?.phone && { telephone: contact.phone }),
+    ...(contact?.addressLines && { address: contact.addressLines.join(", ") }),
   };
 
   const cookieStore = await cookies();
@@ -102,7 +109,11 @@ export default async function RootLayout({
   const cartEnabled = !(await arePricesHidden());
 
   const ageConfirmedCookie = cookieStore.get("age_confirmed");
-  const ageGateActive = branding.age_gate_enabled === true && !ageConfirmedCookie;
+  // The gate sits over the real page rather than replacing it. Visitors still
+  // have to confirm, but crawlers and link scanners can read what the site is
+  // instead of finding one identical interstitial at every URL.
+  const ageGateActive =
+    !isClosed && branding.age_gate_enabled === true && !ageConfirmedCookie;
 
   return (
     <html
@@ -111,21 +122,13 @@ export default async function RootLayout({
       style={cssVars as React.CSSProperties}
       suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col">
+      <body className={`flex min-h-full flex-col${ageGateActive ? " overflow-hidden" : ""}`}>
         {isClosed ? (
           <ThemeProvider>
             <StoreClosed
               reason={branding.storefront_closed_reason}
               branding={branding}
               passwordEnabled={branding.storefront_access_password_set === true}
-            />
-          </ThemeProvider>
-        ) : ageGateActive ? (
-          <ThemeProvider>
-            <AgeGate
-              minAge={branding.age_gate_min_age ?? 21}
-              declineUrl={branding.age_gate_redirect_url ?? undefined}
-              branding={branding}
             />
           </ThemeProvider>
         ) : (
@@ -137,25 +140,36 @@ export default async function RootLayout({
               }}
             />
             <ThemeProvider>
-              <AuthProvider>
-                <CartProvider enabled={cartEnabled} minimumOrderAmount={branding.minimum_order_amount ?? null}>
-                  <ChromeGate>
-                    <Header branding={branding} cartEnabled={cartEnabled} />
-                  </ChromeGate>
-                  <main className="flex-1">{children}</main>
-                  <ChromeGate>
-                    <Footer
-                      branding={branding}
-                      fdaDisclaimer={fdaDisclaimer?.content ?? null}
-                    />
-                  </ChromeGate>
-                  {cartEnabled && (
+              {/* `contents` keeps <main> and the footer as direct flex items of
+                  <body>; `inert` keeps keyboard focus out while the gate is up. */}
+              <div className="contents" inert={ageGateActive}>
+                <AuthProvider>
+                  <CartProvider enabled={cartEnabled} minimumOrderAmount={branding.minimum_order_amount ?? null}>
                     <ChromeGate>
-                      <CartDrawer />
+                      <Header branding={branding} cartEnabled={cartEnabled} />
                     </ChromeGate>
-                  )}
-                </CartProvider>
-              </AuthProvider>
+                    <main className="flex-1">{children}</main>
+                    <ChromeGate>
+                      <Footer
+                        branding={branding}
+                        fdaDisclaimer={fdaDisclaimer?.content ?? null}
+                      />
+                    </ChromeGate>
+                    {cartEnabled && (
+                      <ChromeGate>
+                        <CartDrawer />
+                      </ChromeGate>
+                    )}
+                  </CartProvider>
+                </AuthProvider>
+              </div>
+              {ageGateActive && (
+                <AgeGate
+                  minAge={branding.age_gate_min_age ?? 21}
+                  declineUrl={branding.age_gate_redirect_url ?? undefined}
+                  branding={branding}
+                />
+              )}
             </ThemeProvider>
           </>
         )}

@@ -47,7 +47,7 @@ export function AgeGate({ minAge, declineUrl, branding, onConfirm }: AgeGateProp
       className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
       onKeyDown={handleKeyDown}
     >
-      {/* Deep-navy field (the gate replaces the page, so there's nothing to dim) */}
+      {/* Opaque deep-navy field: the page renders underneath but stays hidden until confirmed */}
       <div
         aria-hidden
         className="absolute inset-0"
@@ -105,10 +105,10 @@ export function AgeGate({ minAge, declineUrl, branding, onConfirm }: AgeGateProp
             Age verification
           </span>
           {/* The age numeral is the one bold moment — gold on navy reads with high contrast. */}
-          <h1 id="age-gate-heading" className="font-serif text-3xl leading-tight sm:text-4xl">
+          <h2 id="age-gate-heading" className="font-serif text-3xl leading-tight sm:text-4xl">
             You must be{" "}
             <span style={{ color: "var(--color-accent)" }}>{minAge}</span> or older to enter
-          </h1>
+          </h2>
           <p
             id="age-gate-description"
             className="max-w-xs text-sm leading-relaxed"

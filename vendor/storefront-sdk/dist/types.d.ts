@@ -401,6 +401,12 @@ export interface StorefrontBranding {
     terms_of_service: Record<string, unknown> | null;
     privacy_policy: Record<string, unknown> | null;
     return_policy: Record<string, unknown> | null;
+    /** Who runs the store, published on its contact page. Null when not published. */
+    legal_business_name?: string | null;
+    contact_email?: string | null;
+    contact_phone?: string | null;
+    /** Free-form postal address; line breaks are meaningful. */
+    business_address?: string | null;
     storefront_enabled: boolean;
     storefront_closed_reason: 'general' | 'coming_soon' | 'maintenance' | null;
     /** True when a preview password is set, so the closed-store page can show the unlock form. */
