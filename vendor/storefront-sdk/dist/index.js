@@ -458,6 +458,7 @@ export class StadianClient {
             maxRetries: config.maxRetries,
             timeoutMs: config.timeoutMs,
             clientIp: config.clientIp,
+            requestHeaders: config.requestHeaders,
         });
         this.catalog = new CatalogResource(this.http);
         this.cart = new CartResource(this.http);

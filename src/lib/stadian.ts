@@ -1,8 +1,27 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { unstable_rethrow } from "next/navigation";
 import { StadianClient, HttpClient } from "@stadian/storefront-sdk";
+import { PREVIEW_GRANT_COOKIE } from "./preview-access";
 
 let client: StadianClient | null = null;
 let httpClient: HttpClient | null = null;
+let sharedClient: StadianClient | null = null;
+let sharedHttpClient: HttpClient | null = null;
+
+/**
+ * The visitor's preview grant, so a closed store's API serves someone who
+ * entered the password. Read per request; outside one (a build) there is none.
+ */
+async function previewGrantHeaders(): Promise<Record<string, string>> {
+  let grant: string | undefined;
+  try {
+    grant = (await cookies()).get(PREVIEW_GRANT_COOKIE)?.value;
+  } catch (err) {
+    unstable_rethrow(err);
+    return {};
+  }
+  return grant ? { "X-Storefront-Preview": grant } : {};
+}
 
 function getConfig() {
   const apiKey = process.env.STADIAN_API_KEY;
@@ -17,7 +36,7 @@ function getConfig() {
 
 export function getStadianClient(): StadianClient {
   if (!client) {
-    client = new StadianClient(getConfig());
+    client = new StadianClient({ ...getConfig(), requestHeaders: previewGrantHeaders });
   }
   return client;
 }
@@ -25,9 +44,25 @@ export function getStadianClient(): StadianClient {
 /** Low-level HTTP client for SDK endpoints not yet wrapped by a resource. */
 export function getHttpClient(): HttpClient {
   if (!httpClient) {
-    httpClient = new HttpClient(getConfig());
+    httpClient = new HttpClient({ ...getConfig(), requestHeaders: previewGrantHeaders });
   }
   return httpClient;
+}
+
+/**
+ * Clients for reads that are the same for every visitor and cached across
+ * them (branding, disclaimers, the sitemap). They must not read cookies, which
+ * a cache scope forbids, and need no grant: those endpoints answer a closed
+ * store, and a closed store's sitemap lists no products.
+ */
+export function getSharedClient(): StadianClient {
+  if (!sharedClient) sharedClient = new StadianClient(getConfig());
+  return sharedClient;
+}
+
+export function getSharedHttpClient(): HttpClient {
+  if (!sharedHttpClient) sharedHttpClient = new HttpClient(getConfig());
+  return sharedHttpClient;
 }
 
 /**
@@ -57,5 +92,21 @@ export async function getVisitorIp(): Promise<string | undefined> {
  * would attribute one visitor's traffic to whoever built it first.
  */
 export async function getVisitorClient(): Promise<StadianClient> {
-  return new StadianClient({ ...getConfig(), clientIp: await getVisitorIp() });
+  return new StadianClient({
+    ...getConfig(),
+    clientIp: await getVisitorIp(),
+    requestHeaders: previewGrantHeaders,
+  });
+}
+
+/** Low-level counterpart of getVisitorClient, for endpoints without a resource. */
+export async function getVisitorHttpClient(
+  options: { maxRetries?: number } = {},
+): Promise<HttpClient> {
+  return new HttpClient({
+    ...getConfig(),
+    ...options,
+    clientIp: await getVisitorIp(),
+    requestHeaders: previewGrantHeaders,
+  });
 }

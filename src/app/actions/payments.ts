@@ -1,5 +1,6 @@
 "use server";
 
+import { StadianAuthError } from "@stadian/storefront-sdk";
 import { getHttpClient } from "@/lib/stadian";
 import { getCustomerToken } from "./auth";
 
@@ -63,15 +64,28 @@ export async function getPaymentConfig(): Promise<PaymentClientConfig | null> {
 }
 
 export async function getManualPaymentMethods(): Promise<ManualPaymentMethod[]> {
-  try {
-    const http = getHttpClient();
-    // Backend route: /v1/storefront/payment-methods
-    const res = await http.request<{ payment_methods: ManualPaymentMethod[] }>(
+  // Payee details go only to someone who may check out, so on a store that
+  // requires sign-in the API needs to know who is asking.
+  const token = await getCustomerToken();
+  const fetchMethods = (customerToken: string | null) =>
+    getHttpClient().request<{ payment_methods: ManualPaymentMethod[] }>(
       "GET",
       "/payment-methods",
+      { headers: customerToken ? { Authorization: `Bearer ${customerToken}` } : undefined },
     );
-    return res.payment_methods ?? [];
-  } catch {
+  try {
+    return (await fetchMethods(token)).payment_methods ?? [];
+  } catch (err) {
+    // A token the API no longer honours (account deactivated, approval
+    // revoked) shouldn't cost a guest-checkout store its payment options:
+    // ask again as a guest, and let the API decide what a guest may see.
+    if (token && err instanceof StadianAuthError) {
+      try {
+        return (await fetchMethods(null)).payment_methods ?? [];
+      } catch {
+        return [];
+      }
+    }
     return [];
   }
 }

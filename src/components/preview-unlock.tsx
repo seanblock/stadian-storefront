@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { submitPreviewPassword } from "@/app/actions/preview-access";
+import { submitPreviewPassword, type PreviewUnlockFailure } from "@/app/actions/preview-access";
 
 const CREAM = "#F5F1E6";
 
 export function PreviewUnlock() {
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<null | "invalid" | "unavailable">(null);
+  const [error, setError] = useState<PreviewUnlockFailure | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent) {
@@ -76,7 +76,11 @@ export function PreviewUnlock() {
         <p className="text-xs" style={{ color: "#e2708a" }}>
           {error === "unavailable"
             ? "Preview access isn't configured for this store yet."
-            : "Incorrect password. Please try again."}
+            : error === "busy"
+              ? "Too many attempts. Please try again later."
+              : error === "error"
+                ? "Something went wrong. Please try again."
+                : "Incorrect password. Please try again."}
         </p>
       ) : null}
     </form>

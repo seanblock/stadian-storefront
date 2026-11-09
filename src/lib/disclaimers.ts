@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { getHttpClient } from "./stadian";
+import { getHttpClient, getSharedHttpClient } from "./stadian";
 
 /**
  * Tenant-authored, versioned disclaimers (managed in the Stadian admin).
@@ -35,7 +35,7 @@ type ActiveDisclaimersResponse = {
 const fetchActiveDisclaimers = unstable_cache(
   async (): Promise<ActiveDisclaimersResponse["items"] | null> => {
     try {
-      const data = await getHttpClient().request<ActiveDisclaimersResponse>(
+      const data = await getSharedHttpClient().request<ActiveDisclaimersResponse>(
         "GET",
         "/disclaimers/active",
       );

@@ -11,6 +11,10 @@ import crypto from "node:crypto";
 
 export const PREVIEW_COOKIE = "sf_preview_access";
 
+// The API's own grant for this visitor (from POST /access), forwarded on every
+// API call as X-Storefront-Preview. A closed store's API answers nothing else.
+export const PREVIEW_GRANT_COOKIE = "sf_preview_grant";
+
 // 30 days — a preview grant is a convenience, not a security boundary.
 export const PREVIEW_MAX_AGE = 60 * 60 * 24 * 30;
 
@@ -63,4 +67,26 @@ export function verifyPreviewToken(token: string | undefined | null): boolean {
   const b = Buffer.from(expected);
   if (a.length !== b.length) return false;
   return crypto.timingSafeEqual(a, b);
+}
+
+/** The password version a grant was issued under, or null for a malformed grant. */
+export function previewGrantVersion(grant: string | undefined | null): string | null {
+  const parts = grant?.split(".") ?? [];
+  if (parts.length !== 4 || parts[0] !== "sfp1" || !parts[2]) return null;
+  return parts[2];
+}
+
+/**
+ * Whether this visitor may see a closed store: our signed cookie, plus an API
+ * grant issued under the tenant's current preview password. A grant from before
+ * the owner changed or cleared the password no longer counts, so the visitor
+ * gets the closed sign (and the password prompt) instead of an empty store.
+ */
+export function hasPreviewAccess(
+  token: string | undefined | null,
+  grant: string | undefined | null,
+  currentVersion: string | null | undefined
+): boolean {
+  if (!currentVersion) return false;
+  return verifyPreviewToken(token) && previewGrantVersion(grant) === currentVersion;
 }

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import type { StorefrontBranding } from "@stadian/storefront-sdk";
 import { getBrandingState } from "./branding";
 import { AGE_CONFIRMED_COOKIE } from "./age-gate-cookie";
-import { PREVIEW_COOKIE, verifyPreviewToken } from "./preview-access";
+import { PREVIEW_COOKIE, PREVIEW_GRANT_COOKIE, hasPreviewAccess } from "./preview-access";
 
 type AccessBranding = Pick<StorefrontBranding, "storefront_enabled" | "age_gate_enabled">;
 
@@ -64,7 +64,11 @@ export async function getStoreAccess(): Promise<StoreAccess> {
     branding,
     {
       ageConfirmed: Boolean(cookieStore.get(AGE_CONFIRMED_COOKIE)),
-      hasPreviewAccess: verifyPreviewToken(cookieStore.get(PREVIEW_COOKIE)?.value),
+      hasPreviewAccess: hasPreviewAccess(
+        cookieStore.get(PREVIEW_COOKIE)?.value,
+        cookieStore.get(PREVIEW_GRANT_COOKIE)?.value,
+        branding.storefront_access_version
+      ),
     },
     isFallback
   );

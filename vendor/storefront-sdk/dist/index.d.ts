@@ -352,6 +352,9 @@ export interface StadianClientConfig {
      *  visitor from another — a server-side storefront otherwise looks like a
      *  single enormous customer. Build a client per request, never a singleton. */
     clientIp?: string;
+    /** Extra headers resolved afresh for every request (e.g. a closed store's
+     *  preview grant). Explicit per-request headers still win. */
+    requestHeaders?: () => Record<string, string> | Promise<Record<string, string>>;
 }
 /**
  * Stadian Storefront SDK client.

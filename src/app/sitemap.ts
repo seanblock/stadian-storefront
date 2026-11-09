@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { getStadianClient } from "@/lib/stadian";
+import { getSharedClient } from "@/lib/stadian";
 import { getBrandingState } from "@/lib/branding";
 import { getContactDetails } from "@/lib/contact-details";
 import { getSiteUrl } from "@/lib/site-url";
@@ -29,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Product pages
   try {
-    const client = getStadianClient();
+    const client = getSharedClient();
     const products = await client.catalog.list({ limit: 100 });
     const productPages: MetadataRoute.Sitemap = products.items.map((product) => ({
       url: `${baseUrl}/products/${product.slug}`,

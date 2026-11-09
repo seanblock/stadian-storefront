@@ -21,6 +21,13 @@ export interface HttpClientConfig {
      * everyone else's traffic to them.
      */
     clientIp?: string;
+    /**
+     * Extra headers resolved afresh for every request, such as a closed store's
+     * preview grant (`X-Storefront-Preview`) read from the visitor's cookie. Lets
+     * one long-lived client act for whichever visitor is being served. Explicit
+     * per-request `headers` still win.
+     */
+    requestHeaders?: () => Record<string, string> | Promise<Record<string, string>>;
 }
 export interface RequestOptions {
     body?: unknown;
@@ -33,6 +40,7 @@ export declare class HttpClient {
     private readonly maxRetries;
     private readonly timeoutMs;
     private readonly clientIp?;
+    private readonly requestHeaders?;
     constructor(config: HttpClientConfig);
     /**
      * Make an authenticated request to the storefront API.

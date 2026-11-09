@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { getStadianClient } from "./stadian";
+import { getSharedClient } from "./stadian";
 import type { StorefrontBranding } from "@stadian/storefront-sdk";
 
 const FALLBACK_BRANDING: StorefrontBranding = {
@@ -28,7 +28,7 @@ const FALLBACK_BRANDING: StorefrontBranding = {
 const fetchCachedBranding = unstable_cache(
   // Throws on failure so the failure isn't cached: the next request retries
   // rather than serving the fallback for the whole window.
-  async (): Promise<StorefrontBranding> => getStadianClient().branding.get(),
+  async (): Promise<StorefrontBranding> => getSharedClient().branding.get(),
   ["storefront-branding"],
   { revalidate: 30, tags: ["branding"] }
 );

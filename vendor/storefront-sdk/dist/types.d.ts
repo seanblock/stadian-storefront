@@ -411,6 +411,9 @@ export interface StorefrontBranding {
     storefront_closed_reason: 'general' | 'coming_soon' | 'maintenance' | null;
     /** True when a preview password is set, so the closed-store page can show the unlock form. */
     storefront_access_password_set?: boolean;
+    /** Changes whenever the preview password does (null when none is set). A
+     *  visitor's preview grant is only good for the version it was issued under. */
+    storefront_access_version?: string | null;
     age_gate_enabled?: boolean;
     age_gate_min_age?: number;
     age_gate_redirect_url?: string | null;
