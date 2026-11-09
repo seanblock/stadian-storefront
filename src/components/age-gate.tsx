@@ -47,7 +47,8 @@ export function AgeGate({ minAge, declineUrl, branding, onConfirm }: AgeGateProp
       className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
       onKeyDown={handleKeyDown}
     >
-      {/* Opaque deep-navy field: the page renders underneath but stays hidden until confirmed */}
+      {/* Opaque deep-navy field: the page renders underneath but stays hidden until confirmed.
+          Catalog data isn't fetched until then, see getStoreAccess. */}
       <div
         aria-hidden
         className="absolute inset-0"

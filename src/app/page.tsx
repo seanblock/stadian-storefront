@@ -4,6 +4,7 @@ import { getBranding } from "@/lib/branding";
 import { getStadianClient } from "@/lib/stadian";
 import { fetchWithOptionalAuth } from "@/lib/authed-fetch";
 import { arePricesHidden } from "@/lib/pricing-access";
+import { getStoreAccess } from "@/lib/store-access";
 import { Hero } from "@/components/home/hero";
 import { TrustBar } from "@/components/home/trust-bar";
 import { BestSellers } from "@/components/home/best-sellers";
@@ -28,17 +29,20 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Home() {
   const branding = await getBranding();
   const pricesHidden = await arePricesHidden();
+  const { canViewCatalog } = await getStoreAccess();
 
   let featuredProducts: StorefrontProduct[] = [];
-  try {
-    const client = getStadianClient();
-    // A stale session degrades to the public catalog instead of crashing.
-    const result = await fetchWithOptionalAuth((customerToken) =>
-      client.catalog.list({ page: 1, limit: 12, customerToken })
-    );
-    featuredProducts = result.items;
-  } catch {
-    // Fall through — sections gracefully hide when empty
+  if (canViewCatalog) {
+    try {
+      const client = getStadianClient();
+      // A stale session degrades to the public catalog instead of crashing.
+      const result = await fetchWithOptionalAuth((customerToken) =>
+        client.catalog.list({ page: 1, limit: 12, customerToken })
+      );
+      featuredProducts = result.items;
+    } catch {
+      // Fall through — sections gracefully hide when empty
+    }
   }
 
   // Derive unique categories from featured product set

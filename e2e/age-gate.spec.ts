@@ -62,4 +62,38 @@ test.describe("age gate", () => {
     // Every URL used to return one identical interstitial.
     expect(new Set(titles.values()).size).toBe(titles.size);
   });
+
+  test("products stay out of the page source until the visitor confirms", async ({
+    page,
+    context,
+    baseURL,
+    request,
+  }) => {
+    // A confirmed visitor opens a product, which gives a real name to look for.
+    // Catalog links can be product groups that redirect, so read the final page.
+    await context.addCookies([{ name: "age_confirmed", value: "1", url: baseURL! }]);
+    await page.goto("/products");
+    // Navigate directly to avoid a hydration-before-click race on a cold dev server.
+    const href = await page.locator('main a[href^="/products/"]').first().getAttribute("href");
+    await page.goto(href!);
+    const heading = page.locator("main h1").first();
+    await expect(heading).toBeVisible();
+    const name = (await heading.textContent())?.trim() ?? "";
+    const slug = new URL(page.url()).pathname.split("/").pop() ?? "";
+    expect(name).toBeTruthy();
+    expect(slug).toBeTruthy();
+
+    // The `request` fixture has no cookies: this is what scanners get.
+    for (const path of ["/", "/products", `/products/${slug}`, "/sitemap.xml", "/about", "/faq"]) {
+      const source = await (await request.get(path)).text();
+      if (path !== `/products/${slug}`) {
+        expect(source, `slug in source of ${path}`).not.toContain(slug);
+      }
+      expect(source, `name in source of ${path}`).not.toContain(name);
+    }
+
+    const lockedDetail = await (await request.get(`/products/${slug}`)).text();
+    expect(lockedDetail).toContain("Confirm your age to view the catalog.");
+    expect(lockedDetail).toMatch(/<meta name="robots" content="noindex/);
+  });
 });

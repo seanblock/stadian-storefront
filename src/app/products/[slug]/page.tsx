@@ -4,6 +4,8 @@ import Link from "next/link";
 import { getStadianClient } from "@/lib/stadian";
 import { fetchWithOptionalAuth } from "@/lib/authed-fetch";
 import { arePricesHidden } from "@/lib/pricing-access";
+import { getStoreAccess } from "@/lib/store-access";
+import { CatalogLocked } from "@/components/products/catalog-locked";
 import { SignInForPricing } from "@/components/products/sign-in-for-pricing";
 import { getSiteUrl } from "@/lib/site-url";
 import { AddToCartButton } from "./add-to-cart-button";
@@ -52,6 +54,11 @@ interface PageProps {
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
+  const { canViewCatalog } = await getStoreAccess();
+  if (!canViewCatalog) {
+    return { title: "Products", robots: { index: false, follow: true } };
+  }
+
   const { slug } = await params;
   try {
     const client = getStadianClient();
@@ -77,6 +84,9 @@ export async function generateMetadata({
 }
 
 export default async function ProductDetailPage({ params }: PageProps) {
+  const { canViewCatalog } = await getStoreAccess();
+  if (!canViewCatalog) return <CatalogLocked />;
+
   const { slug } = await params;
   const client = getStadianClient();
   // Wholesale stores return prices only to signed-in buyers; a stale session

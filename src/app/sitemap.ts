@@ -1,8 +1,9 @@
 import { MetadataRoute } from "next";
 import { getStadianClient } from "@/lib/stadian";
-import { getBranding } from "@/lib/branding";
+import { getBrandingState } from "@/lib/branding";
 import { getContactDetails } from "@/lib/contact-details";
 import { getSiteUrl } from "@/lib/site-url";
+import { isCatalogPublic } from "@/lib/store-access";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getSiteUrl();
@@ -18,9 +19,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
   // /contact is a 404 until the store publishes contact details. getBranding's
   // 30s cache also makes this route refresh, so no redeploy is needed.
-  if (getContactDetails(await getBranding())) {
+  const { branding, isFallback } = await getBrandingState();
+  if (getContactDetails(branding)) {
     staticPages.push({ url: `${baseUrl}/contact`, changeFrequency: "yearly", priority: 0.4 });
   }
+
+  // Product URLs name the products, so a gated or closed store doesn't list them.
+  if (!isCatalogPublic(branding, isFallback)) return staticPages;
 
   // Product pages
   try {

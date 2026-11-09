@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getStadianClient } from "@/lib/stadian";
 import { fetchWithOptionalAuth } from "@/lib/authed-fetch";
 import { getBranding } from "@/lib/branding";
+import { getStoreAccess } from "@/lib/store-access";
+import { CatalogLocked } from "@/components/products/catalog-locked";
 import { ProductCard } from "@/components/products/product-card";
 import { ProductGroupCard } from "@/components/products/product-group-card";
 import { SearchBar } from "@/components/products/search-bar";
@@ -33,6 +35,9 @@ interface ProductsPageProps {
 export default async function ProductsPage({
   searchParams,
 }: ProductsPageProps) {
+  const { canViewCatalog } = await getStoreAccess();
+  if (!canViewCatalog) return <CatalogLocked />;
+
   const params = await searchParams;
   const search = params.search ?? "";
   const category = params.category ?? "";

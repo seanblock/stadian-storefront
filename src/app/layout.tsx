@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
-import { cookies } from "next/headers";
 import { getBranding, brandingToCssVars } from "@/lib/branding";
 import { getActiveDisclaimer } from "@/lib/disclaimers";
 import { getSiteUrl } from "@/lib/site-url";
@@ -14,7 +13,7 @@ import { ChromeGate } from "@/components/layout/chrome-gate";
 import { StoreClosed } from "@/components/store-closed";
 import { AgeGate } from "@/components/age-gate";
 import { getContactDetails } from "@/lib/contact-details";
-import { PREVIEW_COOKIE, verifyPreviewToken } from "@/lib/preview-access";
+import { getStoreAccess } from "@/lib/store-access";
 import { arePricesHidden } from "@/lib/pricing-access";
 import "./globals.css";
 
@@ -95,25 +94,15 @@ export default async function RootLayout({
     ...(contact?.addressLines && { address: contact.addressLines.join(", ") }),
   };
 
-  const cookieStore = await cookies();
-
   // A closed store can be unlocked per-visitor with the tenant's preview
-  // password. A valid signed cookie bypasses the closed gate for that browser.
-  const hasPreviewAccess = verifyPreviewToken(
-    cookieStore.get(PREVIEW_COOKIE)?.value
-  );
-  const isClosed = branding.storefront_enabled === false && !hasPreviewAccess;
+  // password. The age gate sits over the real page rather than replacing it, so
+  // crawlers and link scanners can read what the site is instead of finding one
+  // identical interstitial at every URL.
+  const { isClosed, ageGateActive } = await getStoreAccess();
 
   // A wholesale store closes the cart to signed-out visitors, so don't render
   // one they can't use.
   const cartEnabled = !(await arePricesHidden());
-
-  const ageConfirmedCookie = cookieStore.get("age_confirmed");
-  // The gate sits over the real page rather than replacing it. Visitors still
-  // have to confirm, but crawlers and link scanners can read what the site is
-  // instead of finding one identical interstitial at every URL.
-  const ageGateActive =
-    !isClosed && branding.age_gate_enabled === true && !ageConfirmedCookie;
 
   return (
     <html

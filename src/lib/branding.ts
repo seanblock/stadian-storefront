@@ -37,12 +37,23 @@ const fetchRawBranding = unstable_cache(
   { revalidate: 30, tags: ["branding"] }
 );
 
-export async function getBranding(): Promise<StorefrontBranding> {
+/**
+ * Branding plus whether it's the fallback. The fallback knows nothing about the
+ * tenant's gate or closed state, so access decisions must not trust it.
+ */
+export async function getBrandingState(): Promise<{
+  branding: StorefrontBranding;
+  isFallback: boolean;
+}> {
   const raw = await fetchRawBranding();
   // Optional per-deployment overrides — useful for previewing brand changes
   // without touching the Stadian admin, and the e2e closed-state seam. Applied
   // per-request (outside the cache) so they always reflect the current env.
-  return applyOverrides(raw ?? FALLBACK_BRANDING);
+  return { branding: applyOverrides(raw ?? FALLBACK_BRANDING), isFallback: raw === null };
+}
+
+export async function getBranding(): Promise<StorefrontBranding> {
+  return (await getBrandingState()).branding;
 }
 
 const CLOSED_REASONS = ["general", "coming_soon", "maintenance"] as const;

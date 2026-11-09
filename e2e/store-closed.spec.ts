@@ -22,4 +22,6 @@ test("a closed store renders only the closed sign, not the page behind it", asyn
   // Unlike the age gate, which overlays the real page, closed replaces it.
   expect(html).not.toMatch(/<footer\b/);
   expect(html).not.toContain('href="/products/');
+  // Not just unrendered: product data must not reach the page's hidden payload.
+  expect(html).not.toContain('\\"slug\\"');
 });
